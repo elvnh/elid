@@ -1,0 +1,281 @@
+#include "base_core.h"
+
+/* Safe casts */
+#define DEFINE_SAFE_CAST_SIGNED_TO_UNSIGNED(f, t)   \
+    t f##_to_##t(f from)                            \
+    {                                               \
+        ASSERT_ALWAYS(from >= 0);                   \
+        ASSERT_ALWAYS((t)from <= MAX_VALUE_OF(t));  \
+        t result = (t)from;                         \
+        return result;                              \
+    }
+
+#define DEFINE_SAFE_CAST_UNSIGNED_TO_SIGNED(f, t)   \
+    t f##_to_##t(f from)                            \
+    {                                               \
+        ASSERT_ALWAYS(from <= MAX_VALUE_OF(t));     \
+        t result = (t)from;                         \
+        return result;                              \
+    }
+
+#define DEFINE_SAFE_CAST_SAME_SIGNEDNESS(f, t)  \
+    t f##_to_##t(f from)                        \
+    {                                           \
+        ASSERT_ALWAYS(from >= MIN_VALUE_OF(t)); \
+        ASSERT_ALWAYS(from <= MAX_VALUE_OF(t)); \
+        t result = (t)from;                     \
+        return result;                          \
+    }
+
+DEFINE_SAFE_CAST_SIGNED_TO_UNSIGNED(s32, u32)
+DEFINE_SAFE_CAST_UNSIGNED_TO_SIGNED(u32, s32)
+
+#undef DEFINE_SAFE_CAST_SIGNED_TO_UNSIGNED
+#undef DEFINE_SAFE_CAST_UNSIGNED_TO_SIGNED
+#undef DEFINE_SAFE_CAST_SAME_SIGNEDNESS
+
+/* Safe arithmetic */
+#define DEFINE_SAFE_SIGNED_ADD(t)               \
+    b32 safe_add_##t(t a, t b, t *res)          \
+    {                                           \
+        b32 result = false;                     \
+                                                \
+        t min = MIN_VALUE_OF(t);                \
+        t max = MAX_VALUE_OF(t);                \
+                                                \
+        if ((a == 0) || (b == 0)) {             \
+            result = true;                      \
+        } else {                                \
+            if (a > 0) {                        \
+                if (b > 0) {                    \
+                    result = a <= (max - b);    \
+                } else {                        \
+                    result = a >= (min - b);    \
+                }                               \
+            } else {                            \
+                if (b > 0) {                    \
+                    result = b >= (min - a);    \
+                } else {                        \
+                    result = a >= (min - b);    \
+                }                               \
+            }                                   \
+        }                                       \
+                                                \
+        if (result) {                           \
+            *res = a + b;                       \
+        }                                       \
+                                                \
+        return result;                          \
+    }
+
+#define DEFINE_SAFE_SIGNED_SUB(t)               \
+    b32 safe_sub_##t(t a, t b, t *res)            \
+    {                                           \
+        b32 result = false;                     \
+                                                \
+        t min = MIN_VALUE_OF(t);                \
+        t max = MAX_VALUE_OF(t);                \
+                                                \
+        if ((a == 0) || (b == 0)) {             \
+            result = true;                      \
+        } else {                                \
+            if (a > 0) {                        \
+                if (b > 0) {                    \
+                    result = a >= (min + b);    \
+                } else {                        \
+                    result = a <= (max - b);    \
+                }                               \
+            } else {                            \
+                if (b > 0) {                    \
+                    result = b <= (min - a);    \
+                } else {                        \
+                    result = a <= (max + b);    \
+                }                               \
+            }                                   \
+        }                                       \
+                                                \
+        if (result) {                           \
+            *res = a - b;                       \
+        }                                       \
+                                                \
+        return result;                          \
+    }
+
+#define DEFINE_SAFE_SIGNED_MUL(t)               \
+    b32 safe_mul_##t(t a, t b, t *res)          \
+    {                                           \
+        b32 result = false;                     \
+                                                \
+        t min = MIN_VALUE_OF(t);                \
+        t max = MAX_VALUE_OF(t);                \
+                                                \
+        if ((a == 0) || (b == 0)) {             \
+            result = true;                      \
+        } else if (a > 0) {                     \
+            if (b > 0) {                        \
+                result = a <= (max / b);        \
+            } else {                            \
+                result = b >= (min / a);        \
+            }                                   \
+        } else {                                \
+            if (b > 0) {                        \
+                result = a >= (min / b);        \
+            } else {                            \
+                result = b <= (max / a);        \
+            }                                   \
+        }                                       \
+                                                \
+        if (result) {                           \
+            *res = a * b;                       \
+        }                                       \
+                                                \
+        return result;                          \
+    }
+
+#define DEFINE_SAFE_SIGNED_DIV(t)               \
+    b32 safe_div_##t(t a, t b, t *res)          \
+    {                                           \
+        b32 result = false;                     \
+                                                \
+        t min = MIN_VALUE_OF(t);                \
+                                                \
+        if (b == 0) {                           \
+            result = false;                     \
+        } else if ((a == min) && (b == -1)) {   \
+            result = false;                     \
+        } else {                                \
+            result = true;                      \
+        }                                       \
+                                                \
+        if (result) {                           \
+            *res = a / b;                       \
+        }                                       \
+                                                \
+        return result;                          \
+    }
+
+#define DEFINE_SAFE_SIGNED_NEG(t)               \
+    b32 safe_neg_##t(t a, t *res)               \
+    {                                           \
+        b32 result = false;                     \
+                                                \
+        t min = MIN_VALUE_OF(t);                \
+                                                \
+        result = a != min;                      \
+                                                \
+        if (result) {                           \
+            *res = -a;                          \
+        }                                       \
+                                                \
+        return result;                          \
+    }
+
+#define DEFINE_SAFE_UNSIGNED_ADD(t)             \
+    b32 safe_add_##t(t a, t b, t *res)          \
+    {                                           \
+        b32 result = false;                     \
+                                                \
+        t max = MAX_VALUE_OF(t);                \
+                                                \
+        if ((a == 0) || (b == 0)) {             \
+            result = true;                      \
+        } else {                                \
+            result = a <= (max - b);            \
+        }                                       \
+                                                \
+        if (result) {                           \
+            *res = a + b;                       \
+        }                                       \
+                                                \
+        return result;                          \
+    }
+
+#define DEFINE_SAFE_UNSIGNED_SUB(t)             \
+    b32 safe_sub_##t(t a, t b, t *res)          \
+    {                                           \
+        b32 result = false;                     \
+                                                \
+        if ((a == 0) || (b == 0)) {             \
+            result = true;                      \
+        } else {                                \
+            result = a >= b;                    \
+        }                                       \
+                                                \
+        if (result) {                           \
+            *res = a - b;                       \
+        }                                       \
+                                                \
+        return result;                          \
+    }
+
+#define DEFINE_SAFE_UNSIGNED_MUL(t)             \
+    b32 safe_mul_##t(t a, t b, t *res)          \
+    {                                           \
+        b32 result = false;                     \
+                                                \
+        t max = MAX_VALUE_OF(t);                \
+                                                \
+        if ((a == 0) || (b == 0)) {             \
+            result = true;                      \
+        } else {                                \
+            result = a <= (max / b);            \
+        }                                       \
+                                                \
+        if (result) {                           \
+            *res = a * b;                       \
+        }                                       \
+                                                \
+        return result;                          \
+    }
+
+#define DEFINE_SAFE_UNSIGNED_DIV(t)               \
+    b32 safe_div_##t(t a, t b, t *res)          \
+    {                                           \
+        b32 result = false;                     \
+                                                \
+        if (b == 0) {                           \
+            result = false;                     \
+        } else {                                \
+            result = true;                      \
+        }                                       \
+                                                \
+        if (result) {                           \
+            *res = a / b;                       \
+        }                                       \
+                                                \
+        return result;                          \
+    }
+
+#define DEFINE_SAFE_SIGNED_OPS(t)               \
+    DEFINE_SAFE_SIGNED_ADD(t)                   \
+    DEFINE_SAFE_SIGNED_SUB(t)                   \
+    DEFINE_SAFE_SIGNED_MUL(t)                   \
+    DEFINE_SAFE_SIGNED_DIV(t)                   \
+    DEFINE_SAFE_SIGNED_NEG(t)
+
+
+#define DEFINE_SAFE_UNSIGNED_OPS(t)               \
+    DEFINE_SAFE_UNSIGNED_ADD(t)                   \
+    DEFINE_SAFE_UNSIGNED_SUB(t)                   \
+    DEFINE_SAFE_UNSIGNED_MUL(t)                   \
+    DEFINE_SAFE_UNSIGNED_DIV(t)
+
+DEFINE_SAFE_SIGNED_OPS(s32)
+DEFINE_SAFE_SIGNED_OPS(s64)
+DEFINE_SAFE_SIGNED_OPS(ssize)
+
+DEFINE_SAFE_UNSIGNED_OPS(u32)
+DEFINE_SAFE_UNSIGNED_OPS(u64)
+DEFINE_SAFE_UNSIGNED_OPS(usize)
+
+#undef DEFINE_SAFE_SIGNED_ADD
+#undef DEFINE_SAFE_SIGNED_SUB
+#undef DEFINE_SAFE_SIGNED_MUL
+#undef DEFINE_SAFE_SIGNED_NEG
+
+#undef DEFINE_SAFE_UNSIGNED_ADD
+#undef DEFINE_SAFE_UNSIGNED_SUB
+#undef DEFINE_SAFE_UNSIGNED_MUL
+
+#undef DEFINE_SAFE_SIGNED_OPS
+#undef DEFINE_SAFE_UNSIGNED_OPS
