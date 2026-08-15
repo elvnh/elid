@@ -36,3 +36,7 @@
 #if !defined(DEBUG_BUILD)
 #    define DEBUG_BUILD 0
 #endif
+
+#if !defined(POISON_ALLOCATORS)
+#    define POISON_ALLOCATORS 0
+#endif

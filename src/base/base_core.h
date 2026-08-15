@@ -61,10 +61,12 @@ typedef double f64;
 
 #    define ALWAYS(e) ((e)  ? 0 : ASSERT_FAIL("ALWAYS("#e")"))
 #    define NEVER(e)  (!(e) ? 0 : ASSERT_FAIL("NEVER("#e")"))
+#    define TODO(e) ASSERT_FAIL("TODO("e")")
 #else
 #    define ASSERT(e) ((void)(e))
 #    define ALWAYS(e) (e)
 #    define NEVER(e)  (e)
+#    define TODO(e)
 #endif
 
 #define ASSERT_ALWAYS(e) (!(e) ? ASSERT_FAIL(#e) : 0)
@@ -143,3 +145,13 @@ b32 is_pow2(u64 val);
 b32 is_aligned(u64 val, u64 align);
 b32 is_aligned_pow2(u64 val, u64 align);
 u64 align_pow2(u64 val, u64 align);
+
+/* ASan */
+#if POISON_MEMORY
+#    include <sanitizer/asan_interface.h>
+#    define POISON(addr, size)  ASAN_POISON_MEMORY_REGION((addr), (size))
+#    define UNPOISON(addr, size) ASAN_UNPOISON_MEMORY_REGION((addr), (size))
+#else
+#    define POISON(addr, size)
+#    define UNPOISON(addr, size)
+#endif

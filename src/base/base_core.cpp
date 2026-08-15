@@ -279,3 +279,35 @@ DEFINE_SAFE_UNSIGNED_OPS(usize)
 
 #undef DEFINE_SAFE_SIGNED_OPS
 #undef DEFINE_SAFE_UNSIGNED_OPS
+
+/* Math */
+b32 is_pow2(u64 val)
+{
+    b32 result = ((val - 1) & val) == 0;
+
+    return result;
+}
+
+b32 is_aligned(u64 val, u64 align)
+{
+    b32 result = (val % align) == 0;
+
+    return result;
+}
+
+b32 is_aligned_pow2(u64 val, u64 align)
+{
+    b32 result = (val & (align - 1)) == 0;
+
+    return result;
+}
+
+u64 align_pow2(u64 val, u64 align)
+{
+    ASSERT(is_pow2(align));
+
+    u64 result = (val + align - 1) & ~(align - 1);
+    ASSERT_ALWAYS(result >= val);
+
+    return result;
+}
