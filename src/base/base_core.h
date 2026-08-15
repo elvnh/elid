@@ -52,7 +52,7 @@ typedef double f64;
 
 /* Debugging */
 #if DEBUG_BUILD
-#    define ASSERT(e) ASSERT_ALWAYS(e)n
+#    define ASSERT(e) ASSERT_ALWAYS(e)
 
 #    define ASSERT_FAIL(str)                           \
      fprintf(stderr, "\n*** ASSERTION FAILED ***\n"  \
