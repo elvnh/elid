@@ -27,5 +27,6 @@ usize   arena_get_memory_usage(Arena *arena);
 #define arena_alloc_struct(arena, type) arena_alloc_array(arena, type, 1)
 #define arena_alloc_array(arena, type, count) ((type *)arena_alloc_bytes((arena), (count), sizeof(type), alignof(type)))
 
+// TODO: this could become slow if we do it often to a long chain of arenas
 Temp    temp_begin(Arena *arena);
 void    temp_end(Temp *temp);

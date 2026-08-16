@@ -207,7 +207,7 @@ Cut str_cut(String str, u8 ch)
 {
     Cut result = {};
 
-    Maybe_usize next = str_find_first_occurence(str, ch);
+    usize_Maybe next = str_find_first_occurence(str, ch);
 
     if (next.ok) {
         result.head = str_prefix(str, next.value);
@@ -251,9 +251,9 @@ u8 *str_end(String str)
     return result;
 }
 
-Maybe_usize str_find_first_occurence(String str, u8 ch)
+usize_Maybe str_find_first_occurence(String str, u8 ch)
 {
-    Maybe_usize result = {};
+    usize_Maybe result = {};
 
     for (usize i = 0; i < str.count; ++i) {
         if (str.data[i] == ch) {
@@ -265,9 +265,9 @@ Maybe_usize str_find_first_occurence(String str, u8 ch)
     return result;
 }
 
-Maybe_usize str_find_last_occurence(String str, u8 ch)
+usize_Maybe str_find_last_occurence(String str, u8 ch)
 {
-    Maybe_usize result = {};
+    usize_Maybe result = {};
 
     for (usize i = sat_sub_usize(str.count, 1); i < str.count; --i) {
         if (str.data[i] == ch) {
@@ -279,9 +279,9 @@ Maybe_usize str_find_last_occurence(String str, u8 ch)
     return result;
 }
 
-Maybe_usize str_find_first_occurence_from(String str, u8 ch, usize index)
+usize_Maybe str_find_first_occurence_from(String str, u8 ch, usize index)
 {
-    Maybe_usize result = {};
+    usize_Maybe result = {};
 
     String substr = str_slice_from(str, index);
 

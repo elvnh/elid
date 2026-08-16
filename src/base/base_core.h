@@ -50,10 +50,11 @@ typedef double f64;
 
 #define TYPE_BIT_WIDTH(t) (sizeof(t) * 8)
 
-#define DEFINE_MAYBE_TYPE(t) struct Maybe_##t { t value; b32 ok; }
-#define SOME(val) {val, true}
+#define DEFINE_MAYBE_TYPE(t) struct t##_Maybe { t value; b32 ok; }
 
 DEFINE_MAYBE_TYPE(usize);
+
+#define SOME(val) {val, true}
 
 /* Pseudo-keywords */
 #define global static
