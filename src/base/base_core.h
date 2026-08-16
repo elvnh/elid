@@ -50,11 +50,18 @@ typedef double f64;
 
 #define TYPE_BIT_WIDTH(t) (sizeof(t) * 8)
 
-/* Maybe */
 #define DEFINE_MAYBE_TYPE(t) struct Maybe_##t { t value; b32 ok; }
 #define SOME(val) {val, true}
 
 DEFINE_MAYBE_TYPE(usize);
+
+/* Attributes */
+#if COMPILER_GCC
+#    define FORMAT_ATTRIBUTE(fmt_arg_number, var_arg_number)    \
+    __attribute__((format(printf, fmt_arg_number, var_arg_number)))
+#else
+#    error FORMAT_ATTRIBUTE not defined for this compiler
+#endif
 
 /* Debugging */
 #if DEBUG_BUILD
@@ -114,8 +121,9 @@ DEFINE_MAYBE_TYPE(usize);
 void *ptr_byte_offset(void *ptr, ssize offset);
 
 /* Safe casts */
-u32 s32_to_u32(s32 from);
-s32 u32_to_s32(u32 from);
+u32   s32_to_u32(s32 from);
+usize s32_to_usize(s32 from);
+s32   u32_to_s32(u32 from);
 
 /* Safe arithmetic */
 b32 safe_add_s32(s32 a, s32 b, s32 *res);

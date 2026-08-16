@@ -264,3 +264,44 @@ Maybe_usize str_find_first_occurence_from(String str, u8 ch, usize index)
 
     return result;
 }
+
+String str_format(Arena *arena, const char *fmt, ...)
+{
+    va_list args;
+
+    va_start(args, fmt);
+    String result = str_format_v(arena, fmt, args);
+    va_end(args);
+
+    return result;
+}
+
+String str_format_v(Arena *arena, const char *fmt, va_list args)
+{
+    String result = {};
+
+    va_list args_copy;
+    va_copy(args_copy, args);
+
+    // NOTE: vsnprintf writes a null terminator, so we need to make room for it.
+    s32 bytes_required = vsnprintf(0, 0, fmt, args) + 1;
+
+    if (bytes_required > 0) {
+        String buffer = str_alloc(arena, s32_to_usize(bytes_required));
+
+        s32 bytes_written = vsnprintf((char *)buffer.data, (usize)bytes_required, fmt, args_copy);
+
+        if (bytes_written > 0) {
+            buffer.count = s32_to_usize(bytes_written);
+
+            ASSERT(bytes_written == bytes_required);
+
+            result = buffer;
+        }
+
+    }
+
+    va_end(args_copy);
+
+    return result;
+}

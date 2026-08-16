@@ -34,3 +34,5 @@ Cut         str_cut(String a, u8 ch);
 Maybe_usize str_find_first_occurence(String str, u8 ch);
 Maybe_usize str_find_last_occurence(String str, u8 ch);
 Maybe_usize str_find_first_occurence_from(String str, u8 ch, usize index);
+String      str_format(Arena *arena, const char *fmt, ...) FORMAT_ATTRIBUTE(2, 3);
+String      str_format_v(Arena *arena, const char *fmt, va_list args);
