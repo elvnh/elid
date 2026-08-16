@@ -194,6 +194,32 @@ usize str_common_prefix(String a, String b)
     return result;
 }
 
+Cut str_cut_begin(String str)
+{
+    Cut result = {};
+    result.tail = str;
+    result.ok = true;
+
+    return result;
+}
+
+Cut str_cut(String str, u8 ch)
+{
+    Cut result = {};
+
+    Maybe_usize next = str_find_first_occurence(str, ch);
+
+    if (next.ok) {
+        result.head = str_prefix(str, next.value);
+        result.tail = str_slice_from(str, next.value + 1);
+        result.ok = true;
+    } else {
+        result.head = str;
+    }
+
+    return result;
+}
+
 u8 str_at(String a, usize index)
 {
     ASSERT(index < a.count);
