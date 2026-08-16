@@ -55,6 +55,10 @@ typedef double f64;
 
 DEFINE_MAYBE_TYPE(usize);
 
+/* Pseudo-keywords */
+#define global static
+#define thread_global global thread_local
+
 /* Attributes */
 #if COMPILER_GCC
 #    define FORMAT_ATTRIBUTE(fmt_arg_number, var_arg_number)    \
