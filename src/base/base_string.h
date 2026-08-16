@@ -1,0 +1,36 @@
+#pragma once
+
+struct String {
+    u8   *data;
+    usize count;
+};
+
+struct Cut {
+    String head;
+    String tail;
+    b32    ok;
+};
+
+#define     str_lit(s) String{(u8 *)s, ARRAY_COUNT(s) - 1}
+String      str_from_cstr(const char *str);
+String      str_concat(Arena *arena, String a, String b);
+String      str_copy(Arena *arena, String str);
+String      str_null_terminate(Arena *arena, String str);
+u8          str_at(String a, usize index);
+u8         *str_begin(String str);
+u8         *str_end(String str);
+b32         str_eq(String a, String b);
+b32         str_is_empty(String a);
+b32         str_starts_with(String str, String pattern);
+b32         str_ends_with(String str, String pattern);
+String      str_slice(String str, usize index, usize count);
+String      str_slice_from(String str, usize index);
+String      str_prefix(String str, usize count);
+String      str_postfix(String str, usize count);
+String      str_pop_front(String str, usize count);
+String      str_pop_back(String str, usize count);
+usize       str_common_prefix(String a, String b);
+Cut         str_cut(String a, u8 ch);
+Maybe_usize str_find_first_occurence(String str, u8 ch);
+Maybe_usize str_find_last_occurence(String str, u8 ch);
+Maybe_usize str_find_first_occurence_from(String str, u8 ch, usize index);

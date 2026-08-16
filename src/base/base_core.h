@@ -50,6 +50,12 @@ typedef double f64;
 
 #define TYPE_BIT_WIDTH(t) (sizeof(t) * 8)
 
+/* Maybe */
+#define DEFINE_MAYBE_TYPE(t) struct Maybe_##t { t value; b32 ok; }
+#define SOME(val) {val, true}
+
+DEFINE_MAYBE_TYPE(usize);
+
 /* Debugging */
 #if DEBUG_BUILD
 #    define ASSERT(e) ASSERT_ALWAYS(e)
@@ -81,6 +87,8 @@ typedef double f64;
 
 #define eval_print_s64(e) printf(#e" = %" PRId64 "\n", e);
 #define eval_print_u64(e) printf(#e" = %" PRIu64 "\n", e);
+
+#define print_string(s) printf("%.*s\n", (int)(s).count, (s).data);
 
 /* Preprocessor */
 #define CONCAT(a, b) CONCAT_(a, b)
