@@ -72,11 +72,17 @@ DEFINE_MAYBE_TYPE(usize);
          "Expression: '%s'\nFunction: %s\n%s:%d:\n", \
          str, __func__, __FILE__, __LINE__)
 
-#    define ALWAYS(e) ((e)  ? 0 : ASSERT_FAIL("ALWAYS("#e")"))
+// In debug builds, this will assert that the first expression is true before discarding
+// it and returning the second expression. In release builds, it will simply return the
+// second expressioon.
+#    define ASSERT_AND_THEN(check, e) (ASSERT(check), (e))
+
+#    define ALWAYS(e) ((e)  ? 1 : ASSERT_FAIL("ALWAYS("#e")"))
 #    define NEVER(e)  (!(e) ? 0 : ASSERT_FAIL("NEVER("#e")"))
 #    define TODO(e) ASSERT_FAIL("TODO("e")")
 #else
 #    define ASSERT(e) ((void)(e))
+#    define ASSERT_AND_THEN(check, e) (e)
 #    define ALWAYS(e) (e)
 #    define NEVER(e)  (e)
 #    define TODO(e)
@@ -109,6 +115,7 @@ DEFINE_MAYBE_TYPE(usize);
 #define MB(n) (KB(n) * 1024u)
 #define GB(n) (MB(n) * 1024u)
 #define zero_mem(ptr, count) memset(ptr, 0, count)
+#define ptr_byte_offset(ptr, count) (TYPEOF(ptr))(((u8 *)(ptr) + (count)))
 
 #if COMPILER_GCC
 #    define TYPEOF(t) __typeof__(t)
@@ -117,8 +124,6 @@ DEFINE_MAYBE_TYPE(usize);
 #else
 #    error TYPEOF() not defined for this compiler
 #endif
-
-void *ptr_byte_offset(void *ptr, ssize offset);
 
 /* Safe casts */
 u32   s32_to_u32(s32 from);

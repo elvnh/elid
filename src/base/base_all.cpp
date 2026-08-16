@@ -3,4 +3,5 @@
 #include "base_list.h"
 #include "base_platform.cpp"
 #include "base_arena.cpp"
+#include "base_pool.cpp"
 #include "base_string.cpp"

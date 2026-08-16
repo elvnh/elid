@@ -1,8 +1,5 @@
 #include "base_core.h"
 
-/* General utilities */
-void *ptr_byte_offset(void *ptr, ssize offset);
-
 /* Safe casts */
 #define DEFINE_SAFE_CAST_SIGNED_TO_UNSIGNED(f, t)   \
     t f##_to_##t(f from)                            \
@@ -279,7 +276,6 @@ DEFINE_SAFE_UNSIGNED_OPS(usize)
 
 #undef DEFINE_SAFE_SIGNED_OPS
 #undef DEFINE_SAFE_UNSIGNED_OPS
-
 
 // TODO: UNLIKELY()
 /* Saturating arithmetic */

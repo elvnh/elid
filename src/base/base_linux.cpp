@@ -23,7 +23,7 @@ usize get_system_page_size(void)
     // TODO: cache system info
     // TODO: if this call fails, abort program
     long size = sysconf(_SC_PAGESIZE);
-    ASSERT(size != -1);
+    ASSERT_ALWAYS(size != -1);
 
     usize result = (usize)size;
 
