@@ -1,5 +1,8 @@
 #include "base_core.h"
 
+/* General utilities */
+void *ptr_byte_offset(void *ptr, ssize offset);
+
 /* Safe casts */
 #define DEFINE_SAFE_CAST_SIGNED_TO_UNSIGNED(f, t)   \
     t f##_to_##t(f from)                            \
@@ -69,28 +72,24 @@ DEFINE_SAFE_CAST_UNSIGNED_TO_SIGNED(u32, s32)
     }
 
 #define DEFINE_SAFE_SIGNED_SUB(t)               \
-    b32 safe_sub_##t(t a, t b, t *res)            \
+    b32 safe_sub_##t(t a, t b, t *res)          \
     {                                           \
         b32 result = false;                     \
                                                 \
         t min = MIN_VALUE_OF(t);                \
         t max = MAX_VALUE_OF(t);                \
                                                 \
-        if ((a == 0) || (b == 0)) {             \
-            result = true;                      \
-        } else {                                \
-            if (a > 0) {                        \
-                if (b > 0) {                    \
-                    result = a >= (min + b);    \
-                } else {                        \
-                    result = a <= (max - b);    \
-                }                               \
+        if (a > 0) {                            \
+            if (b > 0) {                        \
+                result = a >= (min + b);        \
             } else {                            \
-                if (b > 0) {                    \
-                    result = b <= (min - a);    \
-                } else {                        \
-                    result = a <= (max + b);    \
-                }                               \
+                result = a <= (max - b);        \
+            }                                   \
+        } else {                                \
+            if (b > 0) {                        \
+                result = b <= (min - a);        \
+            } else {                            \
+                result = a <= (max + b);        \
             }                                   \
         }                                       \
                                                 \
