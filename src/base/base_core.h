@@ -79,6 +79,9 @@ typedef double f64;
 #    error DEBUG_BREAK() not defined for this compiler
 #endif
 
+#define eval_print_s64(e) printf(#e" = %" PRId64 "\n", e);
+#define eval_print_u64(e) printf(#e" = %" PRIu64 "\n", e);
+
 /* Preprocessor */
 #define CONCAT(a, b) CONCAT_(a, b)
 #define CONCAT_() a ## b
@@ -139,6 +142,27 @@ b32 safe_add_usize(usize a, usize b, usize *res);
 b32 safe_sub_usize(usize a, usize b, usize *res);
 b32 safe_mul_usize(usize a, usize b, usize *res);
 b32 safe_div_usize(usize a, usize b, usize *res);
+
+/* Saturating arithmetic */
+s64 sat_add_s64(s64 a, s64 b);
+s64 sat_sub_s64(s64 a, s64 b);
+s64 sat_mul_s64(s64 a, s64 b);
+s64 sat_div_s64(s64 a, s64 b);
+
+ssize sat_add_ssize(ssize a, ssize b);
+ssize sat_sub_ssize(ssize a, ssize b);
+ssize sat_mul_ssize(ssize a, ssize b);
+ssize sat_div_ssize(ssize a, ssize b);
+
+u64 sat_add_u64(u64 a, u64 b);
+u64 sat_sub_u64(u64 a, u64 b);
+u64 sat_mul_u64(u64 a, u64 b);
+u64 sat_div_u64(u64 a, u64 b);
+
+usize sat_add_usize(usize a, usize b);
+usize sat_sub_usize(usize a, usize b);
+usize sat_mul_usize(usize a, usize b);
+usize sat_div_usize(usize a, usize b);
 
 /* Math */
 b32 is_pow2(u64 val);

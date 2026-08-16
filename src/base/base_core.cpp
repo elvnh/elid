@@ -227,7 +227,7 @@ DEFINE_SAFE_CAST_UNSIGNED_TO_SIGNED(u32, s32)
         return result;                          \
     }
 
-#define DEFINE_SAFE_UNSIGNED_DIV(t)               \
+#define DEFINE_SAFE_UNSIGNED_DIV(t)             \
     b32 safe_div_##t(t a, t b, t *res)          \
     {                                           \
         b32 result = false;                     \
@@ -278,6 +278,172 @@ DEFINE_SAFE_UNSIGNED_OPS(usize)
 
 #undef DEFINE_SAFE_SIGNED_OPS
 #undef DEFINE_SAFE_UNSIGNED_OPS
+
+
+// TODO: UNLIKELY()
+/* Saturating arithmetic */
+#define DEFINE_SAT_SIGNED_ADD(t)                \
+    t sat_add_##t(t a, t b)                     \
+    {                                           \
+        t result = 0;                           \
+                                                \
+        if (!safe_add_##t(a, b, &result)) {     \
+            ASSERT(a != 0);                     \
+            ASSERT(b != 0);                     \
+                                                \
+            if (a > 0) {                        \
+                ASSERT(b > 0);                  \
+                                                \
+                result = MAX_VALUE_OF(t);       \
+            } else {                            \
+                ASSERT(b < 0);                  \
+                                                \
+                result = MIN_VALUE_OF(t);       \
+            }                                   \
+        }                                       \
+                                                \
+        return result;                          \
+    }
+
+#define DEFINE_SAT_SIGNED_SUB(t)                \
+    t sat_sub_##t(t a, t b)                     \
+    {                                           \
+        t result = 0;                           \
+                                                \
+        if (!safe_sub_##t(a, b, &result)) {     \
+            ASSERT(a != 0);                     \
+            ASSERT(b != 0);                     \
+                                                \
+            if (a > 0) {                        \
+                ASSERT(b < 0);                  \
+                result = MAX_VALUE_OF(t);       \
+            } else {                            \
+                ASSERT(b > 0);                  \
+                result = MIN_VALUE_OF(t);       \
+            }                                   \
+        }                                       \
+                                                \
+        return result;                          \
+    }
+
+#define DEFINE_SAT_SIGNED_MUL(t)                \
+    t sat_mul_##t(t a, t b)                     \
+    {                                           \
+        t result = 0;                           \
+                                                \
+        if (!safe_mul_##t(a, b, &result)) {     \
+            ASSERT(a != 0);                     \
+            ASSERT(b != 0);                     \
+                                                \
+            if (a > 0) {                        \
+                if (b > 0) {                    \
+                    result = MAX_VALUE_OF(t);   \
+                } else {                        \
+                    result = MIN_VALUE_OF(t);   \
+                }                               \
+            } else {                            \
+                if (b > 0) {                    \
+                    result = MIN_VALUE_OF(t);   \
+                } else {                        \
+                    result = MAX_VALUE_OF(t);   \
+                }                               \
+            }                                   \
+        }                                       \
+                                                \
+        return result;                          \
+    }
+
+#define DEFINE_SAT_SIGNED_DIV(t)                \
+    t sat_div_##t(t a, t b)                     \
+    {                                           \
+        t result = 0;                           \
+                                                \
+        if (!safe_div_##t(a, b, &result)) {     \
+            if (b == -1) {                      \
+                ASSERT(a == MIN_VALUE_OF(t));   \
+                result = MAX_VALUE_OF(t);       \
+            }                                   \
+        }                                       \
+                                                \
+        return result;                          \
+    }
+
+#define DEFINE_SAT_UNSIGNED_ADD(t)              \
+    t sat_add_##t(t a, t b)                     \
+    {                                           \
+        t result = a + b;                       \
+                                                \
+        if (result < a) {                       \
+            result = MAX_VALUE_OF(t);           \
+        }                                       \
+                                                \
+        return result;                          \
+    }
+
+#define DEFINE_SAT_UNSIGNED_SUB(t)              \
+    t sat_sub_##t(t a, t b)                     \
+    {                                           \
+        t result = a - b;                       \
+                                                \
+        if (result > a) {                       \
+            result = MIN_VALUE_OF(t);           \
+        }                                       \
+                                                \
+        return result;                          \
+    }
+
+#define DEFINE_SAT_UNSIGNED_MUL(t)                  \
+    t sat_mul_##t(t a, t b)                         \
+    {                                               \
+        t result = a * b;                           \
+                                                    \
+        if ((result < a) && (a != 0) && (b != 0)) { \
+            result = MAX_VALUE_OF(t);               \
+        }                                           \
+                                                    \
+        return result;                              \
+    }
+
+#define DEFINE_SAT_UNSIGNED_DIV(t)              \
+    t sat_div_##t(t a, t b)                     \
+    {                                           \
+        t result = 0;                           \
+                                                \
+        safe_div_##t(a, b, &result);            \
+                                                \
+        return result;                          \
+    }
+
+#define DEFINE_SAT_SIGNED_OPS(t)                \
+    DEFINE_SAT_SIGNED_ADD(t)                    \
+    DEFINE_SAT_SIGNED_SUB(t)                    \
+    DEFINE_SAT_SIGNED_MUL(t)                    \
+    DEFINE_SAT_SIGNED_DIV(t)
+
+#define DEFINE_SAT_UNSIGNED_OPS(t)              \
+    DEFINE_SAT_UNSIGNED_ADD(t)                  \
+    DEFINE_SAT_UNSIGNED_SUB(t)                  \
+    DEFINE_SAT_UNSIGNED_MUL(t)                  \
+    DEFINE_SAT_UNSIGNED_DIV(t)
+
+DEFINE_SAT_SIGNED_OPS(s64)
+DEFINE_SAT_SIGNED_OPS(ssize)
+
+DEFINE_SAT_UNSIGNED_OPS(u64)
+DEFINE_SAT_UNSIGNED_OPS(usize)
+
+#undef DEFINE_SAT_SIGNED_ADD
+#undef DEFINE_SAT_SIGNED_SUB
+#undef DEFINE_SAT_SIGNED_MUL
+#undef DEFINE_SAT_SIGNED_DIV
+
+#undef DEFINE_SAT_UNSIGNED_ADD
+#undef DEFINE_SAT_UNSIGNED_SUB
+#undef DEFINE_SAT_UNSIGNED_MUL
+#undef DEFINE_SAT_UNSIGNED_DIV
+
+#undef DEFINE_SAT_SIGNED_OPS
+#undef DEFINE_SAT_UNSIGNED_OPS
 
 /* Math */
 b32 is_pow2(u64 val)
