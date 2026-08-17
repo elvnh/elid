@@ -220,7 +220,7 @@ static void test_base_dl_list_insert_after_basic(void)
     dll_push_front(&list, node0);
 
     String_Node *node1 = arena_alloc_struct(test_arena, String_Node);
-    dll_insert_after2(&list, node1, node0);
+    dll_insert_after(&list, node1, node0);
 
     REQUIRE(list.first == node0);
     REQUIRE(list.last == node1);
@@ -347,7 +347,7 @@ static void test_base_dl_list_insert_after_first_node(void)
     dll_push_back(&list, node1);
 
     String_Node *node2 = arena_alloc_struct(test_arena, String_Node);
-    dll_insert_after2(&list, node2, node0);
+    dll_insert_after(&list, node2, node0);
 
     REQUIRE(list.first == node0);
     REQUIRE(list.last == node1);
@@ -376,7 +376,7 @@ static void test_base_dl_list_insert_after_middle_node(void)
     dll_push_back(&list, node2);
 
     String_Node *node3 = arena_alloc_struct(test_arena, String_Node);
-    dll_insert_after2(&list, node3, node1);
+    dll_insert_after(&list, node3, node1);
 
     REQUIRE(list.first == node0);
     REQUIRE(list.last == node2);
@@ -405,7 +405,7 @@ static void test_base_dl_list_insert_after_last_node(void)
     dll_push_back(&list, node1);
 
     String_Node *node2 = arena_alloc_struct(test_arena, String_Node);
-    dll_insert_after2(&list, node2, node1);
+    dll_insert_after(&list, node2, node1);
 
     REQUIRE(list.first == node0);
     REQUIRE(list.last == node2);
@@ -418,6 +418,147 @@ static void test_base_dl_list_insert_after_last_node(void)
 
     REQUIRE(node2->next == 0);
     REQUIRE(node2->prev == node1);
+}
+
+static void test_base_dl_list_remove_single_elem(void)
+{
+    String_List list = {};
+
+    String_Node *node0 = arena_alloc_struct(test_arena, String_Node);
+    dll_push_back(&list, node0);
+
+    dll_remove(&list, node0);
+
+    REQUIRE(list.first == 0);
+    REQUIRE(list.last == 0);
+}
+
+static void test_base_dl_list_remove_first_of_two(void)
+{
+    String_List list = {};
+
+    String_Node *node0 = arena_alloc_struct(test_arena, String_Node);
+    dll_push_back(&list, node0);
+
+    String_Node *node1 = arena_alloc_struct(test_arena, String_Node);
+    dll_push_back(&list, node1);
+
+    dll_remove(&list, node0);
+
+    REQUIRE(list.first == node1);
+    REQUIRE(list.last == node1);
+
+    REQUIRE(node0->next == 0);
+    REQUIRE(node0->prev == 0);
+
+    REQUIRE(node1->prev == 0);
+    REQUIRE(node1->next == 0);
+}
+
+static void test_base_dl_list_remove_last_of_two(void)
+{
+    String_List list = {};
+
+    String_Node *node0 = arena_alloc_struct(test_arena, String_Node);
+    dll_push_back(&list, node0);
+
+    String_Node *node1 = arena_alloc_struct(test_arena, String_Node);
+    dll_push_back(&list, node1);
+
+    dll_remove(&list, node1);
+
+    REQUIRE(list.first == node0);
+    REQUIRE(list.last == node0);
+
+    REQUIRE(node1->next == 0);
+    REQUIRE(node1->prev == 0);
+
+    REQUIRE(node0->prev == 0);
+    REQUIRE(node0->next == 0);
+}
+
+static void test_base_dl_list_remove_first(void)
+{
+    String_List list = {};
+
+    String_Node *node0 = arena_alloc_struct(test_arena, String_Node);
+    dll_push_back(&list, node0);
+
+    String_Node *node1 = arena_alloc_struct(test_arena, String_Node);
+    dll_push_back(&list, node1);
+
+    String_Node *node2 = arena_alloc_struct(test_arena, String_Node);
+    dll_push_back(&list, node2);
+
+    dll_remove(&list, node0);
+
+    REQUIRE(list.first == node1);
+    REQUIRE(list.last == node2);
+
+    REQUIRE(node0->next == 0);
+    REQUIRE(node0->prev == 0);
+
+    REQUIRE(node1->prev == 0);
+    REQUIRE(node1->next == node2);
+
+    REQUIRE(node2->prev == node1);
+    REQUIRE(node2->next == 0);
+}
+
+static void test_base_dl_list_remove_middle(void)
+{
+    String_List list = {};
+
+    String_Node *node0 = arena_alloc_struct(test_arena, String_Node);
+    dll_push_back(&list, node0);
+
+    String_Node *node1 = arena_alloc_struct(test_arena, String_Node);
+    dll_push_back(&list, node1);
+
+    String_Node *node2 = arena_alloc_struct(test_arena, String_Node);
+    dll_push_back(&list, node2);
+
+    dll_remove(&list, node1);
+
+    REQUIRE(list.first == node0);
+    REQUIRE(list.last == node2);
+
+    REQUIRE(node1->next == 0);
+    REQUIRE(node1->prev == 0);
+
+    REQUIRE(node0->prev == 0);
+    REQUIRE(node0->next == node2);
+
+    REQUIRE(node2->prev == node0);
+    REQUIRE(node2->next == 0);
+}
+
+static void test_base_dl_list_remove_last(void)
+{
+    String_List list = {};
+
+    String_Node *node0 = arena_alloc_struct(test_arena, String_Node);
+    dll_push_back(&list, node0);
+
+    String_Node *node1 = arena_alloc_struct(test_arena, String_Node);
+    dll_push_back(&list, node1);
+
+    String_Node *node2 = arena_alloc_struct(test_arena, String_Node);
+    dll_push_back(&list, node2);
+
+    dll_remove(&list, node2);
+
+    REQUIRE(list.first == node0);
+    REQUIRE(list.last == node1);
+
+    REQUIRE(node2->next == 0);
+    REQUIRE(node2->prev == 0);
+
+    REQUIRE(node0->prev == 0);
+    REQUIRE(node0->next == node1);
+
+    REQUIRE(node1->prev == node0);
+    REQUIRE(node1->next == 0);
 }
 
 /* Singly linked lists */

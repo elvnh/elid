@@ -67,6 +67,13 @@ static void test_base(void)
     test_base_dl_list_insert_before_middle_node();
     test_base_dl_list_insert_after_last_node();
 
+    test_base_dl_list_remove_single_elem();
+    test_base_dl_list_remove_first_of_two();
+    test_base_dl_list_remove_last_of_two();
+    test_base_dl_list_remove_first();
+    test_base_dl_list_remove_middle();
+    test_base_dl_list_remove_last();
+
     /* Singly linked lists */
     test_base_sl_list_push_front_empty();
     test_base_sl_list_push_front_single_elem();

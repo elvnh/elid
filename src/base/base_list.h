@@ -62,7 +62,7 @@
             ? (list)->last = (node)                                       \
             : 0))
 
-#define dll_insert_after2(list, node, after) dll_insert_after_npfl((list), (node), (after), next, prev, first, last)
+#define dll_insert_after(list, node, after) dll_insert_after_npfl((list), (node), (after), next, prev, first, last)
 
 #define dll_insert_before_npfl(list, node, before, next, prev, first, last) \
     (((node)->prev = (before)->prev),                                   \
@@ -78,17 +78,34 @@
 
 #define dll_insert_before(list, node, before) dll_insert_before_npfl((list), (node), (before), next, prev, first, last)
 
+#define dll_remove_npfl(list, node, next, prev, first, last)    \
+    (((node)->prev                                              \
+        ? ((node)->prev->next = (node)->next)                   \
+        : 0),                                                   \
+        ((node)->next                                           \
+            ? ((node)->next->prev = (node)->prev)               \
+            : 0),                                               \
+        ((list)->first == (node)                                \
+            ? ((list)->first = (node)->next)                    \
+            : 0),                                               \
+        ((list)->last == (node)                                 \
+            ? ((list)->last = (node)->prev)                     \
+            : 0),                                               \
+        ((node)->next = (node)->prev = 0))
+
+#define dll_remove(list, node) dll_remove_npfl((list), (node), next, prev, first, last)
+
 /* Singly linked lists */
-#define sll_push_front_npfl(list, node, next, prev, first, last)    \
+#define sll_push_front_nfl(list, node, next, first, last)    \
     (((node)->next = (list)->first),                                \
         (list)->first = (node),                                     \
         (!((list)->last)                                            \
             ? ((list)->last = (node))                               \
             : 0))
 
-#define sll_push_front(list, node) sll_push_front_npfl((list), (node), next, prev, first, last)
+#define sll_push_front(list, node) sll_push_front_nfl((list), (node), next, first, last)
 
-#define sll_push_back_npfl(list, node, next, prev, first, last) \
+#define sll_push_back_nfl(list, node, next, first, last)        \
     (((list)->last                                              \
         ? ((list)->last->next = node)                           \
         : 0),                                                   \
@@ -97,16 +114,16 @@
             ? (list)->first = (node)                            \
             : 0))
 
-#define sll_push_back(list, node) sll_push_back_npfl((list), (node), next, prev, first, last)
+#define sll_push_back(list, node) sll_push_back_nfl((list), (node), next, first, last)
 
-#define sll_insert_npfl(list, node, after, next, prev, first, last) \
+#define sll_insert_nfl(list, node, after, next, first, last) \
     ((node)->next = (after)->next,                                  \
         (after)->next = (node),                                     \
         ((list)->last == (after)                                    \
             ? ((list)->last = node)                                 \
             : 0))
 
-#define sll_insert(list, node, after) sll_insert_npfl((list), (node), (after), next, prev, first, last)
+#define sll_insert(list, node, after) sll_insert_nfl((list), (node), (after), next, first, last)
 
 /* Stacks */
 #define stack_push_nh(stack, node, next, head)   \
