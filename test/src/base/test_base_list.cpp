@@ -1,0 +1,612 @@
+/* Doubly linked lists */
+static void test_base_dl_list_push_front_basic(void)
+{
+    String_List list = {};
+
+    String_Node *node = arena_alloc_struct(test_arena, String_Node);
+
+    dll_push_front(&list, node);
+
+    REQUIRE(list.first == node);
+    REQUIRE(list.last == node);
+    REQUIRE(node->next == 0);
+    REQUIRE(node->prev == 0);
+}
+
+static void test_base_dl_list_push_front_nonempty(void)
+{
+    String_List list = {};
+
+    String_Node *node1 = arena_alloc_struct(test_arena, String_Node);
+
+    dll_push_front(&list, node1);
+
+    String_Node *node2 = arena_alloc_struct(test_arena, String_Node);
+    dll_push_front(&list, node2);
+
+    REQUIRE(list.first == node2);
+    REQUIRE(list.last == node1);
+
+    REQUIRE(node1->prev == node2);
+    REQUIRE(node1->next == 0);
+
+    REQUIRE(node2->prev == 0);
+    REQUIRE(node2->next == node1);
+}
+
+static void test_base_dl_list_push_front_multiple_nodes(void)
+{
+    String_List list = {};
+
+    String_Node *node1 = arena_alloc_struct(test_arena, String_Node);
+    dll_push_front(&list, node1);
+
+    String_Node *node2 = arena_alloc_struct(test_arena, String_Node);
+    dll_push_front(&list, node2);
+
+    String_Node *node3 = arena_alloc_struct(test_arena, String_Node);
+    dll_push_front(&list, node3);
+
+    REQUIRE(list.first == node3);
+    REQUIRE(list.last == node1);
+
+    REQUIRE(node1->prev == node2);
+    REQUIRE(node1->next == 0);
+
+    REQUIRE(node2->prev == node3);
+    REQUIRE(node2->next == node1);
+
+    REQUIRE(node3->prev == 0);
+    REQUIRE(node3->next == node2);
+}
+
+static void test_base_dl_list_push_back_basic(void)
+{
+    String_List list = {};
+
+    String_Node *node = arena_alloc_struct(test_arena, String_Node);
+
+    dll_push_back(&list, node);
+
+    REQUIRE(list.first == node);
+    REQUIRE(list.last == node);
+    REQUIRE(node->next == 0);
+    REQUIRE(node->prev == 0);
+}
+
+static void test_base_dl_list_push_back_nonempty(void)
+{
+    String_List list = {};
+
+    String_Node *node1 = arena_alloc_struct(test_arena, String_Node);
+    dll_push_back(&list, node1);
+
+    String_Node *node2 = arena_alloc_struct(test_arena, String_Node);
+    dll_push_back(&list, node2);
+
+    REQUIRE(list.first == node1);
+    REQUIRE(list.last == node2);
+
+    REQUIRE(node1->next == node2);
+    REQUIRE(node1->prev == 0);
+
+    REQUIRE(node2->next == 0);
+    REQUIRE(node2->prev == node1);
+}
+
+static void test_base_dl_list_push_back_multiple_nodes(void)
+{
+    String_List list = {};
+
+    String_Node *node1 = arena_alloc_struct(test_arena, String_Node);
+    dll_push_back(&list, node1);
+
+    String_Node *node2 = arena_alloc_struct(test_arena, String_Node);
+    dll_push_back(&list, node2);
+
+    String_Node *node3 = arena_alloc_struct(test_arena, String_Node);
+    dll_push_back(&list, node3);
+
+    REQUIRE(list.first == node1);
+    REQUIRE(list.last == node3);
+
+    REQUIRE(node1->prev == 0);
+    REQUIRE(node1->next == node2);
+
+    REQUIRE(node2->prev == node1);
+    REQUIRE(node2->next == node3);
+
+    REQUIRE(node3->prev == node2);
+    REQUIRE(node3->next == 0);
+}
+
+static void test_base_dl_list_push_front_then_back(void)
+{
+    String_List list = {};
+
+    String_Node *node1 = arena_alloc_struct(test_arena, String_Node);
+    dll_push_front(&list, node1);
+
+    String_Node *node2 = arena_alloc_struct(test_arena, String_Node);
+    dll_push_back(&list, node2);
+
+    REQUIRE(list.first == node1);
+    REQUIRE(list.last == node2);
+
+    REQUIRE(node1->prev == 0);
+    REQUIRE(node1->next == node2);
+
+    REQUIRE(node2->prev == node1);
+    REQUIRE(node2->next == 0);
+}
+
+static void test_base_dl_list_push_back_then_front(void)
+{
+    String_List list = {};
+
+    String_Node *node1 = arena_alloc_struct(test_arena, String_Node);
+    dll_push_back(&list, node1);
+
+    String_Node *node2 = arena_alloc_struct(test_arena, String_Node);
+    dll_push_front(&list, node2);
+
+    REQUIRE(list.first == node2);
+    REQUIRE(list.last == node1);
+
+    REQUIRE(node1->prev == node2);
+    REQUIRE(node1->next == 0);
+
+    REQUIRE(node2->prev == 0);
+    REQUIRE(node2->next == node1);
+}
+
+static void test_base_dl_list_push_front_then_back_nonempty(void)
+{
+    String_List list = {};
+
+    String_Node *node0 = arena_alloc_struct(test_arena, String_Node);
+    dll_push_front(&list, node0);
+
+    String_Node *node1 = arena_alloc_struct(test_arena, String_Node);
+    dll_push_front(&list, node1);
+
+    String_Node *node2 = arena_alloc_struct(test_arena, String_Node);
+    dll_push_back(&list, node2);
+
+    REQUIRE(list.first == node1);
+    REQUIRE(list.last == node2);
+
+    REQUIRE(node0->prev == node1);
+    REQUIRE(node0->next == node2);
+
+    REQUIRE(node1->prev == 0);
+    REQUIRE(node1->next == node0);
+
+    REQUIRE(node2->prev == node0);
+    REQUIRE(node2->next == 0);
+}
+
+static void test_base_dl_list_push_back_then_front_nonempty(void)
+{
+    String_List list = {};
+
+    String_Node *node0 = arena_alloc_struct(test_arena, String_Node);
+    dll_push_front(&list, node0);
+
+    String_Node *node1 = arena_alloc_struct(test_arena, String_Node);
+    dll_push_back(&list, node1);
+
+    String_Node *node2 = arena_alloc_struct(test_arena, String_Node);
+    dll_push_front(&list, node2);
+
+    REQUIRE(list.first == node2);
+    REQUIRE(list.last == node1);
+
+    REQUIRE(node0->prev == node2);
+    REQUIRE(node0->next == node1);
+
+    REQUIRE(node1->prev == node0);
+    REQUIRE(node1->next == 0);
+
+    REQUIRE(node2->prev == 0);
+    REQUIRE(node2->next == node0);
+}
+
+static void test_base_dl_list_insert_after_basic(void)
+{
+    String_List list = {};
+
+    String_Node *node0 = arena_alloc_struct(test_arena, String_Node);
+    dll_push_front(&list, node0);
+
+    String_Node *node1 = arena_alloc_struct(test_arena, String_Node);
+    dll_insert_after2(&list, node1, node0);
+
+    REQUIRE(list.first == node0);
+    REQUIRE(list.last == node1);
+
+    REQUIRE(node0->next == node1);
+    REQUIRE(node0->prev == 0);
+
+    REQUIRE(node1->next == 0);
+    REQUIRE(node1->prev == node0);
+}
+
+static void test_base_dl_list_insert_before_basic(void)
+{
+    String_List list = {};
+
+    String_Node *node0 = arena_alloc_struct(test_arena, String_Node);
+    dll_push_front(&list, node0);
+
+    String_Node *node1 = arena_alloc_struct(test_arena, String_Node);
+    dll_insert_before(&list, node1, node0);
+
+    REQUIRE(list.first == node1);
+    REQUIRE(list.last == node0);
+
+    REQUIRE(node0->next == 0);
+    REQUIRE(node0->prev == node1);
+
+    REQUIRE(node1->next == node0);
+    REQUIRE(node1->prev == 0);
+}
+
+static void test_base_dl_list_insert_before_first_node(void)
+{
+    String_List list = {};
+
+    String_Node *node0 = arena_alloc_struct(test_arena, String_Node);
+    dll_push_back(&list, node0);
+
+    String_Node *node1 = arena_alloc_struct(test_arena, String_Node);
+    dll_push_back(&list, node1);
+
+    String_Node *node2 = arena_alloc_struct(test_arena, String_Node);
+    dll_insert_before(&list, node2, node0);
+
+    REQUIRE(list.first == node2);
+    REQUIRE(list.last == node1);
+
+    REQUIRE(node0->next == node1);
+    REQUIRE(node0->prev == node2);
+
+    REQUIRE(node1->next == 0);
+    REQUIRE(node1->prev == node0);
+
+    REQUIRE(node2->next == node0);
+    REQUIRE(node2->prev == 0);
+}
+
+static void test_base_dl_list_insert_before_middle_node(void)
+{
+    String_List list = {};
+
+    String_Node *node0 = arena_alloc_struct(test_arena, String_Node);
+    dll_push_back(&list, node0);
+
+    String_Node *node1 = arena_alloc_struct(test_arena, String_Node);
+    dll_push_back(&list, node1);
+
+    String_Node *node2 = arena_alloc_struct(test_arena, String_Node);
+    dll_push_back(&list, node2);
+
+    String_Node *node3 = arena_alloc_struct(test_arena, String_Node);
+    dll_insert_before(&list, node3, node1);
+
+    REQUIRE(list.first == node0);
+    REQUIRE(list.last == node2);
+
+    REQUIRE(node0->next == node3);
+    REQUIRE(node0->prev == 0);
+
+    REQUIRE(node3->next == node1);
+    REQUIRE(node3->prev == node0);
+
+    REQUIRE(node1->next == node2);
+    REQUIRE(node1->prev == node3);
+
+    REQUIRE(node2->next == 0);
+    REQUIRE(node2->prev == node1);
+}
+
+static void test_base_dl_list_insert_before_last_node(void)
+{
+    String_List list = {};
+
+    String_Node *node0 = arena_alloc_struct(test_arena, String_Node);
+    dll_push_back(&list, node0);
+
+    String_Node *node1 = arena_alloc_struct(test_arena, String_Node);
+    dll_push_back(&list, node1);
+
+    String_Node *node2 = arena_alloc_struct(test_arena, String_Node);
+    dll_insert_before(&list, node2, node1);
+
+    REQUIRE(list.first == node0);
+    REQUIRE(list.last == node1);
+
+    REQUIRE(node0->next == node2);
+    REQUIRE(node0->prev == 0);
+
+    REQUIRE(node1->next == 0);
+    REQUIRE(node1->prev == node2);
+
+    REQUIRE(node2->next == node1);
+    REQUIRE(node2->prev == node0);
+}
+
+static void test_base_dl_list_insert_after_first_node(void)
+{
+    String_List list = {};
+
+    String_Node *node0 = arena_alloc_struct(test_arena, String_Node);
+    dll_push_back(&list, node0);
+
+    String_Node *node1 = arena_alloc_struct(test_arena, String_Node);
+    dll_push_back(&list, node1);
+
+    String_Node *node2 = arena_alloc_struct(test_arena, String_Node);
+    dll_insert_after2(&list, node2, node0);
+
+    REQUIRE(list.first == node0);
+    REQUIRE(list.last == node1);
+
+    REQUIRE(node0->next == node2);
+    REQUIRE(node0->prev == 0);
+
+    REQUIRE(node1->next == 0);
+    REQUIRE(node1->prev == node2);
+
+    REQUIRE(node2->next == node1);
+    REQUIRE(node2->prev == node0);
+}
+
+static void test_base_dl_list_insert_after_middle_node(void)
+{
+    String_List list = {};
+
+    String_Node *node0 = arena_alloc_struct(test_arena, String_Node);
+    dll_push_back(&list, node0);
+
+    String_Node *node1 = arena_alloc_struct(test_arena, String_Node);
+    dll_push_back(&list, node1);
+
+    String_Node *node2 = arena_alloc_struct(test_arena, String_Node);
+    dll_push_back(&list, node2);
+
+    String_Node *node3 = arena_alloc_struct(test_arena, String_Node);
+    dll_insert_after2(&list, node3, node1);
+
+    REQUIRE(list.first == node0);
+    REQUIRE(list.last == node2);
+
+    REQUIRE(node0->next == node1);
+    REQUIRE(node0->prev == 0);
+
+    REQUIRE(node1->next == node3);
+    REQUIRE(node1->prev == node0);
+
+    REQUIRE(node3->next == node2);
+    REQUIRE(node3->prev == node1);
+
+    REQUIRE(node2->next == 0);
+    REQUIRE(node2->prev == node3);
+}
+
+static void test_base_dl_list_insert_after_last_node(void)
+{
+    String_List list = {};
+
+    String_Node *node0 = arena_alloc_struct(test_arena, String_Node);
+    dll_push_back(&list, node0);
+
+    String_Node *node1 = arena_alloc_struct(test_arena, String_Node);
+    dll_push_back(&list, node1);
+
+    String_Node *node2 = arena_alloc_struct(test_arena, String_Node);
+    dll_insert_after2(&list, node2, node1);
+
+    REQUIRE(list.first == node0);
+    REQUIRE(list.last == node2);
+
+    REQUIRE(node0->next == node1);
+    REQUIRE(node0->prev == 0);
+
+    REQUIRE(node1->next == node2);
+    REQUIRE(node1->prev == node0);
+
+    REQUIRE(node2->next == 0);
+    REQUIRE(node2->prev == node1);
+}
+
+/* Singly linked lists */
+static void test_base_sl_list_push_front_empty(void)
+{
+    String_SList list = {};
+
+    String_SNode *node0 = arena_alloc_struct(test_arena, String_SNode);
+    sll_push_front(&list, node0);
+
+    REQUIRE(list.first == node0);
+    REQUIRE(list.last == node0);
+
+    REQUIRE(node0->next == 0);
+}
+
+static void test_base_sl_list_push_front_single_elem(void)
+{
+    String_SList list = {};
+
+    String_SNode *node0 = arena_alloc_struct(test_arena, String_SNode);
+    sll_push_front(&list, node0);
+
+    String_SNode *node1 = arena_alloc_struct(test_arena, String_SNode);
+    sll_push_front(&list, node1);
+
+    REQUIRE(list.first == node1);
+    REQUIRE(list.last == node0);
+
+    REQUIRE(node0->next == 0);
+    REQUIRE(node1->next == node0);
+}
+
+static void test_base_sl_list_push_front_multi_elem(void)
+{
+    String_SList list = {};
+
+    String_SNode *node0 = arena_alloc_struct(test_arena, String_SNode);
+    sll_push_front(&list, node0);
+
+    String_SNode *node1 = arena_alloc_struct(test_arena, String_SNode);
+    sll_push_front(&list, node1);
+
+    String_SNode *node2 = arena_alloc_struct(test_arena, String_SNode);
+    sll_push_front(&list, node2);
+
+    REQUIRE(list.first == node2);
+    REQUIRE(list.last == node0);
+
+    REQUIRE(node0->next == 0);
+    REQUIRE(node1->next == node0);
+    REQUIRE(node2->next == node1);
+}
+
+static void test_base_sl_list_push_back_empty(void)
+{
+    String_SList list = {};
+
+    String_SNode *node0 = arena_alloc_struct(test_arena, String_SNode);
+    sll_push_back(&list, node0);
+
+    REQUIRE(list.first == node0);
+    REQUIRE(list.last == node0);
+
+    REQUIRE(node0->next == 0);
+}
+
+static void test_base_sl_list_push_back_single_elem(void)
+{
+    String_SList list = {};
+
+    String_SNode *node0 = arena_alloc_struct(test_arena, String_SNode);
+    sll_push_back(&list, node0);
+
+    String_SNode *node1 = arena_alloc_struct(test_arena, String_SNode);
+    sll_push_back(&list, node1);
+
+    REQUIRE(list.first == node0);
+    REQUIRE(list.last == node1);
+
+    REQUIRE(node0->next == node1);
+    REQUIRE(node1->next == 0);
+}
+
+static void test_base_sl_list_push_back_multi_elem(void)
+{
+    String_SList list = {};
+
+    String_SNode *node0 = arena_alloc_struct(test_arena, String_SNode);
+    sll_push_back(&list, node0);
+
+    String_SNode *node1 = arena_alloc_struct(test_arena, String_SNode);
+    sll_push_back(&list, node1);
+
+    String_SNode *node2 = arena_alloc_struct(test_arena, String_SNode);
+    sll_push_back(&list, node2);
+
+    REQUIRE(list.first == node0);
+    REQUIRE(list.last == node2);
+
+    REQUIRE(node0->next == node1);
+    REQUIRE(node1->next == node2);
+    REQUIRE(node2->next == 0);
+}
+
+static void test_base_sl_list_insert_single_elem(void)
+{
+    String_SList list = {};
+
+    String_SNode *node0 = arena_alloc_struct(test_arena, String_SNode);
+    sll_push_back(&list, node0);
+
+    String_SNode *node1 = arena_alloc_struct(test_arena, String_SNode);
+    sll_insert(&list, node1, node0);
+
+    REQUIRE(list.first == node0);
+    REQUIRE(list.last == node1);
+
+    REQUIRE(node0->next == node1);
+    REQUIRE(node1->next == 0);
+}
+
+static void test_base_sl_list_insert_after_first(void)
+{
+    String_SList list = {};
+
+    String_SNode *node0 = arena_alloc_struct(test_arena, String_SNode);
+    sll_push_back(&list, node0);
+
+    String_SNode *node1 = arena_alloc_struct(test_arena, String_SNode);
+    sll_push_back(&list, node1);
+
+    String_SNode *node2 = arena_alloc_struct(test_arena, String_SNode);
+    sll_insert(&list, node2, node0);
+
+    REQUIRE(list.first == node0);
+    REQUIRE(list.last == node1);
+
+    REQUIRE(node0->next == node2);
+    REQUIRE(node2->next == node1);
+    REQUIRE(node1->next == 0);
+}
+
+static void test_base_sl_list_insert_after_middle(void)
+{
+    String_SList list = {};
+
+    String_SNode *node0 = arena_alloc_struct(test_arena, String_SNode);
+    sll_push_back(&list, node0);
+
+    String_SNode *node1 = arena_alloc_struct(test_arena, String_SNode);
+    sll_push_back(&list, node1);
+
+    String_SNode *node2 = arena_alloc_struct(test_arena, String_SNode);
+    sll_push_back(&list, node2);
+
+    String_SNode *node3 = arena_alloc_struct(test_arena, String_SNode);
+    sll_insert(&list, node3, node1);
+
+    REQUIRE(list.first == node0);
+    REQUIRE(list.last == node2);
+
+    REQUIRE(node0->next == node1);
+    REQUIRE(node1->next == node3);
+    REQUIRE(node3->next == node2);
+    REQUIRE(node2->next == 0);
+}
+
+static void test_base_sl_list_insert_after_last(void)
+{
+    String_SList list = {};
+
+    String_SNode *node0 = arena_alloc_struct(test_arena, String_SNode);
+    sll_push_back(&list, node0);
+
+    String_SNode *node1 = arena_alloc_struct(test_arena, String_SNode);
+    sll_push_back(&list, node1);
+
+    String_SNode *node2 = arena_alloc_struct(test_arena, String_SNode);
+    sll_push_back(&list, node2);
+
+    String_SNode *node3 = arena_alloc_struct(test_arena, String_SNode);
+    sll_insert(&list, node3, node2);
+
+    REQUIRE(list.first == node0);
+    REQUIRE(list.last == node3);
+
+    REQUIRE(node0->next == node1);
+    REQUIRE(node1->next == node2);
+    REQUIRE(node2->next == node3);
+    REQUIRE(node3->next == 0);
+}

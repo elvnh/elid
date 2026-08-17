@@ -50,6 +50,7 @@ typedef double f64;
 
 #define TYPE_BIT_WIDTH(t) (sizeof(t) * 8)
 
+/* Maybe */
 #define DEFINE_MAYBE_TYPE(t) struct t##_Maybe { t value; b32 ok; }
 
 DEFINE_MAYBE_TYPE(usize);

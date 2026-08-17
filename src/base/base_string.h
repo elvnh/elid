@@ -11,6 +11,8 @@ struct Cut {
     b32    ok;
 };
 
+DEFINE_LIST_TYPES(String);
+
 #define     str_lit(s) String{(u8 *)s, ARRAY_COUNT(s) - 1}
 String      str_from_cstr(const char *str);
 String      str_concat(Arena *arena, String a, String b);

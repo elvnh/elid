@@ -29,10 +29,6 @@ CXXFLAGS="-Werror
     -Wno-error=unused-function
     -Wno-error=unused-variable
     -Wno-error=unused-but-set-variable
-
-
-    -Wno-error=parentheses
-
 "
 CXXFLAGS_DEBUG="-DDEBUG_BUILD=1"
 
