@@ -24,11 +24,6 @@
     }
 
 /* Doubly linked lists */
-// TODO: fix this one
-#define sll_insert_after(node, after)           \
-    (node)->next = (after)->next,               \
-    (after)->next = (node)
-
 // TODO: save a copy of node to avoid macro bugs
 #define dll_push_front_npfl(list, node, next, prev, first, last)    \
     (((node)->next = (list)->first),                                \

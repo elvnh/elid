@@ -89,7 +89,7 @@ void *arena_alloc_bytes(Arena *arena, usize item_count, usize item_size, usize a
             if (!current_arena) {
                 // No arena that fit the allocation was found, allocate a new one.
                 current_arena = arena_create(byte_count);
-                sll_insert_after(current_arena, arena->current_arena);
+                stack_push_nh(arena->current_arena, current_arena, next, next);
 
                 // No need to clear the allocation as we just allocated a new arena which
                 // starts out cleared to zero.

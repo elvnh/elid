@@ -70,7 +70,7 @@ void *pool_alloc_untyped(Pool *pool)
             pool->node_count,
             pool->node_alignment);
 
-        sll_insert_after(new_pool, pool);
+        stack_push_nh(pool, new_pool, next, next);
         current_pool = new_pool;
 
         // We just allocated a new pool which starts zeroed out, except for the pointers
