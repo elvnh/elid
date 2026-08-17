@@ -109,6 +109,8 @@ def generate_test_runner_source(filenames, cases, output_dir):
 
 int main(int argc, char **argv)
 {{
+    test_arena = arena_create(MB(8));
+
     for (int i = 1; i < argc; ++i) {{
         if (strcmp(argv[i], "-b") == 0) {{
             g_on_require_fail_behaviour = ON_REQUIRE_FAIL_BREAK;
