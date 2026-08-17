@@ -99,7 +99,7 @@ DEFINE_MAYBE_TYPE(usize);
 #if COMPILER_GCC
 #    define DEBUG_BREAK() __builtin_trap()
 #elif COMPILER_MSVC
-#    define DEBUG_BREAK() __debug_break()
+#    define DEBUG_BREAK() __debugbreak()
 #else
 #    error DEBUG_BREAK() not defined for this compiler
 #endif

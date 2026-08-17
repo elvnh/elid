@@ -2,5 +2,6 @@ compile_commands.json
 a.out
 
 build/
+generated/
 
 *.org

@@ -35,11 +35,15 @@ CXXFLAGS="
     -Wno-error=unused-but-set-variable
 "
 
-SRCS="src/main.cpp"
-
+GENERATED_TEST_RUNNER="src/generated/test_runner.cpp"
 BUILD_DIR="build"
 BIN="${BUILD_DIR}/elid-tests"
 
+
 cd $(dirname $0);
+
 mkdir -p ${BUILD_DIR};
-${CXX} ${CXXFLAGS} ${SRCS} -o ${BIN}
+mkdir -p $(dirname ${GENERATED_TEST_RUNNER});
+
+python3 generate_test_runner.py src/**/* -o ${GENERATED_TEST_RUNNER} &&
+${CXX} ${CXXFLAGS} ${GENERATED_TEST_RUNNER} -o ${BIN}
