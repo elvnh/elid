@@ -132,9 +132,23 @@
 
 #define stack_push(stack, node) stack_push_nh((stack), (node), next, head)
 
+// TODO: make popping operations set next link to null
 #define stack_pop_nh(stack, next, head)         \
     ((stack)->head ?                            \
         ((stack)->head = (stack)->head->next)   \
         : 0)
 
+
 #define stack_pop(stack) stack_pop_nh((stack), next, head)
+
+/* Queues */
+#define queue_push_nfl(queue, node, next, first, last) sll_push_back_nfl((queue), (node), next, first, last)
+#define queue_push(queue, node) queue_push_nfl((queue), (node), next, first, last)
+
+#define queue_pop_nfl(queue, next, first, last) \
+    ((stack_pop_nh(queue, next, first)),        \
+        ((!((queue)->first))                    \
+            ? ((queue)->last = 0)               \
+            : 0))
+
+#define queue_pop(queue) queue_pop_nfl((queue), next, first, last)

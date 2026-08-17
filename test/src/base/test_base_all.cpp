@@ -95,4 +95,13 @@ static void test_base(void)
     test_base_stack_pop_empty();
     test_base_stack_pop_to_empty();
     test_base_stack_pop_nonempty();
+    test_base_stack_pop_to_nonempty_multiple();
+
+    /* Queues */
+    test_base_queue_basic();
+    test_base_queue_push_multiple();
+    test_base_queue_pop_empty();
+    test_base_queue_pop_to_empty();
+    test_base_queue_pop_to_one_elem();
+    test_base_queue_pop_to_two_elem();
 }

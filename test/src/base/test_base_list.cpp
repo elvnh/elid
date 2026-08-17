@@ -834,3 +834,114 @@ static void test_base_stack_pop_nonempty(void)
     REQUIRE(stack.head == node0);
     REQUIRE(node0->next == 0);
 }
+
+static void test_base_stack_pop_to_nonempty_multiple(void)
+{
+    String_Stack stack = {};
+
+    String_SNode *node0 = arena_alloc_struct(test_arena, String_SNode);
+    stack_push(&stack, node0);
+
+    String_SNode *node1 = arena_alloc_struct(test_arena, String_SNode);
+    stack_push(&stack, node1);
+
+    String_SNode *node2 = arena_alloc_struct(test_arena, String_SNode);
+    stack_push(&stack, node2);
+
+    stack_pop(&stack);
+
+    REQUIRE(stack.head == node1);
+}
+
+
+/* Queues */
+static void test_base_queue_basic(void)
+{
+    String_SList queue = {};
+
+    String_SNode *node0 = arena_alloc_struct(test_arena, String_SNode);
+    queue_push(&queue, node0);
+
+    REQUIRE(queue.first == node0);
+    REQUIRE(queue.last == node0);
+}
+
+static void test_base_queue_push_multiple(void)
+{
+    String_SList queue = {};
+
+    String_SNode *node0 = arena_alloc_struct(test_arena, String_SNode);
+    queue_push(&queue, node0);
+
+    String_SNode *node1 = arena_alloc_struct(test_arena, String_SNode);
+    queue_push(&queue, node1);
+
+    String_SNode *node2 = arena_alloc_struct(test_arena, String_SNode);
+    queue_push(&queue, node2);
+
+    REQUIRE(queue.first == node0);
+    REQUIRE(queue.last == node2);
+
+    REQUIRE(node0->next == node1);
+    REQUIRE(node1->next == node2);
+    REQUIRE(node2->next == 0);
+}
+
+static void test_base_queue_pop_empty(void)
+{
+    String_SList queue = {};
+    queue_pop(&queue);
+
+    REQUIRE(queue.first == 0);
+    REQUIRE(queue.last == 0);
+}
+
+static void test_base_queue_pop_to_empty(void)
+{
+    String_SList queue = {};
+
+    String_SNode *node0 = arena_alloc_struct(test_arena, String_SNode);
+    queue_push(&queue, node0);
+
+    queue_pop(&queue);
+
+    REQUIRE(queue.first == 0);
+    REQUIRE(queue.last == 0);
+
+    REQUIRE(node0->next == 0);
+}
+
+static void test_base_queue_pop_to_one_elem(void)
+{
+    String_SList queue = {};
+
+    String_SNode *node0 = arena_alloc_struct(test_arena, String_SNode);
+    queue_push(&queue, node0);
+
+    String_SNode *node1 = arena_alloc_struct(test_arena, String_SNode);
+    queue_push(&queue, node1);
+
+    queue_pop(&queue);
+
+    REQUIRE(queue.first == node1);
+    REQUIRE(queue.last == node1);
+}
+
+static void test_base_queue_pop_to_two_elem(void)
+{
+    String_SList queue = {};
+
+    String_SNode *node0 = arena_alloc_struct(test_arena, String_SNode);
+    queue_push(&queue, node0);
+
+    String_SNode *node1 = arena_alloc_struct(test_arena, String_SNode);
+    queue_push(&queue, node1);
+
+    String_SNode *node2 = arena_alloc_struct(test_arena, String_SNode);
+    queue_push(&queue, node2);
+
+    queue_pop(&queue);
+
+    REQUIRE(queue.first == node1);
+    REQUIRE(queue.last == node2);
+}
