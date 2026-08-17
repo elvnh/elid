@@ -69,33 +69,34 @@ DEFINE_SAFE_CAST_UNSIGNED_TO_SIGNED(u32, s32)
         return result;                          \
     }
 
-#define DEFINE_SAFE_SIGNED_SUB(t)               \
-    b32 safe_sub_##t(t a, t b, t *res)          \
-    {                                           \
-        b32 result = false;                     \
-                                                \
-        t min = MIN_VALUE_OF(t);                \
-        t max = MAX_VALUE_OF(t);                \
-                                                \
-        if (a > 0) {                            \
-            if (b > 0) {                        \
-                result = a >= (min + b);        \
-            } else {                            \
-                result = a <= (max - b);        \
-            }                                   \
-        } else {                                \
-            if (b > 0) {                        \
-                result = b <= (min - a);        \
-            } else {                            \
-                result = a <= (max + b);        \
-            }                                   \
-        }                                       \
-                                                \
-        if (result) {                           \
-            *res = a - b;                       \
-        }                                       \
-                                                \
-        return result;                          \
+// TODO: can this be simplified?
+#define DEFINE_SAFE_SIGNED_SUB(t)                   \
+    b32 safe_sub_##t(t a, t b, t *res)              \
+    {                                               \
+        b32 result = false;                         \
+                                                    \
+        t min = MIN_VALUE_OF(t);                    \
+        t max = MAX_VALUE_OF(t);                    \
+                                                    \
+        if (a > 0) {                                \
+            if (b > 0) {                            \
+                result = a >= (min + b);            \
+            } else {                                \
+                result = a <= (max + b);            \
+            }                                       \
+        } else {                                    \
+            if (b > 0) {                            \
+                result = a >= (min + b);            \
+            } else {                                \
+                result = a <= (max + b);            \
+            }                                       \
+        }                                           \
+                                                    \
+        if (result) {                               \
+            *res = a - b;                           \
+        }                                           \
+                                                    \
+        return result;                              \
     }
 
 #define DEFINE_SAFE_SIGNED_MUL(t)               \
@@ -118,7 +119,7 @@ DEFINE_SAFE_CAST_UNSIGNED_TO_SIGNED(u32, s32)
             if (b > 0) {                        \
                 result = a >= (min / b);        \
             } else {                            \
-                result = b <= (max / a);        \
+                result = b >= (max / a);        \
             }                                   \
         }                                       \
                                                 \
