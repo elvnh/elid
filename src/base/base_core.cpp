@@ -457,6 +457,13 @@ b32 is_aligned(u64 val, u64 align)
     return result;
 }
 
+b32 ptr_is_aligned(void *val, u64 align)
+{
+    b32 result = is_aligned((u64)val, align);
+
+    return result;
+}
+
 b32 is_aligned_pow2(u64 val, u64 align)
 {
     b32 result = (val & (align - 1)) == 0;

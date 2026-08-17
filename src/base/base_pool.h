@@ -25,4 +25,4 @@ usize  pool_get_used_node_count(Pool *pool);
 usize  pool_get_total_node_count(Pool *pool);
 
 #define pool_create(arena, t, count) pool_create_untyped(arena, sizeof(t), count, alignof(t))
-#define pool_alloc(pool, t) (ASSERT_AND_THEN(sizeof(t) <= (pool)->node_size, pool_alloc_untyped((pool))))
+#define pool_alloc(pool, t) (ASSERT_AND_THEN(sizeof(t) <= (pool)->node_size, (t *)pool_alloc_untyped((pool))))

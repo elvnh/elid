@@ -194,6 +194,7 @@ usize sat_div_usize(usize a, usize b);
 /* Math */
 b32 is_pow2(u64 val);
 b32 is_aligned(u64 val, u64 align);
+b32 ptr_is_aligned(void *val, u64 align);
 b32 is_aligned_pow2(u64 val, u64 align);
 u64 align_pow2(u64 val, u64 align);
 
