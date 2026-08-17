@@ -82,7 +82,8 @@ void *pool_alloc_untyped(Pool *pool)
 
     UNPOISON(result, current_pool->node_size);
 
-    current_pool->first_free_node = current_pool->first_free_node->next;
+    stack_pop_nh(current_pool, next, first_free_node);
+
     pool->current_pool = current_pool;
 
     zero_mem(result, size_to_zero_out);
@@ -93,10 +94,10 @@ void *pool_alloc_untyped(Pool *pool)
 void pool_free(Pool *pool, void *ptr)
 {
     // TODO: check that allocation actually comes from this pool
-
     PoolNode *node = (PoolNode *)ptr;
-    node->next = pool->first_free_node;
-    pool->first_free_node = node;
+    stack_push_nh(pool, node, next, first_free_node);
+
+    POISON(node, pool->node_size);
 
     // Set ourselves to the current pool as there is now at least one free node to be
     // found in it.
