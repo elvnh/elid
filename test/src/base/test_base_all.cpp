@@ -80,4 +80,12 @@ static void test_base(void)
     test_base_sl_list_insert_after_first();
     test_base_sl_list_insert_after_middle();
     test_base_sl_list_insert_after_last();
+
+    /* Stacks */
+    test_base_stack_push_empty();
+    test_base_stack_push_two();
+    test_base_stack_push_multiple();
+    test_base_stack_pop_empty();
+    test_base_stack_pop_to_empty();
+    test_base_stack_pop_nonempty();
 }

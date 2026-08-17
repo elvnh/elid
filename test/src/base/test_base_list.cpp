@@ -610,3 +610,86 @@ static void test_base_sl_list_insert_after_last(void)
     REQUIRE(node2->next == node3);
     REQUIRE(node3->next == 0);
 }
+
+/* Stacks */
+static void test_base_stack_push_empty(void)
+{
+    String_Stack stack = {};
+    String_SNode *first = arena_alloc_struct(test_arena, String_SNode);
+
+    stack_push(&stack, first);
+
+    REQUIRE(stack.head == first);
+    REQUIRE(first->next == 0);
+}
+
+static void test_base_stack_push_two(void)
+{
+    String_Stack stack = {};
+
+    String_SNode *node0 = arena_alloc_struct(test_arena, String_SNode);
+    stack_push(&stack, node0);
+
+    String_SNode *node1 = arena_alloc_struct(test_arena, String_SNode);
+    stack_push(&stack, node1);
+
+    REQUIRE(stack.head == node1);
+    REQUIRE(node1->next == node0);
+    REQUIRE(node0->next == 0);
+}
+
+static void test_base_stack_push_multiple(void)
+{
+    String_Stack stack = {};
+
+    String_SNode *node0 = arena_alloc_struct(test_arena, String_SNode);
+    stack_push(&stack, node0);
+
+    String_SNode *node1 = arena_alloc_struct(test_arena, String_SNode);
+    stack_push(&stack, node1);
+
+    String_SNode *node2 = arena_alloc_struct(test_arena, String_SNode);
+    stack_push(&stack, node2);
+
+    REQUIRE(stack.head == node2);
+    REQUIRE(node2->next == node1);
+    REQUIRE(node1->next == node0);
+    REQUIRE(node0->next == 0);
+}
+
+static void test_base_stack_pop_empty(void)
+{
+    String_Stack stack = {};
+    stack_pop(&stack);
+
+    REQUIRE(stack.head == 0);
+}
+
+static void test_base_stack_pop_to_empty(void)
+{
+    String_Stack stack = {};
+
+    String_SNode *node0 = arena_alloc_struct(test_arena, String_SNode);
+    stack_push(&stack, node0);
+
+    stack_pop(&stack);
+
+    REQUIRE(stack.head == 0);
+    REQUIRE(node0->next == 0);
+}
+
+static void test_base_stack_pop_nonempty(void)
+{
+    String_Stack stack = {};
+
+    String_SNode *node0 = arena_alloc_struct(test_arena, String_SNode);
+    stack_push(&stack, node0);
+
+    String_SNode *node1 = arena_alloc_struct(test_arena, String_SNode);
+    stack_push(&stack, node1);
+
+    stack_pop(&stack);
+
+    REQUIRE(stack.head == node0);
+    REQUIRE(node0->next == 0);
+}

@@ -18,7 +18,10 @@
     struct t##_SList {                          \
         t##_SNode *first;                       \
         t##_SNode *last;                        \
-    };
+    };                                          \
+    struct t##_Stack {                          \
+        t##_SNode *head;                        \
+    }
 
 /* Doubly linked lists */
 // TODO: fix this one
@@ -109,3 +112,17 @@
             : 0))
 
 #define sll_insert(list, node, after) sll_insert_npfl((list), (node), (after), next, prev, first, last)
+
+/* Stacks */
+#define stack_push_nh(stack, node, next, head)   \
+    ((node)->next = (stack)->head),             \
+    ((stack)->head = (node))
+
+#define stack_push(stack, node) stack_push_nh((stack), (node), next, head)
+
+#define stack_pop_nh(stack, next, head)         \
+    ((stack)->head ?                            \
+        ((stack)->head = (stack)->head->next)   \
+        : 0)
+
+#define stack_pop(stack) stack_pop_nh((stack), next, head)
