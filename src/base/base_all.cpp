@@ -1,3 +1,10 @@
+#include <stdio.h>
+#include <stdint.h>
+#include <stddef.h>
+#include <stdarg.h>
+#include <string.h>
+#include <inttypes.h>
+
 #include "base_context.h"
 #include "base_core.cpp"
 #include "base_list.h"

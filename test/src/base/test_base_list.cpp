@@ -1,5 +1,5 @@
 /* Doubly linked lists */
-static void test_base_dl_list_push_front_basic(void)
+TEST_CASE(dl_list_push_front_basic)
 {
     String_List list = {};
 
@@ -13,7 +13,7 @@ static void test_base_dl_list_push_front_basic(void)
     REQUIRE(node->prev == 0);
 }
 
-static void test_base_dl_list_push_front_nonempty(void)
+TEST_CASE(dl_list_push_front_nonempty)
 {
     String_List list = {};
 
@@ -34,7 +34,7 @@ static void test_base_dl_list_push_front_nonempty(void)
     REQUIRE(node2->next == node1);
 }
 
-static void test_base_dl_list_push_front_multiple_nodes(void)
+TEST_CASE(dl_list_push_front_multiple_nodes)
 {
     String_List list = {};
 
@@ -60,7 +60,7 @@ static void test_base_dl_list_push_front_multiple_nodes(void)
     REQUIRE(node3->next == node2);
 }
 
-static void test_base_dl_list_push_back_basic(void)
+TEST_CASE(dl_list_push_back_basic)
 {
     String_List list = {};
 
@@ -74,7 +74,7 @@ static void test_base_dl_list_push_back_basic(void)
     REQUIRE(node->prev == 0);
 }
 
-static void test_base_dl_list_push_back_nonempty(void)
+TEST_CASE(dl_list_push_back_nonempty)
 {
     String_List list = {};
 
@@ -94,7 +94,7 @@ static void test_base_dl_list_push_back_nonempty(void)
     REQUIRE(node2->prev == node1);
 }
 
-static void test_base_dl_list_push_back_multiple_nodes(void)
+TEST_CASE(dl_list_push_back_multiple_nodes)
 {
     String_List list = {};
 
@@ -120,7 +120,7 @@ static void test_base_dl_list_push_back_multiple_nodes(void)
     REQUIRE(node3->next == 0);
 }
 
-static void test_base_dl_list_push_front_then_back(void)
+TEST_CASE(dl_list_push_front_then_back)
 {
     String_List list = {};
 
@@ -140,7 +140,7 @@ static void test_base_dl_list_push_front_then_back(void)
     REQUIRE(node2->next == 0);
 }
 
-static void test_base_dl_list_push_back_then_front(void)
+TEST_CASE(dl_list_push_back_then_front)
 {
     String_List list = {};
 
@@ -160,7 +160,7 @@ static void test_base_dl_list_push_back_then_front(void)
     REQUIRE(node2->next == node1);
 }
 
-static void test_base_dl_list_push_front_then_back_nonempty(void)
+TEST_CASE(dl_list_push_front_then_back_nonempty)
 {
     String_List list = {};
 
@@ -186,7 +186,7 @@ static void test_base_dl_list_push_front_then_back_nonempty(void)
     REQUIRE(node2->next == 0);
 }
 
-static void test_base_dl_list_push_back_then_front_nonempty(void)
+TEST_CASE(dl_list_push_back_then_front_nonempty)
 {
     String_List list = {};
 
@@ -212,7 +212,7 @@ static void test_base_dl_list_push_back_then_front_nonempty(void)
     REQUIRE(node2->next == node0);
 }
 
-static void test_base_dl_list_insert_after_basic(void)
+TEST_CASE(dl_list_insert_after_basic)
 {
     String_List list = {};
 
@@ -232,7 +232,7 @@ static void test_base_dl_list_insert_after_basic(void)
     REQUIRE(node1->prev == node0);
 }
 
-static void test_base_dl_list_insert_before_basic(void)
+TEST_CASE(dl_list_insert_before_basic)
 {
     String_List list = {};
 
@@ -252,7 +252,7 @@ static void test_base_dl_list_insert_before_basic(void)
     REQUIRE(node1->prev == 0);
 }
 
-static void test_base_dl_list_insert_before_first_node(void)
+TEST_CASE(dl_list_insert_before_first_node)
 {
     String_List list = {};
 
@@ -278,7 +278,7 @@ static void test_base_dl_list_insert_before_first_node(void)
     REQUIRE(node2->prev == 0);
 }
 
-static void test_base_dl_list_insert_before_middle_node(void)
+TEST_CASE(dl_list_insert_before_middle_node)
 {
     String_List list = {};
 
@@ -310,7 +310,7 @@ static void test_base_dl_list_insert_before_middle_node(void)
     REQUIRE(node2->prev == node1);
 }
 
-static void test_base_dl_list_insert_before_last_node(void)
+TEST_CASE(dl_list_insert_before_last_node)
 {
     String_List list = {};
 
@@ -336,7 +336,7 @@ static void test_base_dl_list_insert_before_last_node(void)
     REQUIRE(node2->prev == node0);
 }
 
-static void test_base_dl_list_insert_after_first_node(void)
+TEST_CASE(dl_list_insert_after_first_node)
 {
     String_List list = {};
 
@@ -362,7 +362,7 @@ static void test_base_dl_list_insert_after_first_node(void)
     REQUIRE(node2->prev == node0);
 }
 
-static void test_base_dl_list_insert_after_middle_node(void)
+TEST_CASE(dl_list_insert_after_middle_node)
 {
     String_List list = {};
 
@@ -394,7 +394,7 @@ static void test_base_dl_list_insert_after_middle_node(void)
     REQUIRE(node2->prev == node3);
 }
 
-static void test_base_dl_list_insert_after_last_node(void)
+TEST_CASE(dl_list_insert_after_last_node)
 {
     String_List list = {};
 
@@ -420,7 +420,7 @@ static void test_base_dl_list_insert_after_last_node(void)
     REQUIRE(node2->prev == node1);
 }
 
-static void test_base_dl_list_remove_single_elem(void)
+TEST_CASE(dl_list_remove_single_elem)
 {
     String_List list = {};
 
@@ -433,7 +433,7 @@ static void test_base_dl_list_remove_single_elem(void)
     REQUIRE(list.last == 0);
 }
 
-static void test_base_dl_list_remove_first_of_two(void)
+TEST_CASE(dl_list_remove_first_of_two)
 {
     String_List list = {};
 
@@ -455,7 +455,7 @@ static void test_base_dl_list_remove_first_of_two(void)
     REQUIRE(node1->next == 0);
 }
 
-static void test_base_dl_list_remove_last_of_two(void)
+TEST_CASE(dl_list_remove_last_of_two)
 {
     String_List list = {};
 
@@ -477,7 +477,7 @@ static void test_base_dl_list_remove_last_of_two(void)
     REQUIRE(node0->next == 0);
 }
 
-static void test_base_dl_list_remove_first(void)
+TEST_CASE(dl_list_remove_first)
 {
     String_List list = {};
 
@@ -505,7 +505,7 @@ static void test_base_dl_list_remove_first(void)
     REQUIRE(node2->next == 0);
 }
 
-static void test_base_dl_list_remove_middle(void)
+TEST_CASE(dl_list_remove_middle)
 {
     String_List list = {};
 
@@ -533,7 +533,7 @@ static void test_base_dl_list_remove_middle(void)
     REQUIRE(node2->next == 0);
 }
 
-static void test_base_dl_list_remove_last(void)
+TEST_CASE(dl_list_remove_last)
 {
     String_List list = {};
 
@@ -562,7 +562,7 @@ static void test_base_dl_list_remove_last(void)
 }
 
 /* Singly linked lists */
-static void test_base_sl_list_push_front_empty(void)
+TEST_CASE(sl_list_push_front_empty)
 {
     String_SList list = {};
 
@@ -575,7 +575,7 @@ static void test_base_sl_list_push_front_empty(void)
     REQUIRE(node0->next == 0);
 }
 
-static void test_base_sl_list_push_front_single_elem(void)
+TEST_CASE(sl_list_push_front_single_elem)
 {
     String_SList list = {};
 
@@ -592,7 +592,7 @@ static void test_base_sl_list_push_front_single_elem(void)
     REQUIRE(node1->next == node0);
 }
 
-static void test_base_sl_list_push_front_multi_elem(void)
+TEST_CASE(sl_list_push_front_multi_elem)
 {
     String_SList list = {};
 
@@ -613,7 +613,7 @@ static void test_base_sl_list_push_front_multi_elem(void)
     REQUIRE(node2->next == node1);
 }
 
-static void test_base_sl_list_push_back_empty(void)
+TEST_CASE(sl_list_push_back_empty)
 {
     String_SList list = {};
 
@@ -626,7 +626,7 @@ static void test_base_sl_list_push_back_empty(void)
     REQUIRE(node0->next == 0);
 }
 
-static void test_base_sl_list_push_back_single_elem(void)
+TEST_CASE(sl_list_push_back_single_elem)
 {
     String_SList list = {};
 
@@ -643,7 +643,7 @@ static void test_base_sl_list_push_back_single_elem(void)
     REQUIRE(node1->next == 0);
 }
 
-static void test_base_sl_list_push_back_multi_elem(void)
+TEST_CASE(sl_list_push_back_multi_elem)
 {
     String_SList list = {};
 
@@ -664,7 +664,7 @@ static void test_base_sl_list_push_back_multi_elem(void)
     REQUIRE(node2->next == 0);
 }
 
-static void test_base_sl_list_insert_single_elem(void)
+TEST_CASE(sl_list_insert_single_elem)
 {
     String_SList list = {};
 
@@ -681,7 +681,7 @@ static void test_base_sl_list_insert_single_elem(void)
     REQUIRE(node1->next == 0);
 }
 
-static void test_base_sl_list_insert_after_first(void)
+TEST_CASE(sl_list_insert_after_first)
 {
     String_SList list = {};
 
@@ -702,7 +702,7 @@ static void test_base_sl_list_insert_after_first(void)
     REQUIRE(node1->next == 0);
 }
 
-static void test_base_sl_list_insert_after_middle(void)
+TEST_CASE(sl_list_insert_after_middle)
 {
     String_SList list = {};
 
@@ -727,7 +727,7 @@ static void test_base_sl_list_insert_after_middle(void)
     REQUIRE(node2->next == 0);
 }
 
-static void test_base_sl_list_insert_after_last(void)
+TEST_CASE(sl_list_insert_after_last)
 {
     String_SList list = {};
 
@@ -753,7 +753,7 @@ static void test_base_sl_list_insert_after_last(void)
 }
 
 /* Stacks */
-static void test_base_stack_push_empty(void)
+TEST_CASE(stack_push_empty)
 {
     String_Stack stack = {};
     String_SNode *first = arena_alloc_struct(test_arena, String_SNode);
@@ -764,7 +764,7 @@ static void test_base_stack_push_empty(void)
     REQUIRE(first->next == 0);
 }
 
-static void test_base_stack_push_two(void)
+TEST_CASE(stack_push_two)
 {
     String_Stack stack = {};
 
@@ -779,7 +779,7 @@ static void test_base_stack_push_two(void)
     REQUIRE(node0->next == 0);
 }
 
-static void test_base_stack_push_multiple(void)
+TEST_CASE(stack_push_multiple)
 {
     String_Stack stack = {};
 
@@ -798,7 +798,7 @@ static void test_base_stack_push_multiple(void)
     REQUIRE(node0->next == 0);
 }
 
-static void test_base_stack_pop_empty(void)
+TEST_CASE(stack_pop_empty)
 {
     String_Stack stack = {};
     stack_pop(&stack);
@@ -806,7 +806,7 @@ static void test_base_stack_pop_empty(void)
     REQUIRE(stack.head == 0);
 }
 
-static void test_base_stack_pop_to_empty(void)
+TEST_CASE(stack_pop_to_empty)
 {
     String_Stack stack = {};
 
@@ -819,7 +819,7 @@ static void test_base_stack_pop_to_empty(void)
     REQUIRE(node0->next == 0);
 }
 
-static void test_base_stack_pop_nonempty(void)
+TEST_CASE(stack_pop_nonempty)
 {
     String_Stack stack = {};
 
@@ -835,7 +835,7 @@ static void test_base_stack_pop_nonempty(void)
     REQUIRE(node0->next == 0);
 }
 
-static void test_base_stack_pop_to_nonempty_multiple(void)
+TEST_CASE(stack_pop_to_nonempty_multiple)
 {
     String_Stack stack = {};
 
@@ -855,7 +855,7 @@ static void test_base_stack_pop_to_nonempty_multiple(void)
 
 
 /* Queues */
-static void test_base_queue_basic(void)
+TEST_CASE(queue_basic)
 {
     String_SList queue = {};
 
@@ -866,7 +866,7 @@ static void test_base_queue_basic(void)
     REQUIRE(queue.last == node0);
 }
 
-static void test_base_queue_push_multiple(void)
+TEST_CASE(queue_push_multiple)
 {
     String_SList queue = {};
 
@@ -887,7 +887,7 @@ static void test_base_queue_push_multiple(void)
     REQUIRE(node2->next == 0);
 }
 
-static void test_base_queue_pop_empty(void)
+TEST_CASE(queue_pop_empty)
 {
     String_SList queue = {};
     queue_pop(&queue);
@@ -896,7 +896,7 @@ static void test_base_queue_pop_empty(void)
     REQUIRE(queue.last == 0);
 }
 
-static void test_base_queue_pop_to_empty(void)
+TEST_CASE(queue_pop_to_empty)
 {
     String_SList queue = {};
 
@@ -911,7 +911,7 @@ static void test_base_queue_pop_to_empty(void)
     REQUIRE(node0->next == 0);
 }
 
-static void test_base_queue_pop_to_one_elem(void)
+TEST_CASE(queue_pop_to_one_elem)
 {
     String_SList queue = {};
 
@@ -927,7 +927,7 @@ static void test_base_queue_pop_to_one_elem(void)
     REQUIRE(queue.last == node1);
 }
 
-static void test_base_queue_pop_to_two_elem(void)
+TEST_CASE(queue_pop_to_two_elem)
 {
     String_SList queue = {};
 

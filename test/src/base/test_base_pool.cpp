@@ -1,4 +1,4 @@
-static void test_pool_basic(void)
+TEST_CASE(pool_basic)
 {
     Arena *arena = arena_create(1024);
 
@@ -13,7 +13,7 @@ static void test_pool_basic(void)
     arena_destroy(arena);
 }
 
-static void test_pool_grow(void)
+TEST_CASE(pool_grow)
 {
     Arena *arena = arena_create(1024);
 
@@ -28,7 +28,7 @@ static void test_pool_grow(void)
     arena_destroy(arena);
 }
 
-static void test_pool_grow_beyond_arena(void)
+TEST_CASE(pool_grow_beyond_arena)
 {
     Arena *arena = arena_create(1024);
 
@@ -43,7 +43,7 @@ static void test_pool_grow_beyond_arena(void)
     arena_destroy(arena);
 }
 
-static void test_pool_free_node_count(void)
+TEST_CASE(pool_free_node_count)
 {
     Arena *arena = arena_create(1024);
 
@@ -58,7 +58,7 @@ static void test_pool_free_node_count(void)
     arena_destroy(arena);
 }
 
-static void test_pool_free_node_count_grow(void)
+TEST_CASE(pool_free_node_count_grow)
 {
     Arena *arena = arena_create(1024);
 
@@ -82,7 +82,7 @@ static void test_pool_free_node_count_grow(void)
     arena_destroy(arena);
 }
 
-static void test_pool_total_node_count(void)
+TEST_CASE(pool_total_node_count)
 {
     Arena *arena = arena_create(1024);
 
@@ -112,7 +112,7 @@ static void test_pool_total_node_count(void)
     arena_destroy(arena);
 }
 
-static void test_pool_free(void)
+TEST_CASE(pool_free)
 {
     Arena *arena = arena_create(1024);
 
@@ -149,7 +149,7 @@ static void test_pool_free(void)
     arena_destroy(arena);
 }
 
-static void test_pool_used_node_count(void)
+TEST_CASE(pool_used_node_count)
 {
     Arena *arena = arena_create(1024);
 
@@ -164,7 +164,7 @@ static void test_pool_used_node_count(void)
     arena_destroy(arena);
 }
 
-static void test_pool_used_node_count_grow(void)
+TEST_CASE(pool_used_node_count_grow)
 {
     Arena *arena = arena_create(1024);
 
@@ -179,7 +179,7 @@ static void test_pool_used_node_count_grow(void)
     arena_destroy(arena);
 }
 
-static void test_pool_alignment(void)
+TEST_CASE(pool_alignment)
 {
     Arena *arena = arena_create(1024*1024);
 
@@ -197,7 +197,7 @@ static void test_pool_alignment(void)
     arena_destroy(arena);
 }
 
-static void test_pool_different_alignments_and_sizes(void)
+TEST_CASE(pool_different_alignments_and_sizes)
 {
     Arena *arena = arena_create(1024*1024*32);
 
@@ -227,7 +227,7 @@ static void test_pool_different_alignments_and_sizes(void)
     arena_destroy(arena);
 }
 
-static void test_pool_reset(void)
+TEST_CASE(pool_reset)
 {
     Arena *arena = arena_create(1024);
 
@@ -244,7 +244,7 @@ static void test_pool_reset(void)
     arena_destroy(arena);
 }
 
-static void test_pool_reset_after_growing(void)
+TEST_CASE(pool_reset_after_growing)
 {
     Arena *arena = arena_create(1024);
 
@@ -263,7 +263,7 @@ static void test_pool_reset_after_growing(void)
     arena_destroy(arena);
 }
 
-static void test_pool_realloc_after_reset_after_growing(void)
+TEST_CASE(pool_realloc_after_reset_after_growing)
 {
     Arena *arena = arena_create(1024);
 
@@ -293,7 +293,7 @@ static void test_pool_realloc_after_reset_after_growing(void)
 }
 
 
-static void test_pool_zeroed(void)
+TEST_CASE(pool_zeroed)
 {
     Arena *arena = arena_create(1024);
 
@@ -308,7 +308,7 @@ static void test_pool_zeroed(void)
     arena_destroy(arena);
 }
 
-static void test_pool_zeroed_after_reset(void)
+TEST_CASE(pool_zeroed_after_reset)
 {
     Arena *arena = arena_create(1024);
 
@@ -330,7 +330,7 @@ static void test_pool_zeroed_after_reset(void)
     arena_destroy(arena);
 }
 
-static void test_pool_zeroed_after_growing(void)
+TEST_CASE(pool_zeroed_after_growing)
 {
     Arena *arena = arena_create(1024);
 
@@ -345,7 +345,7 @@ static void test_pool_zeroed_after_growing(void)
     arena_destroy(arena);
 }
 
-static void test_pool_zeroed_after_growing_and_reset(void)
+TEST_CASE(pool_zeroed_after_growing_and_reset)
 {
     Arena *arena = arena_create(1024);
 

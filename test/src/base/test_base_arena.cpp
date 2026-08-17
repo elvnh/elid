@@ -1,4 +1,5 @@
-static void test_arena_basic(void)
+// TODO: remove test prefix from these
+TEST_CASE(arena_basic)
 {
     Arena *arena = arena_create(1024);
 
@@ -11,7 +12,7 @@ static void test_arena_basic(void)
     arena_destroy(arena);
 }
 
-static void test_arena_reset(void)
+TEST_CASE(arena_reset)
 {
     Arena *arena = arena_create(1024);
 
@@ -24,7 +25,7 @@ static void test_arena_reset(void)
     arena_destroy(arena);
 }
 
-static void test_arena_reset_after_growing(void)
+TEST_CASE(arena_reset_after_growing)
 {
     Arena *arena = arena_create(1024);
 
@@ -38,7 +39,7 @@ static void test_arena_reset_after_growing(void)
     arena_destroy(arena);
 }
 
-static void test_arena_memory_usage_basic(void)
+TEST_CASE(arena_memory_usage_basic)
 {
     Arena *arena = arena_create(1024);
     REQUIRE(arena_get_memory_usage(arena) == 0);
@@ -52,7 +53,7 @@ static void test_arena_memory_usage_basic(void)
     arena_destroy(arena);
 }
 
-static void test_arena_memory_usage_after_growing(void)
+TEST_CASE(arena_memory_usage_after_growing)
 {
     Arena *arena = arena_create(1024);
 
@@ -68,7 +69,7 @@ static void test_arena_memory_usage_after_growing(void)
     arena_destroy(arena);
 }
 
-static void test_arena_zeroed_fresh_arena(void)
+TEST_CASE(arena_zeroed_fresh_arena)
 {
     Arena *arena = arena_create(1024);
 
@@ -80,7 +81,7 @@ static void test_arena_zeroed_fresh_arena(void)
     arena_destroy(arena);
 }
 
-static void test_arena_zeroed_after_reset(void)
+TEST_CASE(arena_zeroed_after_reset)
 {
     Arena *arena = arena_create(1024);
 
@@ -94,7 +95,7 @@ static void test_arena_zeroed_after_reset(void)
     arena_destroy(arena);
 }
 
-static void test_arena_zeroed_after_growing_and_resetting(void)
+TEST_CASE(arena_zeroed_after_growing_and_resetting)
 {
     Arena *arena = arena_create(1024);
 
@@ -115,7 +116,7 @@ static void test_arena_zeroed_after_growing_and_resetting(void)
     arena_destroy(arena);
 }
 
-static void test_arena_alignment(void)
+TEST_CASE(arena_alignment)
 {
     Arena *arena = arena_create(1024);
 
@@ -128,7 +129,7 @@ static void test_arena_alignment(void)
     arena_destroy(arena);
 
 }
-static void test_arena_alignment_after_growing(void)
+TEST_CASE(arena_alignment_after_growing)
 {
     Arena *arena = arena_create(1024);
 
@@ -143,7 +144,7 @@ static void test_arena_alignment_after_growing(void)
     arena_destroy(arena);
 }
 
-static void test_arena_alignment_after_growing_and_resetting(void)
+TEST_CASE(arena_alignment_after_growing_and_resetting)
 {
     Arena *arena = arena_create(1024);
 
@@ -159,7 +160,7 @@ static void test_arena_alignment_after_growing_and_resetting(void)
     arena_destroy(arena);
 }
 
-static void test_arena_pop_to(void)
+TEST_CASE(arena_pop_to)
 {
     Arena *arena = arena_create(1024);
 
@@ -172,7 +173,7 @@ static void test_arena_pop_to(void)
     arena_destroy(arena);
 }
 
-static void test_arena_pop_to_after_growing(void)
+TEST_CASE(arena_pop_to_after_growing)
 {
     Arena *arena = arena_create(1024);
 
@@ -185,7 +186,7 @@ static void test_arena_pop_to_after_growing(void)
     arena_destroy(arena);
 }
 
-static void test_arena_pop_to_new_buffer(void)
+TEST_CASE(arena_pop_to_new_buffer)
 {
     Arena *arena = arena_create(1024);
 
@@ -198,7 +199,7 @@ static void test_arena_pop_to_new_buffer(void)
     arena_destroy(arena);
 }
 
-static void test_arena_different_alignments_and_sizes(void)
+TEST_CASE(arena_different_alignments_and_sizes)
 {
     Arena *arena = arena_create(1024);
 
@@ -224,7 +225,7 @@ static void test_arena_different_alignments_and_sizes(void)
     arena_destroy(arena);
 }
 
-static void test_arena_allocate_entire_arena(void)
+TEST_CASE(arena_allocate_entire_arena)
 {
     size_t size = 1024;
     Arena *arena = arena_create(size);
@@ -237,7 +238,7 @@ static void test_arena_allocate_entire_arena(void)
     arena_destroy(arena);
 }
 
-static void test_arena_allocate_entire_arena_different_sizes(void)
+TEST_CASE(arena_allocate_entire_arena_different_sizes)
 {
     size_t sizes[] = {1, 1023, 4096, 5000, 10000, 65535, 65536, 70000};
 
