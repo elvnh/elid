@@ -8,7 +8,8 @@ struct String {
 struct Cut {
     String head;
     String tail;
-    b32    ok;
+    b32    delimiter_present;
+    u8     delimiter;
 };
 
 DEFINE_LIST_TYPES(String);
@@ -35,6 +36,7 @@ String      str_pop_front(String str, usize count);
 String      str_pop_back(String str, usize count);
 usize       str_common_prefix_length(String a, String b);
 Cut         str_cut(String str, u8 ch);
+Cut         str_cut_next(Cut cut);
 usize_Maybe str_find_first_occurrence(String str, u8 ch);
 usize_Maybe str_find_last_occurrence(String str, u8 ch);
 usize_Maybe str_find_first_occurrence_from(String str, u8 ch, usize index);

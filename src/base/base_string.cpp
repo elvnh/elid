@@ -190,28 +190,27 @@ usize str_common_prefix_length(String a, String b)
     return result;
 }
 
-Cut str_cut_begin(String str)
-{
-    Cut result = {};
-    result.tail = str;
-    result.ok = true;
-
-    return result;
-}
-
 Cut str_cut(String str, u8 ch)
 {
     Cut result = {};
+    result.delimiter = ch;
 
-    usize_Maybe next = str_find_first_occurence(str, ch);
+    usize_Maybe next = str_find_first_occurrence(str, ch);
 
     if (next.ok) {
         result.head = str_prefix(str, next.value);
         result.tail = str_slice_from(str, next.value + 1);
-        result.ok = true;
+        result.delimiter_present = true;
     } else {
         result.head = str;
     }
+
+    return result;
+}
+
+Cut str_cut_next(Cut cut)
+{
+    Cut result = str_cut(cut.tail, cut.delimiter);
 
     return result;
 }
