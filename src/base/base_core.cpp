@@ -208,7 +208,7 @@ DEFINE_SAFE_CAST_UNSIGNED_TO_SIGNED(u32, s32)
     {                                           \
         b32 result = false;                     \
                                                 \
-        if ((a == 0) || (b == 0)) {             \
+        if (b == 0) {                           \
             result = true;                      \
         } else {                                \
             result = a >= b;                    \

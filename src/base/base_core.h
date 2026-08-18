@@ -142,6 +142,7 @@ b32 safe_sub_s32(s32 a, s32 b, s32 *res);
 b32 safe_mul_s32(s32 a, s32 b, s32 *res);
 b32 safe_div_s32(s32 a, s32 b, s32 *res);
 b32 safe_neg_s32(s32 a, s32 *res);
+b32 safe_abs_s32(s32 a, s32 *res);
 
 b32 safe_add_u32(u32 a, u32 b, u32 *res);
 b32 safe_sub_u32(u32 a, u32 b, u32 *res);
@@ -153,6 +154,7 @@ b32 safe_sub_s64(s64 a, s64 b, s64 *res);
 b32 safe_mul_s64(s64 a, s64 b, s64 *res);
 b32 safe_div_s64(s64 a, s64 b, s64 *res);
 b32 safe_neg_s64(s64 a, s64 *res);
+b32 safe_abs_s64(s32 a, s32 *res);
 
 b32 safe_add_u64(u64 a, u64 b, u64 *res);
 b32 safe_sub_u64(u64 a, u64 b, u64 *res);
@@ -164,6 +166,7 @@ b32 safe_sub_ssize(ssize a, ssize b, ssize *res);
 b32 safe_mul_ssize(ssize a, ssize b, ssize *res);
 b32 safe_div_ssize(ssize a, ssize b, ssize *res);
 b32 safe_neg_ssize(ssize a, ssize *res);
+b32 safe_abs_ssize(s32 a, s32 *res);
 
 b32 safe_add_usize(usize a, usize b, usize *res);
 b32 safe_sub_usize(usize a, usize b, usize *res);

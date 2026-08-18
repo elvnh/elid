@@ -28,6 +28,8 @@ CXXFLAGS="
     -Werror=return-type
     -Werror=overflow
     -Wsign-conversion
+    -Wtype-limits
+    -Wundef
     -Werror=missing-braces
     -Wno-error=unused-parameter
     -Wno-error=unused-function
