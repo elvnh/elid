@@ -594,3 +594,63 @@ TEST_CASE(sat_div_unsigned_saturate)
     REQUIRE(sat_div_u64(10, 0) == 0);
     REQUIRE(sat_div_u64(0, 0) == 0);
 }
+
+/* Math */
+TEST_CASE(is_pow2)
+{
+    REQUIRE(is_pow2(1));
+    REQUIRE(is_pow2(2));
+    REQUIRE(is_pow2(4));
+    REQUIRE(is_pow2(8));
+    REQUIRE(is_pow2(16));
+    REQUIRE(is_pow2(65536));
+
+    REQUIRE(!is_pow2(0));
+    REQUIRE(!is_pow2(3));
+    REQUIRE(!is_pow2(7));
+    REQUIRE(!is_pow2(10));
+    REQUIRE(!is_pow2(12));
+    REQUIRE(!is_pow2(1023));
+    REQUIRE(!is_pow2(65535));
+}
+
+TEST_CASE(is_aligned)
+{
+    REQUIRE(is_aligned(0, 4));
+    REQUIRE(is_aligned(0, 8));
+    REQUIRE(is_aligned(0, 10));
+    REQUIRE(is_aligned(0, 12));
+    REQUIRE(is_aligned(0, 16));
+
+    REQUIRE(is_aligned(1, 1));
+    REQUIRE(is_aligned(2, 1));
+    REQUIRE(is_aligned(5, 1));
+    REQUIRE(is_aligned(8, 1));
+    REQUIRE(is_aligned(1231, 1));
+
+    REQUIRE(is_aligned(7, 7));
+    REQUIRE(is_aligned(14, 7));
+    REQUIRE(!is_aligned(15, 7));
+    REQUIRE(!is_aligned(16, 7));
+}
+
+TEST_CASE(is_aligned_pow2)
+{
+    REQUIRE(is_aligned_pow2(0, 4));
+    REQUIRE(is_aligned_pow2(0, 8));
+    REQUIRE(is_aligned_pow2(0, 16));
+
+    REQUIRE(is_aligned(1, 1));
+    REQUIRE(is_aligned(2, 1));
+    REQUIRE(is_aligned(5, 1));
+    REQUIRE(is_aligned(8, 1));
+    REQUIRE(is_aligned(1231, 1));
+
+    REQUIRE(is_aligned(8, 8));
+    REQUIRE(is_aligned(16, 8));
+    REQUIRE(is_aligned(24, 8));
+    REQUIRE(is_aligned(32, 8));
+    REQUIRE(!is_aligned(7, 8));
+    REQUIRE(!is_aligned(9, 8));
+    REQUIRE(!is_aligned(33, 8));
+}

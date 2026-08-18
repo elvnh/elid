@@ -462,7 +462,7 @@ DEFINE_SAT_UNSIGNED_OPS(usize)
 /* Math */
 b32 is_pow2(u64 val)
 {
-    b32 result = ((val - 1) & val) == 0;
+    b32 result = (val != 0) && (((val - 1) & val) == 0);
 
     return result;
 }
@@ -483,6 +483,8 @@ b32 ptr_is_aligned(void *val, u64 align)
 
 b32 is_aligned_pow2(u64 val, u64 align)
 {
+    ASSERT(is_pow2(align));
+
     b32 result = (val & (align - 1)) == 0;
 
     return result;

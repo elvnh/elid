@@ -84,8 +84,8 @@ DEFINE_MAYBE_TYPE(usize);
 #    define ASSERT_AND_THEN(check, e) (ASSERT(check), (e))
 
 // TODO: make it possible to trap and then resume from these
-#    define ALWAYS(e) ((e)  ? 1 : ASSERT_FAIL("ALWAYS("#e")"))
-#    define NEVER(e)  (!(e) ? 0 : ASSERT_FAIL("NEVER("#e")"))
+#    define ALWAYS(e) ((e)  ? 1 : (ASSERT_FAIL("ALWAYS("#e")"), 0))
+#    define NEVER(e)  (!(e) ? 0 : (ASSERT_FAIL("NEVER("#e")"),  1))
 #    define TODO(e) ASSERT_FAIL("TODO("e")")
 #else
 #    define ASSERT(e) ((void)(e))
