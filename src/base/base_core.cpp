@@ -168,6 +168,21 @@ DEFINE_SAFE_CAST_UNSIGNED_TO_SIGNED(u32, s32)
         return result;                          \
     }
 
+#define DEFINE_SAFE_SIGNED_ABS(t)               \
+    b32 safe_abs_##t(t a, t *res)               \
+    {                                           \
+        b32 result = false;                     \
+                                                \
+        if (a < 0) {                            \
+            result = safe_neg_##t(a, res);      \
+        } else {                                \
+            *res = a;                           \
+            result = true;                      \
+        }                                       \
+                                                \
+        return result;                          \
+    }
+
 #define DEFINE_SAFE_UNSIGNED_ADD(t)             \
     b32 safe_add_##t(t a, t b, t *res)          \
     {                                           \
@@ -249,7 +264,8 @@ DEFINE_SAFE_CAST_UNSIGNED_TO_SIGNED(u32, s32)
     DEFINE_SAFE_SIGNED_SUB(t)                   \
     DEFINE_SAFE_SIGNED_MUL(t)                   \
     DEFINE_SAFE_SIGNED_DIV(t)                   \
-    DEFINE_SAFE_SIGNED_NEG(t)
+    DEFINE_SAFE_SIGNED_NEG(t)                   \
+    DEFINE_SAFE_SIGNED_ABS(t)
 
 
 #define DEFINE_SAFE_UNSIGNED_OPS(t)               \
