@@ -654,3 +654,20 @@ TEST_CASE(is_aligned_pow2)
     REQUIRE(!is_aligned(9, 8));
     REQUIRE(!is_aligned(33, 8));
 }
+
+/* Maybe */
+TEST_CASE(maybe_basic)
+{
+    s32_Maybe m = {};
+    REQUIRE(!MAYBE_EQ_TO(m, 123));
+    REQUIRE(!MAYBE_EQ_TO(m, 0));
+
+    REQUIRE(!m.ok);
+
+    m = SOME(123);
+    REQUIRE(m.ok);
+    REQUIRE(m.value == 123);
+
+    REQUIRE(!MAYBE_EQ_TO(m, 0));
+    REQUIRE(MAYBE_EQ_TO(m, 123));
+}
