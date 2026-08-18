@@ -83,6 +83,7 @@ DEFINE_MAYBE_TYPE(usize);
 // second expressioon.
 #    define ASSERT_AND_THEN(check, e) (ASSERT(check), (e))
 
+// TODO: make it possible to trap and then resume from these
 #    define ALWAYS(e) ((e)  ? 1 : ASSERT_FAIL("ALWAYS("#e")"))
 #    define NEVER(e)  (!(e) ? 0 : ASSERT_FAIL("NEVER("#e")"))
 #    define TODO(e) ASSERT_FAIL("TODO("e")")
@@ -179,15 +180,15 @@ s64 sat_sub_s64(s64 a, s64 b);
 s64 sat_mul_s64(s64 a, s64 b);
 s64 sat_div_s64(s64 a, s64 b);
 
-ssize sat_add_ssize(ssize a, ssize b);
-ssize sat_sub_ssize(ssize a, ssize b);
-ssize sat_mul_ssize(ssize a, ssize b);
-ssize sat_div_ssize(ssize a, ssize b);
-
 u64 sat_add_u64(u64 a, u64 b);
 u64 sat_sub_u64(u64 a, u64 b);
 u64 sat_mul_u64(u64 a, u64 b);
 u64 sat_div_u64(u64 a, u64 b);
+
+ssize sat_add_ssize(ssize a, ssize b);
+ssize sat_sub_ssize(ssize a, ssize b);
+ssize sat_mul_ssize(ssize a, ssize b);
+ssize sat_div_ssize(ssize a, ssize b);
 
 usize sat_add_usize(usize a, usize b);
 usize sat_sub_usize(usize a, usize b);

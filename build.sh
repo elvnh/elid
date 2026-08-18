@@ -32,7 +32,7 @@ CXXFLAGS="-Werror
     -Wno-error=unused-variable
     -Wno-error=unused-but-set-variable
 "
-CXXFLAGS_DEBUG="-DDEBUG_BUILD=1"
+CXXFLAGS_DEBUG="-DDEBUG_BUILD=1 -DPOISON_MEMORY=1"
 
 CXXFLAGS="${CXXFLAGS} ${CXXFLAGS_DEBUG}"
 

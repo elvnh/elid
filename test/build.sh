@@ -4,6 +4,7 @@
 CXX=g++
 CXXFLAGS="
     -DDEBUG_BUILD=1
+    -DPOISON_MEMORY=1
     -I../src
     -Werror
     -fsanitize=address,undefined
