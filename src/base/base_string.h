@@ -15,8 +15,10 @@ DEFINE_LIST_TYPES(String);
 
 #define     str_lit(s) String{(u8 *)s, ARRAY_COUNT(s) - 1}
 String      str_from_cstr(const char *str);
-String      str_concat(Arena *arena, String a, String b);
+String      str_alloc_cstr(Arena *arena, const char *cstr);
+String      str_alloc(Arena *arena, usize count);
 String      str_copy(Arena *arena, String str);
+String      str_concat(Arena *arena, String a, String b);
 String      str_null_terminate(Arena *arena, String str);
 u8          str_at(String a, usize index);
 u8         *str_begin(String str);
@@ -31,11 +33,10 @@ String      str_prefix(String str, usize count);
 String      str_postfix(String str, usize count);
 String      str_pop_front(String str, usize count);
 String      str_pop_back(String str, usize count);
-usize       str_common_prefix(String a, String b);
-Cut         str_cut_begin(String str);
+usize       str_common_prefix_length(String a, String b);
 Cut         str_cut(String str, u8 ch);
-usize_Maybe str_find_first_occurence(String str, u8 ch);
-usize_Maybe str_find_last_occurence(String str, u8 ch);
-usize_Maybe str_find_first_occurence_from(String str, u8 ch, usize index);
+usize_Maybe str_find_first_occurrence(String str, u8 ch);
+usize_Maybe str_find_last_occurrence(String str, u8 ch);
+usize_Maybe str_find_first_occurrence_from(String str, u8 ch, usize index);
 String      str_format(Arena *arena, const char *fmt, ...) FORMAT_ATTRIBUTE(2, 3);
 String      str_format_v(Arena *arena, const char *fmt, va_list args);

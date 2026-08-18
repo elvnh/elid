@@ -12,27 +12,6 @@ String str_from_cstr(const char *str)
     return result;
 }
 
-String str_concat(Arena *arena, String a, String b)
-{
-    ASSERT(a.count);
-    ASSERT(b.count);
-
-    String result = {};
-
-    usize total_size = a.count + b.count;
-    result.data = arena_alloc_array(arena, u8, total_size);
-
-    // TODO: check if we can get a contiguous allocation so we don't need to realloc
-    if (result.data) {
-        result.count = total_size;
-
-        memcpy(result.data, a.data, a.count);
-        memcpy(result.data + a.count, b.data, b.count);
-    }
-
-    return result;
-}
-
 String str_alloc(Arena *arena, usize count)
 {
     String result = {};
@@ -46,12 +25,45 @@ String str_alloc(Arena *arena, usize count)
     return result;
 }
 
+String str_alloc_cstr(Arena *arena, const char *cstr)
+{
+    String result = str_copy(arena, str_from_cstr(cstr));
+
+    return result;
+}
+
 String str_copy(Arena *arena, String str)
 {
-    ASSERT(str.count);
+    String result = {};
 
-    String result = str_alloc(arena, str.count);
-    memcpy(result.data, str.data, str.count);
+    if (str.count > 0) {
+        result = str_alloc(arena, str.count);
+        memcpy(result.data, str.data, str.count);
+    }
+
+    return result;
+}
+
+String str_concat(Arena *arena, String a, String b)
+{
+    String result = {};
+
+    if (a.count == 0) {
+        result = b;
+    } else if (b.count == 0) {
+        result = a;
+    } else {
+        usize total_size = a.count + b.count;
+        result.data = arena_alloc_array(arena, u8, total_size);
+
+        // TODO: check if we can get a contiguous allocation so we don't need to realloc
+        if (result.data) {
+            result.count = total_size;
+
+            memcpy(result.data, a.data, a.count);
+            memcpy(result.data + a.count, b.data, b.count);
+        }
+    }
 
     return result;
 }
@@ -131,16 +143,7 @@ String str_pop_front(String str, usize count)
 {
     String result = {};
 
-    usize remainder = sat_sub_usize(str.count, count);
-    result = str_slice(str, count, remainder);
-
-#if 0
-    String result = str;
-
-    usize n = MIN(str.count, count);
-    result.data += n;
-    result.count -= n;
-#endif
+    result = str_slice_from(str, count);
 
     return result;
 }
@@ -149,14 +152,7 @@ String str_pop_back(String str, usize count)
 {
     usize remainder = sat_sub_usize(str.count, count);
 
-    String result = str_slice(str, remainder, count);
-
-#if 0
-    String result = str;
-
-    usize n = MIN(str.count, count);
-    result.count -= n;
-#endif
+    String result = str_prefix(str, remainder);
 
     return result;
 }
@@ -181,7 +177,7 @@ b32 str_ends_with(String str, String pattern)
     return result;
 }
 
-usize str_common_prefix(String a, String b)
+usize str_common_prefix_length(String a, String b)
 {
     usize result = 0;
 
@@ -251,7 +247,7 @@ u8 *str_end(String str)
     return result;
 }
 
-usize_Maybe str_find_first_occurence(String str, u8 ch)
+usize_Maybe str_find_first_occurrence(String str, u8 ch)
 {
     usize_Maybe result = {};
 
@@ -265,7 +261,7 @@ usize_Maybe str_find_first_occurence(String str, u8 ch)
     return result;
 }
 
-usize_Maybe str_find_last_occurence(String str, u8 ch)
+usize_Maybe str_find_last_occurrence(String str, u8 ch)
 {
     usize_Maybe result = {};
 
@@ -279,13 +275,13 @@ usize_Maybe str_find_last_occurence(String str, u8 ch)
     return result;
 }
 
-usize_Maybe str_find_first_occurence_from(String str, u8 ch, usize index)
+usize_Maybe str_find_first_occurrence_from(String str, u8 ch, usize index)
 {
     usize_Maybe result = {};
 
     String substr = str_slice_from(str, index);
 
-    result = str_find_first_occurence(substr, ch);
+    result = str_find_first_occurrence(substr, ch);
     result.value = index + result.value;
 
     return result;
@@ -315,12 +311,12 @@ String str_format_v(Arena *arena, const char *fmt, va_list args)
     if (bytes_required > 0) {
         String buffer = str_alloc(arena, s32_to_usize(bytes_required));
 
-        s32 bytes_written = vsnprintf((char *)buffer.data, (usize)bytes_required, fmt, args_copy);
+        s32 chars_written = vsnprintf((char *)buffer.data, (usize)bytes_required, fmt, args_copy);
 
-        if (bytes_written > 0) {
-            buffer.count = s32_to_usize(bytes_written);
+        if (chars_written > 0) {
+            buffer.count = s32_to_usize(chars_written);
 
-            ASSERT(bytes_written == bytes_required);
+            ASSERT(chars_written == (bytes_required - 1));
 
             result = buffer;
         }
