@@ -79,7 +79,34 @@ static void gui__end_frame(Gui *gui)
     glfwSwapBuffers(gui->window);
 }
 
-void gui_update_and_render(Gui *gui)
+static void gui__begin_root_window(Gui *gui)
+{
+    ImGui::SetNextWindowPos(ImVec2{});
+    ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
+
+    ImGuiWindowFlags root_window_flags =
+        ImGuiWindowFlags_NoDecoration
+        | ImGuiWindowFlags_NoMove
+        | ImGuiWindowFlags_NoSavedSettings
+        //| ImGuiWindowFlags_MenuBar
+        | ImGuiWindowFlags_NoBringToFrontOnFocus;
+
+    ImGui::Begin("##root_window", 0, root_window_flags);
+}
+
+static void gui__end_window(Gui *gui)
+{
+    ImGui::End();
+}
+
+static void gui__do_open_process_button(Gui *gui, app_State *app)
+{
+    if (ImGui::Button("Open process")) {
+        TODO("Open process");
+    }
+}
+
+void gui_update_and_render(Gui *gui, app_State *app)
 {
     glfwPollEvents();
 
@@ -87,6 +114,13 @@ void gui_update_and_render(Gui *gui)
         ImGui_ImplGlfw_Sleep(10);
     } else {
         gui__begin_frame(gui);
+
+        gui__begin_root_window(gui); {
+            ImGui::Text("No process opened");
+
+            gui__do_open_process_button(gui, app);
+
+        } gui__end_window(gui);
 
         gui__end_frame(gui);
     }
