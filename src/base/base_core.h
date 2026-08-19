@@ -74,10 +74,10 @@ DEFINE_MAYBE_TYPE(usize);
 #if DEBUG_BUILD
 #    define ASSERT(e) ASSERT_ALWAYS(e)
 
-#    define ASSERT_FAIL(str)                           \
-     fprintf(stderr, "\n*** ASSERTION FAILED ***\n"  \
-         "Expression: '%s'\nFunction: %s\n%s:%d:\n", \
-         str, __func__, __FILE__, __LINE__)
+#    define ASSERT_FAIL(str)                         \
+    (fprintf(stderr, "\n*** ASSERTION FAILED ***\n"  \
+        "Expression: '%s'\nFunction: %s\n%s:%d:\n",  \
+        str, __func__, __FILE__, __LINE__), DEBUG_BREAK())
 
 // In debug builds, this will assert that the first expression is true before discarding
 // it and returning the second expression. In release builds, it will simply return the
@@ -87,7 +87,7 @@ DEFINE_MAYBE_TYPE(usize);
 // TODO: make it possible to trap and then resume from these
 #    define ALWAYS(e) ((e)  ? 1 : (ASSERT_FAIL("ALWAYS("#e")"), 0))
 #    define NEVER(e)  (!(e) ? 0 : (ASSERT_FAIL("NEVER("#e")"),  1))
-#    define TODO(e) ASSERT_FAIL("TODO(" e ")")
+#    define TODO(e)   ASSERT_FAIL("TODO(" e ")")
 #else
 #    define ASSERT(e) ((void)(e))
 #    define ASSERT_AND_THEN(check, e) (e)
@@ -99,7 +99,7 @@ DEFINE_MAYBE_TYPE(usize);
 #define ASSERT_ALWAYS(e) (!(e) ? ASSERT_FAIL(#e) : 0)
 
 #if COMPILER_GCC
-#    define DEBUG_BREAK() __builtin_trap()
+#    define DEBUG_BREAK() (__builtin_trap(), 0)
 #elif COMPILER_MSVC
 #    define DEBUG_BREAK() __debugbreak()
 #else
