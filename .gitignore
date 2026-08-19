@@ -1,5 +1,6 @@
 compile_commands.json
 a.out
+imgui.ini
 
 build/
 generated/
