@@ -82,11 +82,15 @@ String str_concat(Arena *arena, String a, String b)
 String str_null_terminate(Arena *arena, String str)
 {
     // TODO: check if we can get a contiguous allocation so we don't need to realloc
-    String result = str_alloc(arena, str.count + 1);
-    result.count = str.count;
+    String result = {};
 
-    memcpy(result.data, str.data, result.count);
-    result.data[result.count] = '\0';
+    if (str.count > 0) {
+        result = str_alloc(arena, str.count + 1);
+        result.count = str.count;
+
+        memcpy(result.data, str.data, result.count);
+        result.data[result.count] = '\0';
+    }
 
     return result;
 }
