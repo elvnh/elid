@@ -88,12 +88,14 @@ DEFINE_MAYBE_TYPE(usize);
 #    define ALWAYS(e) ((e)  ? 1 : (ASSERT_FAIL("ALWAYS("#e")"), 0))
 #    define NEVER(e)  (!(e) ? 0 : (ASSERT_FAIL("NEVER("#e")"),  1))
 #    define TODO(e)   ASSERT_FAIL("TODO(" e ")")
+#    define INVALID_DEFAULT_CASE default: { ASSERT_FAIL("INVALID_DEFAULT_CASE"); } break
 #else
 #    define ASSERT(e) ((void)(e))
 #    define ASSERT_AND_THEN(check, e) (e)
 #    define ALWAYS(e) (e)
 #    define NEVER(e)  (e)
 #    define TODO(e)
+#    define INVALID_DEFAULT_CASE default: { } break
 #endif
 
 #define ASSERT_ALWAYS(e) (!(e) ? ASSERT_FAIL(#e) : 0)
@@ -104,6 +106,21 @@ DEFINE_MAYBE_TYPE(usize);
 #    define DEBUG_BREAK() __debugbreak()
 #else
 #    error DEBUG_BREAK() not defined for this compiler
+#endif
+
+#if COMPILER_GCC
+#    define BEGIN_EXHAUSTIVE_SWITCH                                     \
+    _Pragma("GCC diagnostic push")                                      \
+    _Pragma("GCC diagnostic error \"-Wswitch-enum\"")
+#else
+#    error BEGIN_EXHAUSTIVE_SWITCH not defined for this compiler
+#endif
+
+#if COMPILER_GCC
+#    define END_EXHAUSTIVE_SWITCH                                       \
+    _Pragma("GCC diagnostic pop")
+#else
+#    error END_EXHAUSTIVE_SWITCH not defined for this compiler
 #endif
 
 #define eval_print_s64(e) printf(#e" = %" PRId64 "\n", e);
