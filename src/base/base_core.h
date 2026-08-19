@@ -151,9 +151,14 @@ DEFINE_MAYBE_TYPE(usize);
 #endif
 
 /* Safe casts */
+s32   s64_to_s32(s64 from);
+
 u32   s32_to_u32(s32 from);
 usize s32_to_usize(s32 from);
+
 s32   u32_to_s32(u32 from);
+s32   usize_to_s32(usize from);
+s32   u64_to_s32(u64 from);
 
 /* Safe arithmetic */
 b32 safe_add_s32(s32 a, s32 b, s32 *res);

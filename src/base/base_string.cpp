@@ -12,6 +12,17 @@ String str_from_cstr(const char *str)
     return result;
 }
 
+char *str_to_cstr(Arena *arena, String str)
+{
+    char *result = 0;
+
+    String null_terminated = str_null_terminate(arena, str);
+
+    result = (char *)null_terminated.data;
+
+    return result;
+}
+
 String str_alloc(Arena *arena, usize count)
 {
     String result = {};

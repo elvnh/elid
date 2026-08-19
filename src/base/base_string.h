@@ -16,6 +16,7 @@ DEFINE_LIST_TYPES(String);
 
 #define     str_lit(s) String{(u8 *)s, ARRAY_COUNT(s) - 1}
 String      str_from_cstr(const char *str);
+char *      str_to_cstr(Arena *arena, String str);
 String      str_alloc_cstr(Arena *arena, const char *cstr);
 String      str_alloc(Arena *arena, usize count);
 String      str_copy(Arena *arena, String str);
