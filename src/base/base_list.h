@@ -152,3 +152,9 @@
             : 0))
 
 #define queue_pop(queue) queue_pop_nfl((queue), next, first, last)
+
+/* Iteration helpers */
+#define list_head_f(list, first) ((list)->first)
+#define list_head(list) list_head_f((list), first)
+#define list_next_n(list, next) ((list)->next)
+#define list_next(list) list_next_n((list), next)

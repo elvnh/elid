@@ -16,11 +16,15 @@ int main()
     app_State app = {};
     Gui gui = {};
 
-    if (!gui_init(&gui)) {
+    if (!app_init(&app) || !gui_init(&gui)) {
         result = 1;
     } else {
         while (!gui_should_close(&gui)) {
-            gui_update_and_render(&gui, &app);
+            arena_reset(app.frame_arena);
+
+            app_CommandList commands = gui_update_and_render(&gui, &app);
+
+            app_execute_commands(&app, commands);
         }
     }
 

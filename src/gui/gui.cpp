@@ -99,15 +99,17 @@ static void gui__end_window(Gui *gui)
     ImGui::End();
 }
 
-static void gui__do_open_process_button(Gui *gui, app_State *app)
+static void gui__do_open_process_button(Gui *gui, app_State *app, app_CommandList *commands)
 {
     if (ImGui::Button("Open process")) {
-        TODO("Open process");
+        app_command_push(app->frame_arena, commands, APP_COMMAND_GET_RUNNING_PROCS);
     }
 }
 
-void gui_update_and_render(Gui *gui, app_State *app)
+app_CommandList gui_update_and_render(Gui *gui, app_State *app)
 {
+    app_CommandList result = {};
+
     glfwPollEvents();
 
     if (glfwGetWindowAttrib(gui->window, GLFW_ICONIFIED) != 0) {
@@ -118,10 +120,12 @@ void gui_update_and_render(Gui *gui, app_State *app)
         gui__begin_root_window(gui); {
             ImGui::Text("No process opened");
 
-            gui__do_open_process_button(gui, app);
+            gui__do_open_process_button(gui, app, &result);
 
         } gui__end_window(gui);
 
         gui__end_frame(gui);
     }
+
+    return result;
 }
