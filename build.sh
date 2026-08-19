@@ -5,6 +5,8 @@ CXXFLAGS="-Werror
     -fsanitize=address,undefined
     -Ideps
     -Ideps/imgui
+    -Ideps/memmi/include
+    -Ideps/memmi/include/memmi
 
     -std=c++11
     -Wall
@@ -43,16 +45,19 @@ BUILD_DIR="build"
 LIBS="-lGL $(pkg-config --libs --cflags --static glfw3)"
 
 SRCS="src/main.cpp"
+MEMMI_SRCS="deps/memmi/src/memmi.c"
 EXE="${BUILD_DIR}/elid"
 
-DEAR_IMGUI_BIN="${BUILD_DIR}/dear-imgui.o"
+DEAR_IMGUI_OBJ="${BUILD_DIR}/dear-imgui.o"
 
 cd $(dirname $0)
 mkdir -p ${BUILD_DIR};
 
-if [ ! -f ${DEAR_IMGUI_BIN} ]; then
+if [ ! -f ${DEAR_IMGUI_OBJ} ]; then
     echo "[compiling Dear Imgui...]"
-    ${CXX} src/dear-imgui/dear_imgui.cpp ${LIBS} -Ideps/imgui -Ideps/imgui/backends -c -o ${DEAR_IMGUI_BIN}
+    ${CXX} src/dear-imgui/dear_imgui.cpp ${LIBS} -Ideps/imgui -Ideps/imgui/backends -c -o ${DEAR_IMGUI_OBJ}
 fi
 
-${CXX} ${CXXFLAGS} ${SRCS} ${DEAR_IMGUI_BIN} ${LIBS} -o ${EXE}
+# TODO: use memmi build script
+
+${CXX} ${CXXFLAGS} ${SRCS} -DMEMMI_DEBUG=1 ${MEMMI_SRCS} ${DEAR_IMGUI_OBJ} ${LIBS} -o ${EXE}
