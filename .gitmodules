@@ -1,0 +1,3 @@
+[submodule "deps/memmi"]
+	path = deps/memmi
+	url = https://github.com/elvnh/memmi.git
