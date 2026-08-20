@@ -312,6 +312,20 @@ String str_format(Arena *arena, const char *fmt, ...)
     return result;
 }
 
+char *str_format_cstr(Arena *arena, const char *fmt, ...)
+{
+    va_list args;
+
+    va_start(args, fmt);
+    String str = str_format_v(arena, fmt, args);
+    va_end(args);
+
+    // NOTE: str_format_v already null terminates since it uses vsnprintf
+    char *result = (char *)str.data;
+
+    return result;
+}
+
 String str_format_v(Arena *arena, const char *fmt, va_list args)
 {
     String result = {};

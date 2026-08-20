@@ -42,4 +42,5 @@ usize_Maybe str_find_first_occurrence(String str, u8 ch);
 usize_Maybe str_find_last_occurrence(String str, u8 ch);
 usize_Maybe str_find_first_occurrence_from(String str, u8 ch, usize index);
 String      str_format(Arena *arena, const char *fmt, ...) FORMAT_ATTRIBUTE(2, 3);
+char       *str_format_cstr(Arena *arena, const char *fmt, ...) FORMAT_ATTRIBUTE(2, 3);
 String      str_format_v(Arena *arena, const char *fmt, va_list args);
