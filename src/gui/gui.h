@@ -3,6 +3,10 @@
 // TODO: rename to gui_State
 struct Gui {
     GLFWwindow *window;
+
+    struct {
+        s32 selected_index;
+    } process_list_popup;
 };
 
 b32             gui_init(Gui *gui);

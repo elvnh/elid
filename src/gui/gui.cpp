@@ -99,10 +99,51 @@ static void gui__end_window(Gui *gui)
     ImGui::End();
 }
 
+#define GUI_OPEN_PROC_POPUP_NAME "Open process"
+
 static void gui__do_open_process_button(Gui *gui, app_State *app, app_CommandList *commands)
 {
+    // TODO: disable if we're scanning
     if (ImGui::Button("Open process")) {
         app_command_push(app->frame_arena, commands, APP_COMMAND_GET_RUNNING_PROCS);
+
+        gui->process_list_popup.selected_index = -1;
+        ImGui::OpenPopup(GUI_OPEN_PROC_POPUP_NAME);
+    }
+}
+
+static void gui__do_open_process_popup(Gui *gui, app_State *app, app_CommandList *commands)
+{
+    ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+
+    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+
+    if (ImGui::BeginPopupModal(GUI_OPEN_PROC_POPUP_NAME, 0, 0)) {
+        // ImGui::Text(GUI_OPEN_PROC_POPUP_NAME);
+
+        if (ImGui::BeginListBox("##process_list")) {
+            s32 process_count = usize_to_s32(app->running_process_list.count);
+
+            for (s32 i = 0; i < process_count; ++i) {
+                memmi_ProcessInfo proc = app->running_process_list.data[i];
+                String proc_name = {(u8 *)proc.name.data, proc.name.count};
+                char *proc_name_nt = str_to_cstr(app->frame_arena, proc_name);
+
+                ASSERT(proc_name.count > 0);
+
+                ImGui::PushID(s64_to_s32(proc.pid.value));
+
+                if (ImGui::Selectable(proc_name_nt, false)) {
+                    gui->process_list_popup.selected_index = i;
+                }
+
+                ImGui::PopID();
+            }
+
+            ImGui::EndListBox();
+        } 
+
+        ImGui::EndPopup();
     }
 }
 
@@ -121,6 +162,7 @@ app_CommandList gui_update_and_render(Gui *gui, app_State *app)
             ImGui::Text("No process opened");
 
             gui__do_open_process_button(gui, app, &result);
+            gui__do_open_process_popup(gui, app, &result);
 
         } gui__end_window(gui);
 

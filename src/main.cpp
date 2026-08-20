@@ -19,6 +19,7 @@ int main()
     if (!app_init(&app) || !gui_init(&gui)) {
         result = 1;
     } else {
+        // TODO: move this functionality into app_run
         while (!gui_should_close(&gui)) {
             arena_reset(app.frame_arena);
 
@@ -27,7 +28,6 @@ int main()
             app_execute_commands(&app, commands);
         }
     }
-
 
     return result;
 }
