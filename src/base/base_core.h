@@ -139,7 +139,6 @@ DEFINE_MAYBE_TYPE(usize);
 #define KB(n) ((u64)(n) * 1024u)
 #define MB(n) (KB(n) * 1024u)
 #define GB(n) (MB(n) * 1024u)
-#define zero_mem(ptr, count) memset(ptr, 0, count)
 #define ptr_byte_offset(ptr, count) (TYPEOF(ptr))(((u8 *)(ptr) + (count)))
 
 #if COMPILER_GCC
@@ -234,3 +233,7 @@ u64 align_pow2(u64 val, u64 align);
 #    define POISON(addr, size)
 #    define UNPOISON(addr, size)
 #endif
+
+/* Memory operations */
+#define zero_mem(ptr, count) memset(ptr, 0, count)
+void    copy_mem(void *dst, void *src, usize item_count, usize item_size);

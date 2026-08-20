@@ -15,22 +15,18 @@ static void *app__memmi_allocate_cb(void *context, void *ptr, usize old_count, u
     void *result = 0;
     Arena *arena = (Arena *)context;
 
-    usize old_byte_count = 0;
+    // If count is zero, it's a deallocation, which is a no-op in arenas.
+    if (new_count > 0) {
+        if (new_count <= old_count) {
+            // The library has tried to shrink the allocation, just pass back the old one.
+            result = ptr;
+        } else {
+            result = arena_alloc_bytes(arena, new_count, item_size, align);
 
-    if (safe_mul_usize(old_count, item_size, &old_byte_count)) {
-        // If count is zero, it's a deallocation, which is a no-op in arenas.
-        if (new_count > 0) {
-            if (new_count <= old_count) {
-                // The library has tried to shrink the allocation, just pass back the old one.
-                result = ptr;
-            } else {
-                result = arena_alloc_bytes(arena, new_count, item_size, align);
-
-                if (ptr && (old_count > 0)) {
-                    // If old count was non-zero, this is a reallocation so we'll have to
-                    // memcpy the old one over.
-                    memcpy(result, ptr, old_byte_count);
-                }
+            if (result && ptr && (old_count > 0)) {
+                // If old count was non-zero, this is a reallocation so we'll have to
+                // memcpy the old one over.
+                copy_mem(result, ptr, old_count, item_size);
             }
         }
     }

@@ -502,3 +502,15 @@ u64 align_pow2(u64 val, u64 align)
 
     return result;
 }
+
+/* Memory operations */
+void copy_mem(void *dst, void *src, usize item_count, usize item_size)
+{
+    usize byte_count = 0;
+
+    if (safe_mul_usize(item_count, item_size, &byte_count)) {
+        memcpy(dst, src, byte_count);
+    } else {
+        ASSERT_ALWAYS(false);
+    }
+}
