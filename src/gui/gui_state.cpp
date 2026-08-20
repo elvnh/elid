@@ -1,8 +1,8 @@
-#include "gui.h"
+#include "gui_state.h"
 
 #define RESULT_TABLE_SIZE_FRACTION {ImGui::GetContentRegionAvail().x * 0.4f, ImGui::GetContentRegionAvail().y * 0.8f}
 
-b32 gui_init(Gui *gui)
+b32 gui_init(gui_State *gui)
 {
     b32 result = false;
 
@@ -47,14 +47,14 @@ b32 gui_init(Gui *gui)
     return result;
 }
 
-b32 gui_should_close(Gui *gui)
+b32 gui_should_close(gui_State *gui)
 {
     b32 result = glfwWindowShouldClose(gui->window);
 
     return result;
 }
 
-static void gui__begin_frame(Gui *gui)
+static void gui__begin_frame(gui_State *gui)
 {
     (void)gui;
 
@@ -63,7 +63,7 @@ static void gui__begin_frame(Gui *gui)
     ImGui::NewFrame();
 }
 
-static void gui__end_frame(Gui *gui)
+static void gui__end_frame(gui_State *gui)
 {
     ImGui::Render();
 
@@ -81,7 +81,7 @@ static void gui__end_frame(Gui *gui)
     glfwSwapBuffers(gui->window);
 }
 
-static void gui__begin_root_window(Gui *gui)
+static void gui__begin_root_window(gui_State *gui)
 {
     ImGui::SetNextWindowPos(ImVec2{});
     ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
@@ -96,14 +96,14 @@ static void gui__begin_root_window(Gui *gui)
     ImGui::Begin("##root_window", 0, root_window_flags);
 }
 
-static void gui__end_window(Gui *gui)
+static void gui__end_window(gui_State *gui)
 {
     ImGui::End();
 }
 
 #define GUI_OPEN_PROC_POPUP_NAME "Open process"
 
-static void gui__do_open_process_button(Gui *gui, app_State *app, app_CommandList *commands)
+static void gui__do_open_process_button(gui_State *gui, app_State *app, app_CommandList *commands)
 {
     // TODO: disable if we're scanning
     if (ImGui::Button("Open process")) {
@@ -114,7 +114,7 @@ static void gui__do_open_process_button(Gui *gui, app_State *app, app_CommandLis
     }
 }
 
-static void gui__do_open_process_popup(Gui *gui, app_State *app, app_CommandList *commands)
+static void gui__do_open_process_popup(gui_State *gui, app_State *app, app_CommandList *commands)
 {
     ImVec2 center = ImGui::GetMainViewport()->GetCenter();
     ImVec2 root_window_size = ImGui::GetContentRegionAvail();
@@ -180,7 +180,7 @@ static void gui__do_open_process_popup(Gui *gui, app_State *app, app_CommandList
     }
 }
 
-static void gui__do_scan_result_table(Gui *gui, app_State *app, app_CommandList *commands)
+static void gui__do_scan_result_table(gui_State *gui, app_State *app, app_CommandList *commands)
 {
     s32 table_flags = ImGuiTableFlags_Resizable
         | ImGuiTableFlags_BordersV
@@ -232,7 +232,7 @@ static void gui__do_scan_result_table(Gui *gui, app_State *app, app_CommandList 
     } ImGui::EndTable();
 }
 
-static void gui__do_scan_widgets(Gui *gui, app_State *app, app_CommandList *commands, s32 child_flags)
+static void gui__do_scan_widgets(gui_State *gui, app_State *app, app_CommandList *commands, s32 child_flags)
 {
     // Scan parameters (value, type, etc.)
     ImGui::BeginChild("##child_scan_params", {-FLT_MIN, 0}, child_flags | ImGuiChildFlags_Borders, 0); {
@@ -330,7 +330,7 @@ static void gui__do_scan_widgets(Gui *gui, app_State *app, app_CommandList *comm
     } ImGui::EndChild();
 }
 
-app_CommandList gui_update_and_render(Gui *gui, app_State *app)
+app_CommandList gui_update_and_render(gui_State *gui, app_State *app)
 {
     app_CommandList result = {};
 

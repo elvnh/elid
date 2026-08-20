@@ -14,7 +14,7 @@ int main()
     int result = 0;
 
     app_State app = {};
-    Gui gui = {};
+    gui_State gui = {};
 
     if (!app_init(&app) || !gui_init(&gui)) {
         result = 1;

@@ -1,7 +1,7 @@
 #pragma once
 
 // TODO: rename to gui_State
-struct Gui {
+struct gui_State {
     GLFWwindow *window;
 
     struct {
@@ -22,6 +22,6 @@ struct Gui {
     } scan_parameters;
 };
 
-b32             gui_init(Gui *gui);
-b32             gui_should_close(Gui *gui);
-app_CommandList gui_update_and_render(Gui *gui, app_State *app);
+b32             gui_init(gui_State *gui);
+b32             gui_should_close(gui_State *gui);
+app_CommandList gui_update_and_render(gui_State *gui, app_State *app);
