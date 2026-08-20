@@ -2,10 +2,17 @@
 
 enum app_CommandKind {
     APP_COMMAND_GET_RUNNING_PROCS,
+    APP_COMMAND_OPEN_PROCESS,
 };
 
 struct app_Command {
     app_CommandKind kind;
+
+    union {
+        struct {
+            memmi_PID pid;
+        } open_process;
+    } as;
 
     app_Command *next;
 };

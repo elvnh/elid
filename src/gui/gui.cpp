@@ -115,15 +115,18 @@ static void gui__do_open_process_button(Gui *gui, app_State *app, app_CommandLis
 static void gui__do_open_process_popup(Gui *gui, app_State *app, app_CommandList *commands)
 {
     ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+    ImVec2 root_window_size = ImGui::GetContentRegionAvail();
 
-    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, {0.5f, 0.5f});
+    ImGui::SetNextWindowSize({root_window_size.x * 0.75f, root_window_size.y * 0.75f}, ImGuiCond_Appearing);
 
-    if (ImGui::BeginPopupModal(GUI_OPEN_PROC_POPUP_NAME, 0, 0)) {
-        // ImGui::Text(GUI_OPEN_PROC_POPUP_NAME);
+    s32 popup_flags = ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar;
+    if (ImGui::BeginPopupModal(GUI_OPEN_PROC_POPUP_NAME, 0, popup_flags)) {
+        s32 process_count = usize_to_s32(app->running_process_list.count);
 
-        if (ImGui::BeginListBox("##process_list")) {
-            s32 process_count = usize_to_s32(app->running_process_list.count);
+        ImVec2 listbox_size = {-FLT_MIN, -ImGui::GetFrameHeight()};
 
+        if (ImGui::BeginListBox("##process_list", listbox_size)) {
             for (s32 i = 0; i < process_count; ++i) {
                 memmi_ProcessInfo proc = app->running_process_list.data[i];
                 String proc_name = {(u8 *)proc.name.data, proc.name.count};
@@ -133,7 +136,9 @@ static void gui__do_open_process_popup(Gui *gui, app_State *app, app_CommandList
 
                 ImGui::PushID(s64_to_s32(proc.pid.value));
 
-                if (ImGui::Selectable(proc_name_nt, false)) {
+                b32 is_selected = gui->process_list_popup.selected_index == i;
+
+                if (ImGui::Selectable(proc_name_nt, is_selected)) {
                     gui->process_list_popup.selected_index = i;
                 }
 
@@ -141,7 +146,33 @@ static void gui__do_open_process_popup(Gui *gui, app_State *app, app_CommandList
             }
 
             ImGui::EndListBox();
-        } 
+        }
+
+        // TODO: can selected index be a local variable?
+        s32 selected_index = gui->process_list_popup.selected_index;
+        b32 is_valid_index = (selected_index >= 0) && (selected_index < process_count);
+
+        // TODO: allow double clicking list item
+        b32 should_close = false;
+
+        if (ImGui::Button("Open") && is_valid_index) {
+            memmi_ProcessInfo clicked_process = app->running_process_list.data[selected_index];
+
+            app_Command *open_proc_command = app_command_push(app->frame_arena, commands, APP_COMMAND_OPEN_PROCESS);
+            open_proc_command->as.open_process.pid = clicked_process.pid;
+
+            should_close = true;
+        }
+
+        ImGui::SameLine();
+
+        if (ImGui::Button("Cancel")) {
+            should_close = true;
+        }
+
+        if (should_close) {
+            ImGui::CloseCurrentPopup();
+        }
 
         ImGui::EndPopup();
     }
@@ -158,13 +189,25 @@ app_CommandList gui_update_and_render(Gui *gui, app_State *app)
     } else {
         gui__begin_frame(gui);
 
-        gui__begin_root_window(gui); {
-            ImGui::Text("No process opened");
+        bool show_demo_window = false;
 
-            gui__do_open_process_button(gui, app, &result);
-            gui__do_open_process_popup(gui, app, &result);
+        if (show_demo_window) {
+            ImGui::ShowDemoWindow(&show_demo_window);
+        } else {
+            gui__begin_root_window(gui); {
+                if (memmi_process_is_null(app->open_process_handle)) {
+                    ImGui::Text("Open process: none");
+                } else {
+                    memmi_PID open_pid = app->open_process_handle.pid;
+                    ImGui::Text("Open process: %" PRId64, open_pid.value);
+                }
 
-        } gui__end_window(gui);
+                gui__do_open_process_button(gui, app, &result);
+                gui__do_open_process_popup(gui, app, &result);
+            } gui__end_window(gui);
+        }
+
+
 
         gui__end_frame(gui);
     }

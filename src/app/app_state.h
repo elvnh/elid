@@ -4,6 +4,7 @@ struct app_State {
     Arena *frame_arena;
     Arena *process_list_arena;
 
+    memmi_Process open_process_handle;
     memmi_ProcessList running_process_list;
 };
 

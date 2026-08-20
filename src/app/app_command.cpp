@@ -54,12 +54,27 @@ static void app__cmd_get_running_processes(app_State *app)
     app->running_process_list = processes;
 }
 
+static void app__cmd_open_process(app_State *app, app_Command *cmd)
+{
+    memmi_OpenProcess open_process_result = memmi_open_process(cmd->as.open_process.pid);
+
+    if (open_process_result.status != MEMMI_OK) {
+        TODO("Display popup");
+    } else {
+        app->open_process_handle = open_process_result.process;
+    }
+}
+
 static void app__execute_command(app_State *app, app_Command *cmd)
 {
     BEGIN_EXHAUSTIVE_SWITCH;
     switch (cmd->kind) {
         case APP_COMMAND_GET_RUNNING_PROCS: {
             app__cmd_get_running_processes(app);
+        } break;
+
+        case APP_COMMAND_OPEN_PROCESS: {
+            app__cmd_open_process(app, cmd);
         } break;
 
         INVALID_DEFAULT_CASE;
