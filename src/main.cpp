@@ -6,11 +6,16 @@
 #include <imgui/backends/imgui_impl_opengl3.h>
 
 #include "base/base_all.cpp"
+#include "scan/scan_all.cpp"
 #include "app/app_all.cpp"
 #include "gui/gui_all.cpp"
 
 int main()
 {
+
+
+    return 0;
+
     int result = 0;
 
     app_State app = {};
