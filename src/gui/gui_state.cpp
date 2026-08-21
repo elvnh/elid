@@ -103,18 +103,18 @@ static void gui__end_window(gui_State *gui)
 
 #define GUI_OPEN_PROC_POPUP_NAME "Open process"
 
-static void gui__do_open_process_button(gui_State *gui, app_State *app, app_CommandList *commands)
+static void gui__do_open_process_button(gui_State *gui, app_State *app)
 {
     // TODO: disable if we're scanning
     if (ImGui::Button("Open process")) {
-        app_command_push(app->frame_arena, commands, APP_COMMAND_GET_RUNNING_PROCS);
+        app_get_running_processes(app);
 
         gui->process_list_popup.selected_index = -1;
         ImGui::OpenPopup(GUI_OPEN_PROC_POPUP_NAME);
     }
 }
 
-static void gui__do_open_process_popup(gui_State *gui, app_State *app, app_CommandList *commands)
+static void gui__do_open_process_popup(gui_State *gui, app_State *app)
 {
     ImVec2 center = ImGui::GetMainViewport()->GetCenter();
     ImVec2 root_window_size = ImGui::GetContentRegionAvail();
@@ -123,6 +123,7 @@ static void gui__do_open_process_popup(gui_State *gui, app_State *app, app_Comma
     ImGui::SetNextWindowSize({root_window_size.x * 0.75f, root_window_size.y * 0.75f}, ImGuiCond_Appearing);
 
     s32 popup_flags = ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar;
+
     if (ImGui::BeginPopupModal(GUI_OPEN_PROC_POPUP_NAME, 0, popup_flags)) {
         s32 process_count = usize_to_s32(app->running_process_list.count);
 
@@ -160,10 +161,7 @@ static void gui__do_open_process_popup(gui_State *gui, app_State *app, app_Comma
         if (ImGui::Button("Open") && is_valid_index) {
             memmi_ProcessInfo clicked_process = app->running_process_list.data[selected_index];
 
-            app_Command *open_proc_command = app_command_push(app->frame_arena, commands, APP_COMMAND_OPEN_PROCESS);
-            open_proc_command->as.open_process.pid = clicked_process.pid;
-
-            should_close = true;
+            should_close = app_open_process(app, clicked_process.pid);
         }
 
         ImGui::SameLine();
@@ -180,7 +178,7 @@ static void gui__do_open_process_popup(gui_State *gui, app_State *app, app_Comma
     }
 }
 
-static void gui__do_scan_result_table(gui_State *gui, app_State *app, app_CommandList *commands)
+static void gui__do_scan_result_table(gui_State *gui, app_State *app)
 {
     s32 table_flags = ImGuiTableFlags_Resizable
         | ImGuiTableFlags_BordersV
@@ -232,7 +230,7 @@ static void gui__do_scan_result_table(gui_State *gui, app_State *app, app_Comman
     } ImGui::EndTable();
 }
 
-static void gui__do_scan_widgets(gui_State *gui, app_State *app, app_CommandList *commands, s32 child_flags)
+static void gui__do_scan_widgets(gui_State *gui, app_State *app, s32 child_flags)
 {
     // Scan parameters (value, type, etc.)
     ImGui::BeginChild("##child_scan_params", {-FLT_MIN, 0}, child_flags | ImGuiChildFlags_Borders, 0); {
@@ -330,10 +328,8 @@ static void gui__do_scan_widgets(gui_State *gui, app_State *app, app_CommandList
     } ImGui::EndChild();
 }
 
-app_CommandList gui_update_and_render(gui_State *gui, app_State *app)
+void gui_update_and_render(gui_State *gui, app_State *app)
 {
-    app_CommandList result = {};
-
     glfwPollEvents();
 
     if (glfwGetWindowAttrib(gui->window, GLFW_ICONIFIED) != 0) {
@@ -355,15 +351,15 @@ app_CommandList gui_update_and_render(gui_State *gui, app_State *app)
                     ImGui::TextUnformatted(open_pid_text);
                 }
 
-                gui__do_open_process_button(gui, app, &result);
-                gui__do_open_process_popup(gui, app, &result);
+                gui__do_open_process_button(gui, app);
+                gui__do_open_process_popup(gui, app);
 
                 ImGui::TextUnformatted("Results: 0");
 
                 // NOTE: widgets wrapped in functions should never themselves call
                 // BeginChild, we should only do that from top level like this
                 ImGui::BeginChild("##child_result_table", RESULT_TABLE_SIZE_FRACTION, 0, 0); {
-                    gui__do_scan_result_table(gui, app, &result);
+                    gui__do_scan_result_table(gui, app);
                 }; ImGui::EndChild();
 
                 ImGui::SameLine();
@@ -371,16 +367,12 @@ app_CommandList gui_update_and_render(gui_State *gui, app_State *app)
                 s32 scan_child_flags = ImGuiChildFlags_AutoResizeX | ImGuiChildFlags_AutoResizeY;
 
                 ImGui::BeginChild("##child_scan", {-FLT_MIN, -FLT_MIN}, scan_child_flags | ImGuiChildFlags_Borders, 0); {
-                    gui__do_scan_widgets(gui, app, &result, scan_child_flags);
+                    gui__do_scan_widgets(gui, app, scan_child_flags);
                 } ImGui::EndChild();
 
             } gui__end_window(gui);
         }
 
-
-
         gui__end_frame(gui);
     }
-
-    return result;
 }

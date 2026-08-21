@@ -24,4 +24,4 @@ struct gui_State {
 
 b32             gui_init(gui_State *gui);
 b32             gui_should_close(gui_State *gui);
-app_CommandList gui_update_and_render(gui_State *gui, app_State *app);
+void            gui_update_and_render(gui_State *gui, app_State *app);

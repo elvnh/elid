@@ -23,9 +23,7 @@ int main()
         while (!gui_should_close(&gui)) {
             arena_reset(app.frame_arena);
 
-            app_CommandList commands = gui_update_and_render(&gui, &app);
-
-            app_execute_commands(&app, commands);
+            gui_update_and_render(&gui, &app);
         }
     }
 
