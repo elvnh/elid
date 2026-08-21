@@ -1,0 +1,232 @@
+#include "gui_widgets.h"
+
+#define GUI_OPEN_PROC_POPUP_NAME "Open process"
+
+
+void gui_open_process_button(gui_State *gui, app_State *app)
+{
+    // TODO: disable if we're scanning
+    if (ImGui::Button("Open process")) {
+        app_get_running_processes(app);
+
+        gui->process_list_popup.selected_index = -1;
+        ImGui::OpenPopup(GUI_OPEN_PROC_POPUP_NAME);
+    }
+}
+
+void gui_open_process_popup(gui_State *gui, app_State *app)
+{
+    ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+    ImVec2 root_window_size = ImGui::GetContentRegionAvail();
+
+    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, {0.5f, 0.5f});
+    ImGui::SetNextWindowSize({root_window_size.x * 0.75f, root_window_size.y * 0.75f}, ImGuiCond_Appearing);
+
+    s32 popup_flags = ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar;
+
+    if (ImGui::BeginPopupModal(GUI_OPEN_PROC_POPUP_NAME, 0, popup_flags)) {
+        s32 process_count = usize_to_s32(app->running_process_list.count);
+
+        ImVec2 listbox_size = {-FLT_MIN, -ImGui::GetFrameHeight()};
+
+        if (ImGui::BeginListBox("##process_list", listbox_size)) {
+            for (s32 i = 0; i < process_count; ++i) {
+                memmi_ProcessInfo proc = app->running_process_list.data[i];
+                String proc_name = {(u8 *)proc.name.data, proc.name.count};
+                char *proc_name_nt = str_to_cstr(app->frame_arena, proc_name);
+
+                ASSERT(proc_name.count > 0);
+
+                ImGui::PushID(s64_to_s32(proc.pid.value));
+
+                b32 is_selected = gui->process_list_popup.selected_index == i;
+
+                if (ImGui::Selectable(proc_name_nt, is_selected)) {
+                    gui->process_list_popup.selected_index = i;
+                }
+
+                ImGui::PopID();
+            }
+
+            ImGui::EndListBox();
+        }
+
+        // TODO: can selected index be a local variable?
+        s32 selected_index = gui->process_list_popup.selected_index;
+        b32 is_valid_index = (selected_index >= 0) && (selected_index < process_count);
+
+        // TODO: allow double clicking list item
+        b32 should_close = false;
+
+        if (ImGui::Button("Open") && is_valid_index) {
+            memmi_ProcessInfo clicked_process = app->running_process_list.data[selected_index];
+
+            should_close = app_open_process(app, clicked_process.pid);
+        }
+
+        ImGui::SameLine();
+
+        if (ImGui::Button("Cancel")) {
+            should_close = true;
+        }
+
+        if (should_close) {
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
+    }
+}
+
+void gui_scan_result_table(gui_State *gui, app_State *app)
+{
+    s32 table_flags = ImGuiTableFlags_Resizable
+        | ImGuiTableFlags_BordersV
+        | ImGuiTableFlags_Borders
+        | ImGuiTableFlags_ScrollY;
+    s32 selectable_flags = ImGuiSelectableFlags_SpanAllColumns;
+
+    const char *table_columns[] = {"Address", "Value", "Previous"};
+    s32 column_count = ARRAY_COUNT(table_columns);
+
+    if (ImGui::BeginTable("#scan_result_table", column_count, table_flags, {})) {
+        ImGui::TableSetupScrollFreeze(0, 1);
+
+        for (s32 col = 0; col < column_count; ++col) {
+            ImGui::TableSetupColumn(table_columns[col]);
+        }
+
+        ImGui::TableHeadersRow();
+
+        s32 row_count = 10;
+
+        for (s32 row = 0; row < row_count; ++row) {
+            ImGui::TableNextRow();
+
+            b32 is_row_selected = gui->result_table.selected_row_index == row;
+
+            // TODO: use address as id
+            ImGui::TableSetColumnIndex(0); {
+                char *addr_str = str_format_cstr(app->frame_arena, "%d", row);
+                if (ImGui::Selectable(addr_str, is_row_selected, selectable_flags)) {
+                    gui->result_table.selected_row_index = row;
+                }
+            }
+
+            ImGui::TableSetColumnIndex(1); {
+                char *value_str = str_format_cstr(app->frame_arena, "value %d", row);
+                if (ImGui::Selectable(value_str, is_row_selected, selectable_flags)) {
+                    gui->result_table.selected_row_index = row;
+                }
+            }
+
+            ImGui::TableSetColumnIndex(2); {
+                char *value_str = str_format_cstr(app->frame_arena, "prev value %d", row);
+                if (ImGui::Selectable(value_str, is_row_selected, selectable_flags)) {
+                    gui->result_table.selected_row_index = row;
+                }
+            }
+        }
+    } ImGui::EndTable();
+}
+
+void gui_scan_parameters(gui_State *gui, app_State *app)
+{
+    s32 child_flags = ImGuiChildFlags_AutoResizeX | ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_Borders;
+
+    // Scan parameters (value, type, etc.)
+    ImGui::BeginChild("##child_scan_params", {-FLT_MIN, 0}, child_flags, 0); {
+        // Scan input
+        {
+            ImGui::TextUnformatted("Scan:");
+            ImGui::SameLine();
+
+            ImGui::SetNextItemWidth(-FLT_MIN);
+            ImGui::InputText(
+                "##scan_value",
+                gui->scan_parameters.scan_value_text,
+                ARRAY_COUNT(gui->scan_parameters.scan_value_text)
+            );
+        }
+
+        // Scan buttons
+        {
+            if (ImGui::Button("New/first scan")) {
+                TODO("scan");
+            }
+
+            ImGui::SameLine();
+
+            if (ImGui::Button("Next scan")) {
+                TODO("scan");
+            }
+        }
+
+        // Hex?
+        {
+            ImGui::Checkbox("Hex", &gui->scan_parameters.hex);
+        }
+
+        // TODO: don't hardcode this, find how much space it takes by checking max length
+        // of all scan mode/value type strings
+        f32 combo_box_width = 200;
+
+        // Scan mode
+        {
+            ImGui::TextUnformatted("Scan mode: ");
+            ImGui::SameLine();
+
+            s32 combo_flags = ImGuiComboFlags_HeightLargest;
+
+            const char *scan_mode_names[] = {"Foo", "Bar"};
+            const char *scan_mode_preview = scan_mode_names[gui->scan_parameters.selected_scan_mode_index];
+
+            ImGui::SetNextItemWidth(combo_box_width);
+
+            if (ImGui::BeginCombo("##scan_mode", scan_mode_preview, combo_flags)) {
+                for (s32 i = 0; i < (s32)ARRAY_COUNT(scan_mode_names); ++i) {
+                    b32 is_mode_selected = gui->scan_parameters.selected_scan_mode_index == i;
+
+                    if (ImGui::Selectable(scan_mode_names[i], is_mode_selected)) {
+                        gui->scan_parameters.selected_scan_mode_index = i;
+                    }
+                }
+
+                ImGui::EndCombo();
+            }
+        }
+
+        // Value type
+        {
+            ImGui::TextUnformatted("Value type:");
+            ImGui::SameLine();
+
+            s32 combo_flags = ImGuiComboFlags_HeightLargest;
+
+            const char *value_type_names[] = {"Flup", "Drup"};
+            const char *value_type_preview = value_type_names[gui->scan_parameters.selected_value_type_index];
+
+            ImGui::SetNextItemWidth(combo_box_width);
+
+            if (ImGui::BeginCombo("##value_type", value_type_preview, combo_flags)) {
+                for (s32 i = 0; i < (s32)ARRAY_COUNT(value_type_names); ++i) {
+                    b32 is_mode_selected = gui->scan_parameters.selected_value_type_index == i;
+
+                    if (ImGui::Selectable(value_type_names[i], is_mode_selected)) {
+                        gui->scan_parameters.selected_value_type_index = i;
+                    }
+                }
+
+                ImGui::EndCombo();
+            }
+        }
+
+    } ImGui::EndChild();
+
+    // Scan settings (fast scan, pause while scanning, etc.)
+    ImGui::BeginChild("##child_scan_settings", {-FLT_MIN, 0}, child_flags, 0); {
+        ImGui::Checkbox("Fast scan", &gui->scan_parameters.fast_scan);
+        ImGui::Checkbox("Pause while scanning", &gui->scan_parameters.pause_while_scanning);
+    } ImGui::EndChild();
+}
+

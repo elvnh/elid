@@ -50,7 +50,7 @@ b32 app_open_process(app_State *app, memmi_PID pid)
 
     memmi_OpenProcess open_process_result = memmi_open_process(pid);
 
-    if (open_process_result.status != MEMMI_OK) {
+    if (open_process_result.status == MEMMI_OK) {
         app->open_process_handle = open_process_result.process;
         result = true;
     }
