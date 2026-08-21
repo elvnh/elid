@@ -1,14 +1,4 @@
-#include "app_command.h"
-
-app_Command *app_command_push(Arena *arena, app_CommandList *list, app_CommandKind kind)
-{
-    app_Command *result = arena_alloc_struct(arena, app_Command);
-    result->kind = kind;
-
-    sll_push_back(list, result);
-
-    return result;
-}
+#include "app_actions.h"
 
 static void *app__memmi_allocate_cb(void *context, void *ptr, usize old_count, usize new_count, usize item_size, usize align)
 {
@@ -34,7 +24,7 @@ static void *app__memmi_allocate_cb(void *context, void *ptr, usize old_count, u
     return result;
 }
 
-memmi_Allocator app__memmi_allocator_from_arena(Arena *arena)
+static memmi_Allocator app__memmi_allocator_from_arena(Arena *arena)
 {
     memmi_Allocator result = {};
     result.context = arena;
@@ -43,7 +33,7 @@ memmi_Allocator app__memmi_allocator_from_arena(Arena *arena)
     return result;
 }
 
-static void app__cmd_get_running_processes(app_State *app)
+void app_get_running_processes(app_State *app)
 {
     arena_reset(app->process_list_arena);
 
@@ -54,37 +44,17 @@ static void app__cmd_get_running_processes(app_State *app)
     app->running_process_list = processes;
 }
 
-static void app__cmd_open_process(app_State *app, app_Command *cmd)
+b32 app_open_process(app_State *app, memmi_PID pid)
 {
-    memmi_OpenProcess open_process_result = memmi_open_process(cmd->as.open_process.pid);
+    b32 result = false;
+
+    memmi_OpenProcess open_process_result = memmi_open_process(pid);
 
     if (open_process_result.status != MEMMI_OK) {
-        TODO("Display popup");
-    } else {
         app->open_process_handle = open_process_result.process;
+        result = true;
     }
-}
 
-static void app__execute_command(app_State *app, app_Command *cmd)
-{
-    BEGIN_EXHAUSTIVE_SWITCH;
-    switch (cmd->kind) {
-        case APP_COMMAND_GET_RUNNING_PROCS: {
-            app__cmd_get_running_processes(app);
-        } break;
+    return result;
 
-        case APP_COMMAND_OPEN_PROCESS: {
-            app__cmd_open_process(app, cmd);
-        } break;
-
-        INVALID_DEFAULT_CASE;
-    }
-    END_EXHAUSTIVE_SWITCH;
-}
-
-void app_execute_commands(app_State *app, app_CommandList list)
-{
-    for (app_Command *cmd = list_head(&list); cmd; cmd = list_next(cmd)) {
-        app__execute_command(app, cmd);
-    }
 }
