@@ -1,4 +1,4 @@
-#include "scan_impl.h"
+#include "scan_local.h"
 
 static scan_Value scan__load_value_at_address(void *address, scan_Type type)
 {
@@ -47,10 +47,14 @@ static b32 scan__compare_values(scan_Parameters scan_params, scan_Value current_
     return result;
 }
 
-scan_Result scan_first(void *memory, usize memory_size, scan_Parameters params)
+#define DBG_FIXED_MATCH_ARRAY_CAP 1024
+
+scan_Result scan_local_memory_first(Arena *arena, void *memory, usize memory_size, scan_Parameters params, uintptr_t base_address)
 {
-    // TODO: assert that this is a non-comparative scan mode
-    TODO("Unimplemented");
+    ASSERT(!scan_mode_is_comparative(params.mode));
+
+    scan_Result result = {};
+    result.matches = arena_alloc_array(arena, scan_Match, DBG_FIXED_MATCH_ARRAY_CAP); // TODO: don't use fixed size
 
     usize type_size = scan_value_get_type_size(params.type);
 
@@ -58,16 +62,47 @@ scan_Result scan_first(void *memory, usize memory_size, scan_Parameters params)
     usize stride = 1; // TODO: fast scan
 
     while ((offset + type_size) <= memory_size) {
-        void *address = ptr_byte_offset(memory, offset);
+        void *local_address = ptr_byte_offset(memory, offset);
 
-        scan_Value value_at_address = scan__load_value_at_address(address, params.type);
+        scan_Value value_at_address = scan__load_value_at_address(local_address, params.type);
 
         if (scan__compare_values(params, value_at_address)) {
-            TODO("save match");
+            uintptr_t remote_address = (uintptr_t)base_address + offset;
+
+            scan_Match match = {};
+            match.value = value_at_address;
+            match.remote_address = remote_address;
+
+            ASSERT_ALWAYS(result.match_count < DBG_FIXED_MATCH_ARRAY_CAP);
+
+            result.matches[result.match_count++] = match;
         }
 
         offset += stride;
     }
 
-    return {};
+    return result;
+}
+
+b32 scan_mode_is_comparative(scan_Mode mode)
+{
+    b32 result = false;
+
+    BEGIN_EXHAUSTIVE_SWITCH;
+    switch (mode) {
+        case SCAN_MODE_EXACT:
+        case SCAN_MODE_GREATER_THAN: {
+            result = false;
+        } break;
+
+        case SCAN_MODE_CHANGED:
+        case SCAN_MODE_CHANGED_BY: {
+            result = true;
+        } break;
+
+        INVALID_DEFAULT_CASE;
+    }
+    END_EXHAUSTIVE_SWITCH;
+
+    return result;
 }

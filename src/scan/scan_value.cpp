@@ -76,7 +76,6 @@ scan_Value scan_value_add(scan_Type type, scan_Value a, scan_Value b)
         } break;
 
         case SCAN_TYPE_FLOAT32: {
-            // TODO: should we compare non-exactly for floats?
             result.float32 = a.float32 + b.float32;
         } break;
 
