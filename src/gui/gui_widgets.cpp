@@ -7,7 +7,7 @@ void gui_open_process_button(gui_State *gui, app_State *app)
 {
     // TODO: disable if we're scanning
     if (ImGui::Button("Open process")) {
-        app_get_running_processes(app);
+        app_action_get_running_processes(app);
 
         gui->process_list_popup.selected_index = -1;
         ImGui::OpenPopup(GUI_OPEN_PROC_POPUP_NAME);
@@ -61,7 +61,7 @@ void gui_open_process_popup(gui_State *gui, app_State *app)
         if (ImGui::Button("Open") && is_valid_index) {
             memmi_ProcessInfo clicked_process = app->running_process_list.data[selected_index];
 
-            should_close = app_open_process(app, clicked_process.pid);
+            should_close = app_action_open_process(app, clicked_process.pid);
         }
 
         ImGui::SameLine();

@@ -33,7 +33,7 @@ static memmi_Allocator app__memmi_allocator_from_arena(Arena *arena)
     return result;
 }
 
-void app_get_running_processes(app_State *app)
+void app_action_get_running_processes(app_State *app)
 {
     arena_reset(app->process_list_arena);
 
@@ -44,7 +44,7 @@ void app_get_running_processes(app_State *app)
     app->running_process_list = processes;
 }
 
-b32 app_open_process(app_State *app, memmi_PID pid)
+b32 app_action_open_process(app_State *app, memmi_PID pid)
 {
     b32 result = false;
 
