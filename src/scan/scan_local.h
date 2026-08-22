@@ -1,22 +1,32 @@
 #define SCAN_DEFAULT_STRIDE 1
 
-// TODO: better name for this file
 struct scan_Match {
     scan_Value value;
-    usize remote_address;
+    usize      offset_from_base;
 };
 
 // TODO: store in unrolled linked list for each thread, then main thread
 // can either join those lists together or merge into flat array
 // TODO: store exact scan results sparsely
-struct scan_Result {
-    // TODO: store type and mode?
-    scan_Match *matches;
+struct scan_MatchList {
+    scan_Match matches[2]; // TODO: come up with a good size for this
     usize match_count;
+    scan_MatchList *next;
 };
 
-struct scan_Stride {
-    usize stride;
+// TODO: instead return scan_MatchList * from scan_local_memory, let remote memory scanning function
+// allocate a RegionMatches and fill out the details
+struct scan_RegionMatches {
+    // TODO: store type and mode?
+    usize base_address;
+    usize region_size;
+    scan_MatchList *head;
 };
 
-scan_Result scan_local_memory_first(Arena *arena, void *memory, usize memory_size, scan_Comparison cmp, uintptr_t base_address, usize stride);
+struct scan_Result2 {
+    // TODO: total match count?
+    scan_RegionMatches *first;
+    scan_RegionMatches *last;
+};
+
+scan_MatchList *scan_local_memory_first(Arena *arena, void *memory, usize memory_size, scan_Comparison cmp, usize stride);
