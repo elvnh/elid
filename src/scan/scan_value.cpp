@@ -74,7 +74,7 @@ b32 scan_value_cmp_gt(scan_Type type, scan_Value a, scan_Value b)
             // We have to compare these both as signed and unsigned integers, as we don't
             // know which signedness the values have. This means we'll receive some false
             // positives/negatives.
-            // TODO: can this cast be UB?
+            // TODO: Get rid of the UB here
             result = (a.int32 > b.int32) || ((s32)a.int32 > (s32)b.int32);
         } break;
 
