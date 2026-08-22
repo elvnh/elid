@@ -72,6 +72,11 @@ b32 scan_cmp_match(scan_Value current_value, scan_Comparison cmp)
                 || scan_val_eq(cmp.value_type, current_value, expected_decreased_value);
         } break;
 
+        case SCAN_MODE_UNCHANGED: {
+            scan_Value prev_value = cmp.args[0];
+            result = scan_val_eq(cmp.value_type, current_value, prev_value);
+        } break;
+
         INVALID_DEFAULT_CASE;
     }
     END_EXHAUSTIVE_SWITCH;
@@ -202,7 +207,8 @@ b32 scan_cmp_mode_is_comparative(scan_Mode mode)
         case SCAN_MODE_INCREASED:
         case SCAN_MODE_INCREASED_BY:
         case SCAN_MODE_DECREASED:
-        case SCAN_MODE_DECREASED_BY: {
+        case SCAN_MODE_DECREASED_BY:
+        case SCAN_MODE_UNCHANGED: {
             result = true;
         } break;
 

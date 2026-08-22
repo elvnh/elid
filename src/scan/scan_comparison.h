@@ -14,6 +14,7 @@ enum scan_Mode {
     SCAN_MODE_DECREASED_BY,
     SCAN_MODE_CHANGED,
     SCAN_MODE_CHANGED_BY,
+    SCAN_MODE_UNCHANGED,
 };
 
 struct scan_Comparison {
