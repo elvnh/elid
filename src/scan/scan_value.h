@@ -2,7 +2,7 @@
 
 enum scan_ValueType {
     SCAN_VALUE_TYPE_INT32,
-    SCAN_TYPE_FLOAT32,
+    SCAN_VALUE_TYPE_FLOAT32,
 };
 
 union scan_Value {
@@ -10,10 +10,10 @@ union scan_Value {
     f32 float32;
 };
 
-usize      scan_value_get_type_size(scan_ValueType type);
-scan_Value scan_value_make_int32(u32 value);
-scan_Value scan_value_op_add(scan_ValueType type, scan_Value a, scan_Value b);
-scan_Value scan_value_op_sub(scan_ValueType type, scan_Value a, scan_Value b);
-b32        scan_value_cmp_eq(scan_ValueType type, scan_Value a, scan_Value b);
-b32        scan_value_cmp_gt(scan_ValueType type, scan_Value a, scan_Value b);
-b32        scan_value_cmp_lt(scan_ValueType type, scan_Value a, scan_Value b);
+usize      scan_val_get_type_size(scan_ValueType type);
+scan_Value scan_val_make_int32(u32 value);
+scan_Value scan_val_add(scan_ValueType type, scan_Value a, scan_Value b);
+scan_Value scan_val_sub(scan_ValueType type, scan_Value a, scan_Value b);
+b32        scan_val_eq(scan_ValueType type, scan_Value a, scan_Value b);
+b32        scan_val_gt(scan_ValueType type, scan_Value a, scan_Value b);
+b32        scan_val_lt(scan_ValueType type, scan_Value a, scan_Value b);

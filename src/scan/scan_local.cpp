@@ -4,7 +4,7 @@ static scan_Value scan__load_value_at_address(void *address, scan_ValueType type
 {
     scan_Value result = {};
 
-    usize type_size = scan_value_get_type_size(type);
+    usize type_size = scan_val_get_type_size(type);
 
     copy_mem(&result, address, 1, type_size);
 
@@ -21,7 +21,7 @@ scan_Result scan_local_memory_first(Arena *arena, void *memory, usize memory_siz
     scan_Result result = {};
     result.matches = arena_alloc_array(arena, scan_Match, DBG_FIXED_MATCH_ARRAY_CAP); // TODO: don't use fixed size
 
-    usize type_size = scan_value_get_type_size(cmp.value_type);
+    usize type_size = scan_val_get_type_size(cmp.value_type);
 
     usize offset = 0;
 

@@ -9,7 +9,7 @@ b32 scan_cmp_match(scan_Value current_value, scan_Comparison cmp)
         // Non-comparative scan modes
         case SCAN_MODE_EXACT: {
             scan_Value arg = cmp.args[0];
-            result = scan_value_cmp_eq(cmp.value_type, current_value, arg);
+            result = scan_val_eq(cmp.value_type, current_value, arg);
         } break;
 
         case SCAN_MODE_UNKNOWN: {
@@ -18,12 +18,12 @@ b32 scan_cmp_match(scan_Value current_value, scan_Comparison cmp)
 
         case SCAN_MODE_GREATER_THAN: {
             scan_Value arg = cmp.args[0];
-            result = scan_value_cmp_gt(cmp.value_type, current_value, arg);
+            result = scan_val_gt(cmp.value_type, current_value, arg);
         } break;
 
         case SCAN_MODE_LESS_THAN: {
             scan_Value arg = cmp.args[0];
-            result = scan_value_cmp_lt(cmp.value_type, current_value, arg);
+            result = scan_val_lt(cmp.value_type, current_value, arg);
         } break;
 
 
@@ -31,45 +31,45 @@ b32 scan_cmp_match(scan_Value current_value, scan_Comparison cmp)
         case SCAN_MODE_INCREASED: {
             scan_Value prev_value = cmp.args[0];
 
-            result = scan_value_cmp_gt(cmp.value_type, current_value, prev_value);
+            result = scan_val_gt(cmp.value_type, current_value, prev_value);
         } break;
 
         case SCAN_MODE_INCREASED_BY: {
             scan_Value prev_value = cmp.args[0];
             scan_Value expected_increase = cmp.args[1];
 
-            scan_Value expected_value = scan_value_op_add(cmp.value_type, prev_value, expected_increase);
-            result = scan_value_cmp_eq(cmp.value_type, current_value, expected_value);
+            scan_Value expected_value = scan_val_add(cmp.value_type, prev_value, expected_increase);
+            result = scan_val_eq(cmp.value_type, current_value, expected_value);
         } break;
 
         case SCAN_MODE_DECREASED: {
             scan_Value prev_value = cmp.args[0];
 
-            result = scan_value_cmp_lt(cmp.value_type, current_value, prev_value);
+            result = scan_val_lt(cmp.value_type, current_value, prev_value);
         } break;
 
         case SCAN_MODE_DECREASED_BY: {
             scan_Value prev_value = cmp.args[0];
             scan_Value expected_decrease = cmp.args[1];
 
-            scan_Value expected_value = scan_value_op_sub(cmp.value_type, prev_value, expected_decrease);
-            result = scan_value_cmp_eq(cmp.value_type, current_value, expected_value);
+            scan_Value expected_value = scan_val_sub(cmp.value_type, prev_value, expected_decrease);
+            result = scan_val_eq(cmp.value_type, current_value, expected_value);
         } break;
 
         case SCAN_MODE_CHANGED: {
             scan_Value prev_value = cmp.args[0];
-            result = !scan_value_cmp_eq(cmp.value_type, current_value, prev_value);
+            result = !scan_val_eq(cmp.value_type, current_value, prev_value);
         } break;
 
         case SCAN_MODE_CHANGED_BY: {
             scan_Value prev_value = cmp.args[0];
             scan_Value expected_change = cmp.args[1];
 
-            scan_Value expected_increased_value = scan_value_op_add(cmp.value_type, prev_value, expected_change);
-            scan_Value expected_decreased_value = scan_value_op_sub(cmp.value_type, prev_value, expected_change);
+            scan_Value expected_increased_value = scan_val_add(cmp.value_type, prev_value, expected_change);
+            scan_Value expected_decreased_value = scan_val_sub(cmp.value_type, prev_value, expected_change);
 
-            result = scan_value_cmp_eq(cmp.value_type, current_value, expected_increased_value)
-                || scan_value_cmp_eq(cmp.value_type, current_value, expected_decreased_value);
+            result = scan_val_eq(cmp.value_type, current_value, expected_increased_value)
+                || scan_val_eq(cmp.value_type, current_value, expected_decreased_value);
         } break;
 
         INVALID_DEFAULT_CASE;
