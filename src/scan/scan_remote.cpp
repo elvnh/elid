@@ -4,8 +4,17 @@ scan_Result scan_remote_memory_first(Arena *arena, memmi_Process proc, scan_Comp
 {
     scan_Result result = {};
 
-    memmi_Allocator allocator = proc_memmi_allocator_from_arena(arena);
-    memmi_MemoryRegions memory_regions = memmi_get_process_memory_regions(proc, allocator);
+    // For temporarily storing the memory of a region during the scan of it.
+    Arena *scan_scratch_arena = thread_ctx_get()->per_scan_scratch_arena;
+    memmi_Allocator scan_scratch_allocator = proc_memmi_allocator_from_arena(scan_scratch_arena);
+
+    // For allocating memory region metadata array. We allocate those in a separate arena
+    // as they're needed for the entire function, while the scan scratch arena gets reset
+    // after each region.
+    Temp scratch = scratch_begin();
+    memmi_Allocator region_allocator = proc_memmi_allocator_from_arena(scratch.arena);
+
+    memmi_MemoryRegions memory_regions = memmi_get_process_memory_regions(proc, region_allocator);
 
     if (memory_regions.status != MEMMI_OK) {
         result.status = proc_status_from_memmi_status(memory_regions.status);
@@ -13,8 +22,16 @@ scan_Result scan_remote_memory_first(Arena *arena, memmi_Process proc, scan_Comp
         for (usize i = 0; i < memory_regions.count; ++i) {
             memmi_MemoryRegion region = memory_regions.data[i];
 
-            // TODO: we should use scratch memory for reading proc memory as it's not needed afterwards
-            memmi_ReadMemory read_mem_result = memmi_read_memory(proc, region.base_address, region.size, allocator);
+            if (!(region.permissions & MEMMI_REGION_PERMISSION_READ)) {
+                // TODO: filter out non-readable regions
+                continue;
+            }
+
+            // Reset the arena before reading each regions memory, as we only need it
+            // during the scan of that region.
+            arena_reset(scan_scratch_arena);
+
+            memmi_ReadMemory read_mem_result = memmi_read_memory(proc, region.base_address, region.size, scan_scratch_allocator);
 
             if (read_mem_result.status != MEMMI_OK) {
                 result.status = proc_status_from_memmi_status(read_mem_result.status);
@@ -46,11 +63,17 @@ scan_Result scan_remote_memory_next(Arena *arena, memmi_Process proc, scan_Compa
 {
     scan_Result result = {};
 
-    memmi_Allocator allocator = proc_memmi_allocator_from_arena(arena);
+    // For temporarily storing the memory of a region during the scan of it.
+    Arena *scan_scratch_arena = thread_ctx_get()->per_scan_scratch_arena;
+    memmi_Allocator scan_scratch_allocator = proc_memmi_allocator_from_arena(scan_scratch_arena);
 
     for (scan_RegionMatches *match_list = list_head(&prev_results); match_list; match_list = list_next(match_list)) {
-        // TODO: use per thread scan scratch arena for reading memory
-        memmi_ReadMemory read_mem_result = memmi_read_memory(proc, match_list->base_address, match_list->region_size, allocator);
+        // Reset the arena before reading each regions memory, as we only need it
+        // during the scan of that region.
+        arena_reset(scan_scratch_arena);
+
+        memmi_ReadMemory read_mem_result =
+            memmi_read_memory(proc, match_list->base_address, match_list->region_size, scan_scratch_allocator);
 
         void *region_mem = read_mem_result.memory;
         usize bytes_read = read_mem_result.bytes_read;
