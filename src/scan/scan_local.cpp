@@ -11,7 +11,7 @@ static scan_Value scan__load_value_at_address(void *address, scan_Type type)
     return result;
 }
 
-static b32 scan__compare_values(scan_Parameters scan_params, scan_Value current_value)
+b32 scan_compare_values(scan_Value current_value, scan_Params scan_params)
 {
     b32 result = false;
 
@@ -19,25 +19,27 @@ static b32 scan__compare_values(scan_Parameters scan_params, scan_Value current_
     switch (scan_params.mode) {
         // Non-comparative scan modes
         case SCAN_MODE_EXACT: {
-            result = scan_value_equal(scan_params.type, current_value, scan_params.args[0]);
+            scan_Value arg = scan_params.args[0];
+            result = scan_value_cmp_eq(scan_params.type, current_value, arg);
         } break;
 
         case SCAN_MODE_GREATER_THAN: {
-            result = scan_value_greater_than(scan_params.type, current_value, scan_params.args[0]);
+            scan_Value arg = scan_params.args[0];
+            result = scan_value_cmp_gt(scan_params.type, current_value, arg);
         } break;
 
         // Comparative scan modes
         case SCAN_MODE_CHANGED: {
             scan_Value prev_value = scan_params.args[0];
-            result = !scan_value_equal(scan_params.type, current_value, prev_value);
+            result = !scan_value_cmp_eq(scan_params.type, current_value, prev_value);
         } break;
 
         case SCAN_MODE_CHANGED_BY: {
             scan_Value prev_value = scan_params.args[0];
             scan_Value changed_by = scan_params.args[1];
-            scan_Value expected_value = scan_value_add(scan_params.type, prev_value, changed_by);
+            scan_Value expected_value = scan_value_op_add(scan_params.type, prev_value, changed_by);
 
-            result = scan_value_equal(scan_params.type, current_value, expected_value);
+            result = scan_value_cmp_eq(scan_params.type, current_value, expected_value);
         } break;
 
         INVALID_DEFAULT_CASE;
@@ -49,7 +51,7 @@ static b32 scan__compare_values(scan_Parameters scan_params, scan_Value current_
 
 #define DBG_FIXED_MATCH_ARRAY_CAP 1024
 
-scan_Result scan_local_memory_first(Arena *arena, void *memory, usize memory_size, scan_Parameters params, uintptr_t base_address)
+scan_Result scan_local_memory_first(Arena *arena, void *memory, usize memory_size, scan_Params params, uintptr_t base_address)
 {
     ASSERT(!scan_mode_is_comparative(params.mode));
 
@@ -66,7 +68,7 @@ scan_Result scan_local_memory_first(Arena *arena, void *memory, usize memory_siz
 
         scan_Value value_at_address = scan__load_value_at_address(local_address, params.type);
 
-        if (scan__compare_values(params, value_at_address)) {
+        if (scan_compare_values(value_at_address, params)) {
             uintptr_t remote_address = (uintptr_t)base_address + offset;
 
             scan_Match match = {};
@@ -105,4 +107,24 @@ b32 scan_mode_is_comparative(scan_Mode mode)
     END_EXHAUSTIVE_SWITCH;
 
     return result;
+}
+
+scan_Params scan_params_exact(scan_Type type, scan_Value exact_value)
+{
+    scan_Params params = {};
+    params.mode = SCAN_MODE_EXACT;
+    params.type = type;
+    params.args[0] = exact_value;
+
+    return params;
+}
+
+scan_Params scan_params_greater_than(scan_Type type, scan_Value cmp_value)
+{
+    scan_Params params = {};
+    params.mode = SCAN_MODE_GREATER_THAN;
+    params.type = type;
+    params.args[0] = cmp_value;
+
+    return params;
 }

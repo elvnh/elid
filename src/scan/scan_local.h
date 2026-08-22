@@ -25,11 +25,14 @@ struct scan_Result {
 };
 
 // TODO: helper functions for creating these for types and modes
-struct scan_Parameters {
+struct scan_Params {
     scan_Mode mode;
     scan_Type type;
     scan_Value args[3];
 };
 
-scan_Result scan_local_memory_first(Arena *arena, void *memory, usize memory_size, scan_Parameters params, uintptr_t base_address);
+scan_Result scan_local_memory_first(Arena *arena, void *memory, usize memory_size, scan_Params params, uintptr_t base_address);
+b32         scan_compare_values(scan_Value current_value, scan_Params scan_params);
 b32         scan_mode_is_comparative(scan_Mode mode);
+scan_Params scan_params_make_exact(scan_Type type, scan_Value exact_value);
+scan_Params scan_params_make_gt(scan_Type type, scan_Value cmp_value);
