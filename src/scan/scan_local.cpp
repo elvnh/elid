@@ -19,6 +19,21 @@ static scan_MatchList *scan__alloc_match_list(Arena *arena, scan_MatchList *next
     return result;
 }
 
+static scan_MatchList *scan__push_match(Arena *arena, scan_MatchList *list, scan_Match match)
+{
+    scan_MatchList *result = list;
+
+    ASSERT(result->count <= ARRAY_COUNT(result->data));
+
+    if (result->count == ARRAY_COUNT(result->data)) {
+        result = scan__alloc_match_list(arena, result);
+    }
+
+    result->data[result->count++] = match;
+
+    return result;
+}
+
 scan_MatchList *scan_local_memory_first(Arena *arena, void *memory, usize memory_size, scan_Comparison cmp, usize stride)
 {
     ASSERT(!scan_cmp_mode_is_comparative(cmp.mode));
@@ -35,20 +50,40 @@ scan_MatchList *scan_local_memory_first(Arena *arena, void *memory, usize memory
         scan_Value value_at_address = scan__load_value_at_address(local_address, cmp.value_type);
 
         if (scan_cmp_match(value_at_address, cmp)) {
-            ASSERT(result->match_count <= ARRAY_COUNT(result->matches));
-
-            if (result->match_count == ARRAY_COUNT(result->matches)) {
-                result = scan__alloc_match_list(arena, result);
-            }
-
             scan_Match match = {};
             match.value = value_at_address;
             match.offset_from_base = offset;
 
-            result->matches[result->match_count++] = match;
+            result = scan__push_match(arena, result, match);
         }
 
         offset += stride;
+    }
+
+    return result;
+}
+
+scan_MatchList *scan_local_memory_next(Arena *arena, void *memory, usize memory_size, scan_Comparison cmp, scan_MatchList *prev_matches)
+{
+    scan_MatchList *result = scan__alloc_match_list(arena, 0);
+
+    for (scan_MatchList *match_list = prev_matches; match_list; match_list = list_next(match_list)) {
+        for (usize i = 0; i < match_list->count; ++i) {
+            scan_Match prev_match = match_list->data[i];
+            ASSERT(prev_match.offset_from_base < memory_size);
+
+            void *address = ptr_byte_offset(memory, prev_match.offset_from_base);
+            scan_Value current_value = scan__load_value_at_address(address, cmp.value_type);
+            scan_Value prev_value = prev_match.value;
+
+            if (scan_cmp_match_with_previous(current_value, cmp, prev_value)) {
+                scan_Match new_match = {};
+                new_match.value = current_value;
+                new_match.offset_from_base = prev_match.offset_from_base;
+
+                result = scan__push_match(arena, result, new_match);
+            }
+        }
     }
 
     return result;
