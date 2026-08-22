@@ -38,6 +38,15 @@ DEFINE_SAFE_CAST_UNSIGNED_TO_SIGNED(u64, s32)
 #undef DEFINE_SAFE_CAST_UNSIGNED_TO_SIGNED
 #undef DEFINE_SAFE_CAST_SAME_SIGNEDNESS
 
+/* Wrapping casts */
+s32 wrap_u32_to_s32(u32 from)
+{
+    s32 result = 0;
+    copy_mem(&result, &from, 1, sizeof(result));
+
+    return result;
+}
+
 /* Safe arithmetic */
 #define DEFINE_SAFE_SIGNED_ADD(t)               \
     b32 safe_add_##t(t a, t b, t *res)          \

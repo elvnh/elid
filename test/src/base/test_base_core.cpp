@@ -1,3 +1,12 @@
+/* Wrapping casts */
+TEST_CASE(wrapping_cast)
+{
+    REQUIRE(wrap_u32_to_s32(1) == 1);
+    REQUIRE(wrap_u32_to_s32(U32_MAX) == -1);
+    REQUIRE(wrap_u32_to_s32((u32)S32_MAX + 1) == S32_MIN);
+    REQUIRE(wrap_u32_to_s32((u32)S32_MAX + 2) == S32_MIN + 1);
+}
+
 /* Safe arithmetic */
 // NOTE: We'll only test these functions for one signed and one unsigned type,
 // as they're generated via macros and are identical except for the type.

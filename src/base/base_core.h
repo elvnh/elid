@@ -159,6 +159,9 @@ s32   u32_to_s32(u32 from);
 s32   usize_to_s32(usize from);
 s32   u64_to_s32(u64 from);
 
+/* Wrapping casts */
+s32 wrap_u32_to_s32(u32 from);
+
 /* Safe arithmetic */
 b32 safe_add_s32(s32 a, s32 b, s32 *res);
 b32 safe_sub_s32(s32 a, s32 b, s32 *res);
