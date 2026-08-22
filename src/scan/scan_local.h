@@ -1,3 +1,5 @@
+#define SCAN_DEFAULT_STRIDE 1
+
 // TODO: better name for this file
 struct scan_Match {
     scan_Value value;
@@ -13,4 +15,8 @@ struct scan_Result {
     usize match_count;
 };
 
-scan_Result scan_local_memory_first(Arena *arena, void *memory, usize memory_size, scan_Params params, uintptr_t base_address);
+struct scan_Stride {
+    usize stride;
+};
+
+scan_Result scan_local_memory_first(Arena *arena, void *memory, usize memory_size, scan_Params params, uintptr_t base_address, usize stride);

@@ -14,7 +14,7 @@ static scan_Value scan__load_value_at_address(void *address, scan_Type type)
 
 #define DBG_FIXED_MATCH_ARRAY_CAP 1024
 
-scan_Result scan_local_memory_first(Arena *arena, void *memory, usize memory_size, scan_Params params, uintptr_t base_address)
+scan_Result scan_local_memory_first(Arena *arena, void *memory, usize memory_size, scan_Params params, uintptr_t base_address, usize stride)
 {
     ASSERT(!scan_mode_is_comparative(params.mode));
 
@@ -24,7 +24,6 @@ scan_Result scan_local_memory_first(Arena *arena, void *memory, usize memory_siz
     usize type_size = scan_value_get_type_size(params.type);
 
     usize offset = 0;
-    usize stride = 1; // TODO: fast scan
 
     while ((offset + type_size) <= memory_size) {
         void *local_address = ptr_byte_offset(memory, offset);

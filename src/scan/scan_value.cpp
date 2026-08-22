@@ -1,7 +1,6 @@
 #include "scan_value.h"
 
 // TODO: reduce code duplication
-// TODO: unit testing
 
 usize scan_value_get_type_size(scan_Type type)
 {
