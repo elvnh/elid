@@ -25,3 +25,11 @@ b32 app_action_open_process(app_State *app, memmi_PID pid)
     return result;
 
 }
+
+void app_action_run_first_scan(app_State *app, scan_Comparison cmp, usize stride)
+{
+    // TODO: async
+
+    app->current_result_list = scan_remote_memory_first(
+        app->scan_result_arena, app->open_process_handle, cmp, stride);
+}

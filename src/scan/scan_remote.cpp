@@ -3,7 +3,7 @@
 // This is used to skip the huge memory regions that ASan allocates.
 // TODO: can this be done in a better way?
 // TODO: this is not necessary for 32 bit
-#define SCAN_SKIP_REGION_SIZE_THRESHOLD TB(16)
+#define SCAN_SKIP_REGION_SIZE_THRESHOLD TB(13)
 
 scan_Result scan_remote_memory_first(Arena *arena, memmi_Process proc, scan_Comparison cmp, usize stride)
 {

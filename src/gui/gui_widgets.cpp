@@ -162,11 +162,13 @@ void gui_scan_parameters(gui_State *gui, app_State *app)
             gui->scan_parameters.selected_scan_mode
         );
 
+        usize scan_stride = 4;
+
         // Scan buttons
         {
             ImGui::BeginDisabled(!parsed_scan_input.ok); {
                 if (ImGui::Button("New/first scan")) {
-                    TODO("scan");
+                    app_action_run_first_scan(app, parsed_scan_input.value, scan_stride);
                 }
 
                 ImGui::SameLine();
