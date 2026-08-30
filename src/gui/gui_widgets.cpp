@@ -141,22 +141,30 @@ void gui_scan_parameters(gui_State *gui, app_State *app)
             ImGui::SameLine();
 
             ImGui::SetNextItemWidth(-FLT_MIN);
-            ImGui::InputText(
-                "##scan_value",
-                gui->scan_parameters.scan_value_text,
-                ARRAY_COUNT(gui->scan_parameters.scan_value_text)
-            );
+
+            b32 input_not_required = scan_mode_get_arity(gui->scan_parameters.selected_scan_mode) == 0;
+
+            ImGui::BeginDisabled(input_not_required); {
+                ImGui::InputText(
+                    "##scan_value",
+                    gui->scan_parameters.scan_value_text,
+                    ARRAY_COUNT(gui->scan_parameters.scan_value_text)
+                );
+            } ImGui::EndDisabled();
         }
 
         u32 scan_value_input_base = gui->scan_parameters.hex ? 16 : 10;
-        scan_Value_Maybe parsed_scan_value = gui_try_parse_search_value(
+
+        scan_Comparison_Maybe parsed_scan_input = gui_try_parse_scan_input(
             gui->scan_parameters.scan_value_text,
             gui->scan_parameters.selected_value_type,
-            scan_value_input_base);
+            scan_value_input_base,
+            gui->scan_parameters.selected_scan_mode
+        );
 
         // Scan buttons
         {
-            ImGui::BeginDisabled(!parsed_scan_value.ok); {
+            ImGui::BeginDisabled(!parsed_scan_input.ok); {
                 if (ImGui::Button("New/first scan")) {
                     TODO("scan");
                 }
@@ -193,7 +201,7 @@ void gui_scan_parameters(gui_State *gui, app_State *app)
             ImGui::SetNextItemWidth(combo_box_width);
 
             if (ImGui::BeginCombo("##scan_mode", scan_mode_preview, combo_flags)) {
-                for (size_t i = 0; i < available_modes.count; ++i) {
+                for (usize i = 0; i < available_modes.count; ++i) {
                     scan_Mode mode = available_modes.data[i];
 
                     b32 is_mode_selected = gui->scan_parameters.selected_scan_mode == mode;
@@ -222,7 +230,7 @@ void gui_scan_parameters(gui_State *gui, app_State *app)
             ImGui::SetNextItemWidth(combo_box_width);
 
             if (ImGui::BeginCombo("##value_type", value_type_preview, combo_flags)) {
-                for (size_t i = 0; i < available_types.count; ++i) {
+                for (usize i = 0; i < available_types.count; ++i) {
                     scan_ValueType type = available_types.data[i];
                     b32 is_type_selected = gui->scan_parameters.selected_value_type == type;
 

@@ -18,3 +18,4 @@ scan_Comparison scan_cmp_make_increased(scan_ValueType type);
 scan_Comparison scan_cmp_make_increased_by(scan_ValueType type, scan_Value increase);
 scan_Comparison scan_cmp_make_decreased(scan_ValueType type);
 scan_Comparison scan_cmp_make_decreased_by(scan_ValueType type, scan_Value decrease);
+scan_Comparison scan_cmp_make_unchanged(scan_ValueType type);

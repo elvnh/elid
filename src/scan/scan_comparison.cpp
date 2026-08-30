@@ -135,7 +135,7 @@ scan_Comparison scan_cmp_make_unknown(scan_ValueType type)
     return params;
 }
 
-scan_Comparison scan_cmp_make_gt(scan_ValueType type, scan_Value cmp_value)
+scan_Comparison scan_cmp_make_greater_than(scan_ValueType type, scan_Value cmp_value)
 {
     scan_Comparison params = {};
     params.mode = SCAN_MODE_GREATER_THAN;
@@ -145,7 +145,7 @@ scan_Comparison scan_cmp_make_gt(scan_ValueType type, scan_Value cmp_value)
     return params;
 }
 
-scan_Comparison scan_cmp_make_lt(scan_ValueType type, scan_Value cmp_value)
+scan_Comparison scan_cmp_make_less_than(scan_ValueType type, scan_Value cmp_value)
 {
     scan_Comparison params = {};
     params.mode = SCAN_MODE_LESS_THAN;
@@ -212,3 +212,11 @@ scan_Comparison scan_cmp_make_decreased_by(scan_ValueType type, scan_Value decre
     return params;
 }
 
+scan_Comparison scan_cmp_make_unchanged(scan_ValueType type)
+{
+    scan_Comparison params = {};
+    params.mode = SCAN_MODE_UNCHANGED;
+    params.value_type = type;
+
+    return params;
+}

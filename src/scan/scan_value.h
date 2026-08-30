@@ -9,7 +9,7 @@ enum scan_ValueType {
 
 struct scan_ValueTypeList {
     scan_ValueType data[SCAN_VALUE_TYPE_COUNT];
-    size_t count;
+    usize count;
 };
 
 union scan_Value {

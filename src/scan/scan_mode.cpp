@@ -88,9 +88,7 @@ const char *scan_mode_to_cstr(scan_Mode mode)
             result = "Unchanged";
         } break;
 
-        case SCAN_MODE_COUNT: {
-            ASSERT(0);
-        } break;
+        INVALID_CASE(SCAN_MODE_COUNT);
 
         INVALID_DEFAULT_CASE;
     }
@@ -103,9 +101,41 @@ scan_ModeList scan_mode_get_list()
 {
     scan_ModeList result = {};
 
-    for (size_t i = 0; i < SCAN_MODE_COUNT; ++i) {
+    for (usize i = 0; i < SCAN_MODE_COUNT; ++i) {
         result.data[result.count++] = (scan_Mode)i;
     }
+
+    return result;
+}
+
+u32 scan_mode_get_arity(scan_Mode mode)
+{
+    u32 result = 0;
+
+    BEGIN_EXHAUSTIVE_SWITCH;
+    switch (mode) {
+        case SCAN_MODE_UNKNOWN:
+        case SCAN_MODE_CHANGED:
+        case SCAN_MODE_INCREASED:
+        case SCAN_MODE_DECREASED:
+        case SCAN_MODE_UNCHANGED: {
+            result = 0;
+        } break;
+
+        case SCAN_MODE_EXACT:
+        case SCAN_MODE_GREATER_THAN:
+        case SCAN_MODE_LESS_THAN:
+        case SCAN_MODE_CHANGED_BY:
+        case SCAN_MODE_INCREASED_BY:
+        case SCAN_MODE_DECREASED_BY: {
+            result = 1;
+        } break;
+
+        INVALID_CASE(SCAN_MODE_COUNT);
+
+        INVALID_DEFAULT_CASE;
+    }
+    END_EXHAUSTIVE_SWITCH;
 
     return result;
 }

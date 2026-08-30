@@ -21,9 +21,10 @@ enum scan_Mode {
 
 struct scan_ModeList {
     scan_Mode data[SCAN_MODE_COUNT];
-    size_t count;
+    usize     count;
 };
 
 b32           scan_mode_is_comparative(scan_Mode mode);
 const char   *scan_mode_to_cstr(scan_Mode mode);
 scan_ModeList scan_mode_get_list();
+u32           scan_mode_get_arity(scan_Mode mode);
