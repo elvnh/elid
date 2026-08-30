@@ -2,7 +2,7 @@
 
 // TODO: reduce code duplication
 
-usize scan_val_get_type_size(scan_ValueType type)
+usize scan_val_type_get_size(scan_ValueType type)
 {
     usize result = 0;
 
@@ -11,6 +11,46 @@ usize scan_val_get_type_size(scan_ValueType type)
         case SCAN_VALUE_TYPE_INT32:
         case SCAN_VALUE_TYPE_FLOAT32: {
             result = 4;
+        } break;
+
+        case SCAN_VALUE_TYPE_COUNT: {
+            ASSERT(0);
+        } break;
+
+        INVALID_DEFAULT_CASE;
+    }
+    END_EXHAUSTIVE_SWITCH;
+
+    return result;
+}
+
+scan_ValueTypeList scan_val_type_get_list()
+{
+    scan_ValueTypeList result = {};
+
+    for (scan_ValueType type = {}; type < SCAN_VALUE_TYPE_COUNT; inc_enum(&type)) {
+        result.data[result.count++] = type;
+    }
+
+    return result;
+}
+
+const char *scan_val_type_to_cstr(scan_ValueType type)
+{
+    const char *result = 0;
+
+    BEGIN_EXHAUSTIVE_SWITCH;
+    switch (type) {
+        case SCAN_VALUE_TYPE_INT32: {
+            result = "4 bytes";
+        } break;
+
+        case SCAN_VALUE_TYPE_FLOAT32: {
+            result = "Float";
+        } break;
+
+        case SCAN_VALUE_TYPE_COUNT: {
+            ASSERT_ALWAYS(0);
         } break;
 
         INVALID_DEFAULT_CASE;
@@ -42,6 +82,8 @@ scan_Value scan_val_add(scan_ValueType type, scan_Value a, scan_Value b)
             result.float32 = a.float32 + b.float32;
         } break;
 
+        INVALID_CASE(SCAN_VALUE_TYPE_COUNT);
+
         INVALID_DEFAULT_CASE;
     }
     END_EXHAUSTIVE_SWITCH;
@@ -62,6 +104,8 @@ scan_Value scan_val_sub(scan_ValueType type, scan_Value a, scan_Value b)
         case SCAN_VALUE_TYPE_FLOAT32: {
             result.float32 = a.float32 - b.float32;
         } break;
+
+        INVALID_CASE(SCAN_VALUE_TYPE_COUNT);
 
         INVALID_DEFAULT_CASE;
     }
@@ -85,6 +129,8 @@ b32 scan_val_eq(scan_ValueType type, scan_Value a, scan_Value b)
             TODO("Unimplemented");
             // result = (a.float32 == b.float32);
         } break;
+
+        INVALID_CASE(SCAN_VALUE_TYPE_COUNT);
 
         INVALID_DEFAULT_CASE;
     }
@@ -111,6 +157,8 @@ b32 scan_val_gt(scan_ValueType type, scan_Value a, scan_Value b)
             TODO("Unimplemented");
             // result = (a.float32 > b.float32);
         } break;
+
+        INVALID_CASE(SCAN_VALUE_TYPE_COUNT);
 
         INVALID_DEFAULT_CASE;
     }

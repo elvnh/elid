@@ -180,6 +180,8 @@ void gui_scan_parameters(gui_State *gui, app_State *app)
             scan_ModeList available_modes = scan_mode_get_list();
             const char *scan_mode_preview = scan_mode_to_cstr(gui->scan_parameters.selected_scan_mode);
 
+            // TODO: if the selected mode is no longer available, default to the first one in list
+
             ImGui::SetNextItemWidth(combo_box_width);
 
             if (ImGui::BeginCombo("##scan_mode", scan_mode_preview, combo_flags)) {
@@ -206,17 +208,20 @@ void gui_scan_parameters(gui_State *gui, app_State *app)
 
             s32 combo_flags = ImGuiComboFlags_HeightLargest;
 
-            const char *value_type_names[] = {"Flup", "Drup"};
-            const char *value_type_preview = value_type_names[gui->scan_parameters.selected_value_type_index];
+            scan_ValueTypeList available_types = scan_val_type_get_list();
+            const char *value_type_preview = scan_val_type_to_cstr(gui->scan_parameters.selected_value_type);
 
             ImGui::SetNextItemWidth(combo_box_width);
 
             if (ImGui::BeginCombo("##value_type", value_type_preview, combo_flags)) {
-                for (s32 i = 0; i < (s32)ARRAY_COUNT(value_type_names); ++i) {
-                    b32 is_mode_selected = gui->scan_parameters.selected_value_type_index == i;
+                for (size_t i = 0; i < available_types.count; ++i) {
+                    scan_ValueType type = available_types.data[i];
+                    b32 is_type_selected = gui->scan_parameters.selected_value_type == type;
 
-                    if (ImGui::Selectable(value_type_names[i], is_mode_selected)) {
-                        gui->scan_parameters.selected_value_type_index = i;
+                    const char *type_spelling = scan_val_type_to_cstr(type);
+
+                    if (ImGui::Selectable(type_spelling, is_type_selected)) {
+                        gui->scan_parameters.selected_value_type = type;
                     }
                 }
 

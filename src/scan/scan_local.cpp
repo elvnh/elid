@@ -4,7 +4,7 @@ static scan_Value scan__load_value_at_address(void *address, scan_ValueType type
 {
     scan_Value result = {};
 
-    usize type_size = scan_val_get_type_size(type);
+    usize type_size = scan_val_type_get_size(type);
 
     copy_mem(&result, address, 1, type_size);
 
@@ -40,7 +40,7 @@ scan_MatchList *scan_local_memory_first(Arena *arena, void *mem, usize mem_size,
 
     scan_MatchList *result = scan__alloc_match_list(arena, 0);
 
-    usize type_size = scan_val_get_type_size(cmp.value_type);
+    usize type_size = scan_val_type_get_size(cmp.value_type);
 
     usize offset = 0;
 
