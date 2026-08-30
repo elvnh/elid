@@ -148,17 +148,22 @@ void gui_scan_parameters(gui_State *gui, app_State *app)
             );
         }
 
+        scan_Value_Maybe parsed_scan_value = gui_try_parse_search_value(
+            gui->scan_parameters.scan_value_text, gui->scan_parameters.selected_value_type);
+
         // Scan buttons
         {
-            if (ImGui::Button("New/first scan")) {
-                TODO("scan");
-            }
+            ImGui::BeginDisabled(!parsed_scan_value.ok); {
+                if (ImGui::Button("New/first scan")) {
+                    TODO("scan");
+                }
 
-            ImGui::SameLine();
+                ImGui::SameLine();
 
-            if (ImGui::Button("Next scan")) {
-                TODO("scan");
-            }
+                if (ImGui::Button("Next scan")) {
+                    TODO("scan");
+                }
+            } ImGui::EndDisabled();
         }
 
         // Hex?
