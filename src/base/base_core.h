@@ -137,7 +137,7 @@ DEFINE_MAYBE_TYPE(usize);
 /* General utilities */
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
-#define ARRAY_COUNT(a) (sizeof((a)) / sizeof(*(a)))
+
 #define KB(n) ((u64)(n) * 1024u)
 #define MB(n) (KB(n) * 1024u)
 #define GB(n) (MB(n) * 1024u)
@@ -160,6 +160,21 @@ DEFINE_MAYBE_TYPE(usize);
 #else
 #    error TYPEOF() not defined for this compiler
 #endif
+
+/* Arrays */
+// TODO: make lowercase
+// TODO: rename to array size/capacity
+#define ARRAY_COUNT(a) (sizeof((a)) / sizeof(*(a)))
+#define array_push(arr, item)                                           \
+    ASSERT_AND_THEN(                                                    \
+        (arr)->count < ARRAY_COUNT((arr)->data),                        \
+        (arr)->data[(arr)->count++] = item)
+#define array_clear(arr) ((arr)->count = 0)
+#define array_count2(arr) ((arr)->count)
+#define array_at(arr, i)                        \
+    ASSERT_AND_THEN(                            \
+        ((i) < (array_count2((arr)))),          \
+        (arr)->data[(i)])
 
 /* Enums */
 #define set_flag(res, flag) (*(res) = (TYPEOF(*(res)))((s64)(*(res)) | (s64)(flag)))
