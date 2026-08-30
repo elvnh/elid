@@ -164,16 +164,16 @@ DEFINE_MAYBE_TYPE(usize);
 /* Arrays */
 // TODO: make lowercase
 // TODO: rename to array size/capacity
-#define ARRAY_COUNT(a) (sizeof((a)) / sizeof(*(a)))
+#define array_capacity(a) (sizeof((a)) / sizeof(*(a)))
 #define array_push(arr, item)                                           \
     ASSERT_AND_THEN(                                                    \
-        (arr)->count < ARRAY_COUNT((arr)->data),                        \
+        (arr)->count < array_capacity((arr)->data),                        \
         (arr)->data[(arr)->count++] = item)
 #define array_clear(arr) ((arr)->count = 0)
-#define array_count2(arr) ((arr)->count)
+#define array_count(arr) ((arr)->count)
 #define array_at(arr, i)                        \
     ASSERT_AND_THEN(                            \
-        ((i) < (array_count2((arr)))),          \
+        ((i) < (array_count((arr)))),           \
         (arr)->data[(i)])
 
 /* Enums */

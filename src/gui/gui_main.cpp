@@ -75,7 +75,7 @@ static void gui__main_window(gui_State *gui, app_State *app)
 {
     gui__begin_root_window(gui); {
         // TODO: make it so that stacked popups work
-        for (usize i = 0; i < array_count2(&app->error_list); ++i) {
+        for (usize i = 0; i < array_count(&app->error_list); ++i) {
             app_Error error = array_at(&app->error_list, i);
             gui__open_error_popup(gui, app, error);
         }

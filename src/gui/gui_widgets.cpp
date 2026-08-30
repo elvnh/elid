@@ -22,7 +22,7 @@ void gui_scan_result_table(gui_State *gui, app_State *app)
     s32 selectable_flags = ImGuiSelectableFlags_SpanAllColumns;
 
     const char *table_columns[] = {"Address", "Value", "Previous"};
-    s32 column_count = ARRAY_COUNT(table_columns);
+    s32 column_count = array_capacity(table_columns);
 
     // TODO: turn off highlight on hover
 
@@ -99,7 +99,7 @@ void gui_scan_parameters(gui_State *gui, app_State *app)
                 ImGui::InputText(
                     "##scan_value",
                     gui->scan_parameters.scan_value_text,
-                    ARRAY_COUNT(gui->scan_parameters.scan_value_text)
+                    array_capacity(gui->scan_parameters.scan_value_text)
                 );
             } ImGui::EndDisabled();
         }

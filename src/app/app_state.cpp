@@ -31,10 +31,10 @@ b32 app_init(app_State *app)
 
 void app_push_error(app_State *app, app_Error error)
 {
-    if (NEVER(app->error_list.count >= ARRAY_COUNT(app->error_list.data))) {
-        ASSERT(app->error_list.count == ARRAY_COUNT(app->error_list.data));
+    if (NEVER(app->error_list.count >= array_capacity(app->error_list.data))) {
+        ASSERT(app->error_list.count == array_capacity(app->error_list.data));
 
-        app->error_list.count = ARRAY_COUNT(app->error_list.data) - 1;
+        app->error_list.count = array_capacity(app->error_list.data) - 1;
     }
 
     array_push(&app->error_list, error);

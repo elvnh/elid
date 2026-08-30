@@ -24,9 +24,9 @@ static void scan__push_match(Arena *arena, scan_MatchList *list, scan_Match matc
 {
     scan_MatchList *current = list->last;
 
-    ASSERT(current->count <= ARRAY_COUNT(current->data));
+    ASSERT(current->count <= array_capacity(current->data));
 
-    if (current->count == ARRAY_COUNT(current->data)) {
+    if (current->count == array_capacity(current->data)) {
         current = scan__alloc_match_list(arena);
         sll_push_back(list, current);
     }
