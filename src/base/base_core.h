@@ -145,6 +145,13 @@ DEFINE_MAYBE_TYPE(usize);
 #define THOUSAND(n) ((n) * 1000)
 #define MILLION(n) (THOUSAND(n) * THOUSAND(1))
 #define ptr_byte_offset(ptr, count) (TYPEOF(ptr))(((u8 *)(ptr) + (count)))
+#define SWAP(a, b)                              \
+    do {                                        \
+        ASSERT(&(a) != &(b));                   \
+        auto SWAP__TEMP_VARIABLE = a;           \
+        a = b;                                  \
+        b = SWAP__TEMP_VARIABLE;                \
+} while (0)
 
 #if COMPILER_GCC
 #    define TYPEOF(t) __typeof__(t)

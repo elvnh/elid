@@ -74,7 +74,7 @@ static void gui__main_window(gui_State *gui, app_State *app)
             char *result_count_label = str_format_cstr(
                 app->frame_arena,
                 "Results: %zu",
-                app->current_result_list.total_match_count);
+                app->result_list.total_match_count);
 
             ImGui::TextUnformatted(result_count_label);
 

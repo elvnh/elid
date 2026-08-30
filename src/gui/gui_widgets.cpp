@@ -105,8 +105,8 @@ void gui_scan_result_table(gui_State *gui, app_State *app)
 
         ImGui::TableHeadersRow();
 
-        if (app->current_result_list.total_match_count <= GUI_MAX_DISPLAYED_RESULT_COUNT) {
-            s32 match_count = usize_to_s32(app->current_result_list.total_match_count);
+        if (app->result_list.total_match_count <= GUI_MAX_DISPLAYED_RESULT_COUNT) {
+            s32 match_count = usize_to_s32(app->result_list.total_match_count);
 
             ImGuiListClipper clipper = {};
             clipper.Begin(match_count);
@@ -116,7 +116,7 @@ void gui_scan_result_table(gui_State *gui, app_State *app)
                     // TODO: optimize lookup of results
                     // TODO: green text if located inside executable/so file
                     // TODO: show previous value
-                    scan_MatchDetails match = scan_result_at(&app->current_result_list, (usize)row);
+                    scan_MatchDetails match = scan_result_at(&app->result_list, (usize)row);
 
                     ImGui::TableNextRow();
 
@@ -205,7 +205,7 @@ void gui_scan_parameters(gui_State *gui, app_State *app)
                 ImGui::SameLine();
 
                 b32 next_scan_disabled = app->scanner_state != APP_SCANNER_STATE_NEXT_SCAN_READY
-                    || (app->current_result_list.total_match_count == 0);
+                    || (app->result_list.total_match_count == 0);
 
                 ImGui::BeginDisabled(next_scan_disabled); {
                     if (ImGui::Button("Next scan")) {
