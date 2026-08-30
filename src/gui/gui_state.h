@@ -22,4 +22,4 @@ struct gui_State {
     } scan_parameters;
 };
 
-b32             gui_init(gui_State *gui);
+b32 gui_init(gui_State *gui);

@@ -6,6 +6,7 @@ struct scan_RegionMatches {
     usize region_size;
     scan_MatchList *head;
     scan_RegionMatches *next;
+    usize match_count_in_region;
 };
 
 struct scan_Result {
@@ -14,6 +15,7 @@ struct scan_Result {
     proc_Status         errors;
     scan_RegionMatches *first;
     scan_RegionMatches *last;
+    usize               list_node_count;
 };
 
 scan_Result scan_remote_memory_first(Arena *arena, memmi_Process proc, scan_Comparison cmp, usize stride);

@@ -11,34 +11,34 @@ static scan_Value scan__load_value_at_address(void *address, scan_ValueType type
     return result;
 }
 
-static scan_MatchList *scan__alloc_match_list(Arena *arena, scan_MatchList *next)
+static scan_MatchList *scan__alloc_match_list(Arena *arena)
 {
     scan_MatchList *result = arena_alloc_struct(arena, scan_MatchList);
-    result->next = next;
+    result->first = result;
+    result->last = result;
 
     return result;
 }
 
-static scan_MatchList *scan__push_match(Arena *arena, scan_MatchList *list, scan_Match match)
+static void scan__push_match(Arena *arena, scan_MatchList *list, scan_Match match)
 {
-    scan_MatchList *result = list;
+    scan_MatchList *current = list->last;
 
-    ASSERT(result->count <= ARRAY_COUNT(result->data));
+    ASSERT(current->count <= ARRAY_COUNT(current->data));
 
-    if (result->count == ARRAY_COUNT(result->data)) {
-        result = scan__alloc_match_list(arena, result);
+    if (current->count == ARRAY_COUNT(current->data)) {
+        current = scan__alloc_match_list(arena);
+        sll_push_back(list, current);
     }
 
-    result->data[result->count++] = match;
-
-    return result;
+    current->data[current->count++] = match;
 }
 
 scan_MatchList *scan_local_memory_first(Arena *arena, void *mem, usize mem_size, scan_Comparison cmp, usize stride)
 {
     ASSERT(!scan_mode_is_comparative(cmp.mode));
 
-    scan_MatchList *result = scan__alloc_match_list(arena, 0);
+    scan_MatchList *result = scan__alloc_match_list(arena);
 
     usize type_size = scan_val_type_get_size(cmp.value_type);
 
@@ -54,7 +54,7 @@ scan_MatchList *scan_local_memory_first(Arena *arena, void *mem, usize mem_size,
             match.value = value_at_address;
             match.offset_from_base = offset;
 
-            result = scan__push_match(arena, result, match);
+            scan__push_match(arena, result, match);
         }
 
         offset += stride;
@@ -65,7 +65,7 @@ scan_MatchList *scan_local_memory_first(Arena *arena, void *mem, usize mem_size,
 
 scan_MatchList *scan_local_memory_next(Arena *arena, void *mem, usize mem_size, scan_Comparison cmp, scan_MatchList *prev_matches)
 {
-    scan_MatchList *result = scan__alloc_match_list(arena, 0);
+    scan_MatchList *result = scan__alloc_match_list(arena);
 
     for (scan_MatchList *match_list = prev_matches; match_list; match_list = list_next(match_list)) {
         for (usize i = 0; i < match_list->count; ++i) {
@@ -81,7 +81,7 @@ scan_MatchList *scan_local_memory_next(Arena *arena, void *mem, usize mem_size, 
                 new_match.value = current_value;
                 new_match.offset_from_base = prev_match.offset_from_base;
 
-                result = scan__push_match(arena, result, new_match);
+                scan__push_match(arena, result, new_match);
             }
         }
     }
