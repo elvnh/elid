@@ -6,7 +6,7 @@ enum app_ScannerState {
 };
 
 struct app_State {
-    Arena *frame_arena;
+    Arena *frame_arena; // TODO: move to gui?
     Arena *process_list_arena;
     Arena *scan_result_arena;
     Arena *previous_scan_result_arena;
@@ -15,6 +15,9 @@ struct app_State {
     memmi_Process open_process_handle;
     memmi_ProcessList running_process_list;
     scan_Result result_list;
+
+    app_ErrorList error_list;
 };
 
 b32  app_init(app_State *app);
+void app_push_error(app_State *app, app_Error error);

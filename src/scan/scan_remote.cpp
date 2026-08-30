@@ -62,6 +62,10 @@ scan_Result scan_remote_memory_first(Arena *arena, memmi_Process proc, scan_Comp
 
                 if (read_mem_result.status != MEMMI_OK) {
                     set_flag(&result.errors, proc_status_from_memmi_status(read_mem_result.status));
+
+                    if (read_mem_result.status == MEMMI_NO_SUCH_PROCESS) {
+                        break;
+                    }
                 } else {
                     at_least_one_read_succeeded = true;
 
@@ -77,7 +81,7 @@ scan_Result scan_remote_memory_first(Arena *arena, memmi_Process proc, scan_Comp
         }
     }
 
-    if (at_least_one_read_succeeded) {
+    if (at_least_one_read_succeeded && !(result.errors & PROC_STATUS_NO_SUCH_PROCESS)) {
         // Some reads failing is to be expected, for example a region could be unmapped during the
         // scan. As long as we managed to read at least one region, we'll count it as a success.
         result.errors = PROC_STATUS_OK;
@@ -106,6 +110,10 @@ scan_Result scan_remote_memory_next(Arena *arena, memmi_Process proc, scan_Compa
 
         if (read_mem_result.status != MEMMI_OK) {
             set_flag(&result.errors, proc_status_from_memmi_status(read_mem_result.status));
+
+            if (read_mem_result.status == MEMMI_NO_SUCH_PROCESS) {
+                break;
+            }
         } else {
             void *region_mem = read_mem_result.memory;
             usize bytes_read = read_mem_result.bytes_read;
@@ -117,7 +125,8 @@ scan_Result scan_remote_memory_next(Arena *arena, memmi_Process proc, scan_Compa
         }
     }
 
-    if (at_least_one_read_succeeded) {
+    // TODO: reduce code duplication between this and first scan
+    if (at_least_one_read_succeeded && !(result.errors & PROC_STATUS_NO_SUCH_PROCESS)) {
         // Some reads failing is to be expected, for example a region could be unmapped during the
         // scan. As long as we managed to read at least one region, we'll count it as a success.
         result.errors = PROC_STATUS_OK;

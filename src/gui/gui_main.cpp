@@ -54,9 +54,36 @@ b32 gui_should_close(gui_State *gui)
     return result;
 }
 
+static void gui__open_error_popup(gui_State *gui, app_State *app, app_Error error)
+{
+    BEGIN_EXHAUSTIVE_SWITCH;
+    switch (error.kind) {
+        case APP_ERROR_PROCESS_DIED_BEFORE_OR_DURING_SCAN: {
+            gui_popup_open(app->frame_arena, GUI_POPUP_ERROR_PROC_DIED_DURING_SCAN);
+        } break;
+
+        case APP_ERROR_INSUFFICIENT_PERMS_FOR_SCAN: {
+            gui_popup_open(app->frame_arena, GUI_POPUP_ERROR_INSUFFICIENT_PERMS_FOR_SCAN);
+        } break;
+
+        INVALID_DEFAULT_CASE;
+    }
+    END_EXHAUSTIVE_SWITCH;
+}
+
 static void gui__main_window(gui_State *gui, app_State *app)
 {
     gui__begin_root_window(gui); {
+        // TODO: make it so that stacked popups work
+        for (usize i = 0; i < array_count2(&app->error_list); ++i) {
+            app_Error error = array_at(&app->error_list, i);
+            gui__open_error_popup(gui, app, error);
+        }
+
+        array_clear(&app->error_list);
+
+        gui_popup_display_active_popups(gui, app);
+
         if (memmi_process_is_null(app->open_process_handle)) {
             ImGui::TextUnformatted("Open process: none");
         } else {
@@ -66,7 +93,6 @@ static void gui__main_window(gui_State *gui, app_State *app)
         }
 
         gui_open_process_button(gui, app);
-        gui_open_process_popup(gui, app);
 
         // NOTE: widgets wrapped in functions should never themselves call
         // BeginChild, we should only do that from top level like this

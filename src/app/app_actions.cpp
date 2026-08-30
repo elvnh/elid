@@ -43,6 +43,16 @@ void app_action_run_first_scan(app_State *app, scan_Comparison cmp, usize stride
     app->result_list = scan_remote_memory_first(
         app->scan_result_arena, app->open_process_handle, cmp, stride);
 
+    proc_Status errors = app->result_list.errors;
+
+    if (errors != PROC_STATUS_OK) {
+        if (errors & PROC_STATUS_NO_SUCH_PROCESS) {
+            app_push_error(app, {APP_ERROR_PROCESS_DIED_BEFORE_OR_DURING_SCAN});
+        } else if (errors & PROC_STATUS_INSUFFICIENT_PERMISSIONS) {
+            app_push_error(app, {APP_ERROR_INSUFFICIENT_PERMS_FOR_SCAN});
+        }
+    }
+
     app->scanner_state = APP_SCANNER_STATE_NEXT_SCAN_READY;
 }
 
