@@ -89,6 +89,7 @@ DEFINE_MAYBE_TYPE(usize);
 #    define NEVER(e)  (!(e) ? 0 : (ASSERT_FAIL("NEVER("#e")"),  1))
 #    define TODO(e)   ASSERT_FAIL("TODO(" e ")")
 #    define INVALID_DEFAULT_CASE default: { ASSERT_FAIL("INVALID_DEFAULT_CASE"); } break
+#    define INVALID_CASE(c) case c: { ASSERT_FAIL("INVALID_CASE(" #c ")"); } break
 #else
 #    define ASSERT(e) ((void)(e))
 #    define ASSERT_AND_THEN(check, e) (e)
@@ -96,6 +97,7 @@ DEFINE_MAYBE_TYPE(usize);
 #    define NEVER(e)  (e)
 #    define TODO(e)
 #    define INVALID_DEFAULT_CASE default: { } break
+#    define INVALID_CASE(c) case c: { } break
 #endif
 
 #define ASSERT_ALWAYS(e) (!(e) ? ASSERT_FAIL(#e) : 0)
