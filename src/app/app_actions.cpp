@@ -15,6 +15,8 @@ b32 app_action_open_process(app_State *app, memmi_PID pid)
 {
     b32 result = false;
 
+    app_action_close_opened_process(app);
+
     memmi_OpenProcess open_process_result = memmi_open_process(pid);
 
     if (open_process_result.status == MEMMI_OK) {
@@ -24,6 +26,12 @@ b32 app_action_open_process(app_State *app, memmi_PID pid)
 
     return result;
 
+}
+
+void app_action_close_opened_process(app_State *app)
+{
+    memmi_close_process(app->open_process_handle);
+    app->open_process_handle = {};
 }
 
 void app_action_run_first_scan(app_State *app, scan_Comparison cmp, usize stride)
