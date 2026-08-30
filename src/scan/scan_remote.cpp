@@ -43,7 +43,7 @@ scan_Result scan_remote_memory_first(Arena *arena, memmi_Process proc, scan_Comp
                 memmi_ReadMemory read_mem_result = memmi_read_memory(proc, region.base_address, region.size, scan_scratch_allocator);
 
                 if (read_mem_result.status != MEMMI_OK) {
-                    SET_FLAG(&result.errors, proc_status_from_memmi_status(read_mem_result.status));
+                    set_flag(&result.errors, proc_status_from_memmi_status(read_mem_result.status));
                 } else {
                     at_least_one_read_succeeded = true;
 
@@ -95,7 +95,7 @@ scan_Result scan_remote_memory_next(Arena *arena, memmi_Process proc, scan_Compa
             memmi_read_memory(proc, match_list->base_address, match_list->region_size, scan_scratch_allocator);
 
         if (read_mem_result.status != MEMMI_OK) {
-            SET_FLAG(&result.errors, proc_status_from_memmi_status(read_mem_result.status));
+            set_flag(&result.errors, proc_status_from_memmi_status(read_mem_result.status));
         } else {
             void *region_mem = read_mem_result.memory;
             usize bytes_read = read_mem_result.bytes_read;

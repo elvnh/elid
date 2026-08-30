@@ -15,7 +15,7 @@ struct gui_State {
     struct {
         char scan_value_text[256];
         bool hex;
-        s32 selected_scan_mode_index;
+        scan_Mode selected_scan_mode;
         s32 selected_value_type_index;
         bool fast_scan;
         bool pause_while_scanning;

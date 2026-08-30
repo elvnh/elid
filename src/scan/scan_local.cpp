@@ -36,7 +36,7 @@ static scan_MatchList *scan__push_match(Arena *arena, scan_MatchList *list, scan
 
 scan_MatchList *scan_local_memory_first(Arena *arena, void *mem, usize mem_size, scan_Comparison cmp, usize stride)
 {
-    ASSERT(!scan_cmp_mode_is_comparative(cmp.mode));
+    ASSERT(!scan_mode_is_comparative(cmp.mode));
 
     scan_MatchList *result = scan__alloc_match_list(arena, 0);
 

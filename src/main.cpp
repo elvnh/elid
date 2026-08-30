@@ -13,10 +13,6 @@
 
 int main()
 {
-
-
-    return 0;
-
     int result = 0;
 
     app_State app = {};

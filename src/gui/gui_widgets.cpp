@@ -2,7 +2,6 @@
 
 #define GUI_OPEN_PROC_POPUP_NAME "Open process"
 
-
 void gui_open_process_button(gui_State *gui, app_State *app)
 {
     // TODO: disable if we're scanning
@@ -178,17 +177,21 @@ void gui_scan_parameters(gui_State *gui, app_State *app)
 
             s32 combo_flags = ImGuiComboFlags_HeightLargest;
 
-            const char *scan_mode_names[] = {"Foo", "Bar"};
-            const char *scan_mode_preview = scan_mode_names[gui->scan_parameters.selected_scan_mode_index];
+            scan_ModeList available_modes = scan_mode_get_list();
+            const char *scan_mode_preview = scan_mode_to_cstr(gui->scan_parameters.selected_scan_mode);
 
             ImGui::SetNextItemWidth(combo_box_width);
 
             if (ImGui::BeginCombo("##scan_mode", scan_mode_preview, combo_flags)) {
-                for (s32 i = 0; i < (s32)ARRAY_COUNT(scan_mode_names); ++i) {
-                    b32 is_mode_selected = gui->scan_parameters.selected_scan_mode_index == i;
+                for (size_t i = 0; i < available_modes.count; ++i) {
+                    scan_Mode mode = available_modes.data[i];
 
-                    if (ImGui::Selectable(scan_mode_names[i], is_mode_selected)) {
-                        gui->scan_parameters.selected_scan_mode_index = i;
+                    b32 is_mode_selected = gui->scan_parameters.selected_scan_mode == mode;
+
+                    const char *scan_mode_name = scan_mode_to_cstr(mode);
+
+                    if (ImGui::Selectable(scan_mode_name, is_mode_selected)) {
+                        gui->scan_parameters.selected_scan_mode = mode;
                     }
                 }
 
