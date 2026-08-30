@@ -9,7 +9,7 @@ struct Pool {
     Pool      *next;
     Arena     *backing_arena;
     usize      node_size;
-    usize      node_count;
+    usize      node_capacity;
     usize      node_alignment;
     PoolNode  *first_free_node;
 };

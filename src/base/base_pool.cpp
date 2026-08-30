@@ -40,7 +40,7 @@ Pool *pool_create_untyped(Arena *optional_arena, usize node_size, usize node_cou
         result->current_pool = result;
         result->backing_arena = arena;
         result->node_size = node_size;
-        result->node_count = node_count;
+        result->node_capacity = node_count;
         result->node_alignment = node_alignment;
 
         pool_reset(result);
@@ -67,10 +67,10 @@ void *pool_alloc_untyped(Pool *pool)
         Pool *new_pool = pool_create_untyped(
             pool->backing_arena,
             pool->node_size,
-            pool->node_count,
+            pool->node_capacity,
             pool->node_alignment);
 
-        stack_push_nh(pool, new_pool, next, next);
+        stack_push_nh_no_count(pool, new_pool, next, next);
         current_pool = new_pool;
 
         // We just allocated a new pool which starts zeroed out, except for the pointers
@@ -82,7 +82,7 @@ void *pool_alloc_untyped(Pool *pool)
 
     UNPOISON(result, current_pool->node_size);
 
-    stack_pop_nh(current_pool, next, first_free_node);
+    stack_pop_nh_no_count(current_pool, next, first_free_node);
 
     pool->current_pool = current_pool;
 
@@ -95,7 +95,7 @@ void pool_free(Pool *pool, void *ptr)
 {
     // TODO: check that allocation actually comes from this pool
     PoolNode *node = (PoolNode *)ptr;
-    stack_push_nh(pool, node, next, first_free_node);
+    stack_push_nh_no_count(pool, node, next, first_free_node);
 
     POISON(node, pool->node_size);
 
@@ -107,7 +107,7 @@ void pool_free(Pool *pool, void *ptr)
 void pool_reset(Pool *pool)
 {
     for (Pool *current = pool; current; current = current->next) {
-        usize node_count = current->node_count;
+        usize node_count = current->node_capacity;
         usize node_size = current->node_size;
 
         UNPOISON(pool__get_first_node_address(current), node_count * node_size);
@@ -168,7 +168,7 @@ usize pool_get_total_node_count(Pool *pool)
     usize result = 0;
 
     for (Pool *p = pool; p; p = p->next) {
-        result += p->node_count;
+        result += p->node_capacity;
     }
 
     return result;

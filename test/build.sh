@@ -6,6 +6,7 @@ CXXFLAGS="
     -DDEBUG_BUILD=1
     -DPOISON_MEMORY=1
     -I../src
+    -I../deps/memmi/include
     -Werror
     -fsanitize=address,undefined
     -std=c++11
@@ -41,7 +42,6 @@ CXXFLAGS="
 GENERATED_TEST_RUNNER="src/generated/test_runner.cpp"
 BUILD_DIR="build"
 BIN="${BUILD_DIR}/elid-tests"
-
 
 cd $(dirname $0);
 

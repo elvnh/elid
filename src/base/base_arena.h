@@ -9,6 +9,7 @@ struct Arena {
     Arena  *next;
     usize   size_excluding_header;
     usize   offset;
+    usize   list_node_count; // Number of arenas in linked list.
 };
 
 struct Temp {

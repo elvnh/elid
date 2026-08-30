@@ -5,7 +5,11 @@ TEST_CASE(dl_list_push_front_basic)
 
     String_Node *node = arena_alloc_struct(test_arena, String_Node);
 
+    REQUIRE(list_count(&list) == 0);
+
     dll_push_front(&list, node);
+
+    REQUIRE(list_count(&list) == 1);
 
     REQUIRE(list.first == node);
     REQUIRE(list.last == node);
@@ -21,8 +25,12 @@ TEST_CASE(dl_list_push_front_nonempty)
 
     dll_push_front(&list, node1);
 
+    REQUIRE(list_count(&list) == 1);
+
     String_Node *node2 = arena_alloc_struct(test_arena, String_Node);
     dll_push_front(&list, node2);
+
+    REQUIRE(list_count(&list) == 2);
 
     REQUIRE(list.first == node2);
     REQUIRE(list.last == node1);
@@ -41,11 +49,17 @@ TEST_CASE(dl_list_push_front_multiple_nodes)
     String_Node *node1 = arena_alloc_struct(test_arena, String_Node);
     dll_push_front(&list, node1);
 
+    REQUIRE(list_count(&list) == 1);
+
     String_Node *node2 = arena_alloc_struct(test_arena, String_Node);
     dll_push_front(&list, node2);
 
+    REQUIRE(list_count(&list) == 2);
+
     String_Node *node3 = arena_alloc_struct(test_arena, String_Node);
     dll_push_front(&list, node3);
+
+    REQUIRE(list_count(&list) == 3);
 
     REQUIRE(list.first == node3);
     REQUIRE(list.last == node1);
@@ -68,6 +82,8 @@ TEST_CASE(dl_list_push_back_basic)
 
     dll_push_back(&list, node);
 
+    REQUIRE(list_count(&list) == 1);
+
     REQUIRE(list.first == node);
     REQUIRE(list.last == node);
     REQUIRE(node->next == 0);
@@ -81,8 +97,12 @@ TEST_CASE(dl_list_push_back_nonempty)
     String_Node *node1 = arena_alloc_struct(test_arena, String_Node);
     dll_push_back(&list, node1);
 
+    REQUIRE(list_count(&list) == 1);
+
     String_Node *node2 = arena_alloc_struct(test_arena, String_Node);
     dll_push_back(&list, node2);
+
+    REQUIRE(list_count(&list) == 2);
 
     REQUIRE(list.first == node1);
     REQUIRE(list.last == node2);
@@ -285,14 +305,22 @@ TEST_CASE(dl_list_insert_before_middle_node)
     String_Node *node0 = arena_alloc_struct(test_arena, String_Node);
     dll_push_back(&list, node0);
 
+    REQUIRE(list_count(&list) == 1);
+
     String_Node *node1 = arena_alloc_struct(test_arena, String_Node);
     dll_push_back(&list, node1);
+
+    REQUIRE(list_count(&list) == 2);
 
     String_Node *node2 = arena_alloc_struct(test_arena, String_Node);
     dll_push_back(&list, node2);
 
+    REQUIRE(list_count(&list) == 3);
+
     String_Node *node3 = arena_alloc_struct(test_arena, String_Node);
     dll_insert_before(&list, node3, node1);
+
+    REQUIRE(list_count(&list) == 4);
 
     REQUIRE(list.first == node0);
     REQUIRE(list.last == node2);
@@ -429,6 +457,8 @@ TEST_CASE(dl_list_remove_single_elem)
 
     dll_remove(&list, node0);
 
+    REQUIRE(list_count(&list) == 0);
+
     REQUIRE(list.first == 0);
     REQUIRE(list.last == 0);
 }
@@ -444,6 +474,8 @@ TEST_CASE(dl_list_remove_first_of_two)
     dll_push_back(&list, node1);
 
     dll_remove(&list, node0);
+
+    REQUIRE(list_count(&list) == 1);
 
     REQUIRE(list.first == node1);
     REQUIRE(list.last == node1);
@@ -466,6 +498,8 @@ TEST_CASE(dl_list_remove_last_of_two)
     dll_push_back(&list, node1);
 
     dll_remove(&list, node1);
+
+    REQUIRE(list_count(&list) == 1);
 
     REQUIRE(list.first == node0);
     REQUIRE(list.last == node0);
@@ -491,6 +525,8 @@ TEST_CASE(dl_list_remove_first)
     dll_push_back(&list, node2);
 
     dll_remove(&list, node0);
+
+    REQUIRE(list_count(&list) == 2);
 
     REQUIRE(list.first == node1);
     REQUIRE(list.last == node2);
@@ -519,6 +555,8 @@ TEST_CASE(dl_list_remove_middle)
     dll_push_back(&list, node2);
 
     dll_remove(&list, node1);
+
+    REQUIRE(list_count(&list) == 2);
 
     REQUIRE(list.first == node0);
     REQUIRE(list.last == node2);
@@ -569,6 +607,8 @@ TEST_CASE(sl_list_push_front_empty)
     String_SNode *node0 = arena_alloc_struct(test_arena, String_SNode);
     sll_push_front(&list, node0);
 
+    REQUIRE(list_count(&list) == 1);
+
     REQUIRE(list.first == node0);
     REQUIRE(list.last == node0);
 
@@ -584,6 +624,8 @@ TEST_CASE(sl_list_push_front_single_elem)
 
     String_SNode *node1 = arena_alloc_struct(test_arena, String_SNode);
     sll_push_front(&list, node1);
+
+    REQUIRE(list_count(&list) == 2);
 
     REQUIRE(list.first == node1);
     REQUIRE(list.last == node0);
@@ -604,6 +646,8 @@ TEST_CASE(sl_list_push_front_multi_elem)
 
     String_SNode *node2 = arena_alloc_struct(test_arena, String_SNode);
     sll_push_front(&list, node2);
+
+    REQUIRE(list_count(&list) == 3);
 
     REQUIRE(list.first == node2);
     REQUIRE(list.last == node0);
@@ -694,6 +738,8 @@ TEST_CASE(sl_list_insert_after_first)
     String_SNode *node2 = arena_alloc_struct(test_arena, String_SNode);
     sll_insert(&list, node2, node0);
 
+    REQUIRE(list_count(&list) == 3);
+
     REQUIRE(list.first == node0);
     REQUIRE(list.last == node1);
 
@@ -760,6 +806,8 @@ TEST_CASE(stack_push_empty)
 
     stack_push(&stack, first);
 
+    REQUIRE(list_count(&stack) == 1);
+
     REQUIRE(stack.head == first);
     REQUIRE(first->next == 0);
 }
@@ -773,6 +821,8 @@ TEST_CASE(stack_push_two)
 
     String_SNode *node1 = arena_alloc_struct(test_arena, String_SNode);
     stack_push(&stack, node1);
+
+    REQUIRE(list_count(&stack) == 2);
 
     REQUIRE(stack.head == node1);
     REQUIRE(node1->next == node0);
@@ -803,6 +853,8 @@ TEST_CASE(stack_pop_empty)
     String_Stack stack = {};
     stack_pop(&stack);
 
+    REQUIRE(list_count(&stack) == 0);
+
     REQUIRE(stack.head == 0);
 }
 
@@ -814,6 +866,8 @@ TEST_CASE(stack_pop_to_empty)
     stack_push(&stack, node0);
 
     stack_pop(&stack);
+
+    REQUIRE(list_count(&stack) == 0);
 
     REQUIRE(stack.head == 0);
     REQUIRE(node0->next == 0);
@@ -830,6 +884,10 @@ TEST_CASE(stack_pop_nonempty)
     stack_push(&stack, node1);
 
     stack_pop(&stack);
+
+    REQUIRE(list_count(&stack) == 1);
+
+    REQUIRE(list_count(&stack) == 1);
 
     REQUIRE(stack.head == node0);
     REQUIRE(node0->next == 0);
@@ -862,6 +920,8 @@ TEST_CASE(queue_basic)
     String_SNode *node0 = arena_alloc_struct(test_arena, String_SNode);
     queue_push(&queue, node0);
 
+    REQUIRE(list_count(&queue) == 1);
+
     REQUIRE(queue.first == node0);
     REQUIRE(queue.last == node0);
 }
@@ -879,6 +939,8 @@ TEST_CASE(queue_push_multiple)
     String_SNode *node2 = arena_alloc_struct(test_arena, String_SNode);
     queue_push(&queue, node2);
 
+    REQUIRE(list_count(&queue) == 3);
+
     REQUIRE(queue.first == node0);
     REQUIRE(queue.last == node2);
 
@@ -892,6 +954,8 @@ TEST_CASE(queue_pop_empty)
     String_SList queue = {};
     queue_pop(&queue);
 
+    REQUIRE(list_count(&queue) == 0);
+
     REQUIRE(queue.first == 0);
     REQUIRE(queue.last == 0);
 }
@@ -904,6 +968,8 @@ TEST_CASE(queue_pop_to_empty)
     queue_push(&queue, node0);
 
     queue_pop(&queue);
+
+    REQUIRE(list_count(&queue) == 0);
 
     REQUIRE(queue.first == 0);
     REQUIRE(queue.last == 0);
@@ -923,6 +989,8 @@ TEST_CASE(queue_pop_to_one_elem)
 
     queue_pop(&queue);
 
+    REQUIRE(list_count(&queue) == 1);
+
     REQUIRE(queue.first == node1);
     REQUIRE(queue.last == node1);
 }
@@ -941,6 +1009,8 @@ TEST_CASE(queue_pop_to_two_elem)
     queue_push(&queue, node2);
 
     queue_pop(&queue);
+
+    REQUIRE(list_count(&queue) == 2);
 
     REQUIRE(queue.first == node1);
     REQUIRE(queue.last == node2);
