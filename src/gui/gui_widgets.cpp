@@ -26,6 +26,7 @@ void gui_open_process_popup(gui_State *gui, app_State *app)
 
     if (ImGui::BeginPopupModal(GUI_OPEN_PROC_POPUP_NAME, 0, popup_flags)) {
         s32 process_count = usize_to_s32(app->running_process_list.count);
+        b32 item_is_highlighted = false;
 
         ImVec2 listbox_size = {-FLT_MIN, -ImGui::GetFrameHeight()};
 
@@ -45,6 +46,10 @@ void gui_open_process_popup(gui_State *gui, app_State *app)
                     gui->process_list_popup.selected_index = i;
                 }
 
+                if (ImGui::IsItemHovered()) {
+                    item_is_highlighted = true;
+                }
+
                 ImGui::PopID();
             }
 
@@ -54,11 +59,11 @@ void gui_open_process_popup(gui_State *gui, app_State *app)
         // TODO: can selected index be a local variable?
         s32 selected_index = gui->process_list_popup.selected_index;
         b32 is_valid_index = (selected_index >= 0) && (selected_index < process_count);
+        b32 has_double_clicked = item_is_highlighted && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left);
 
-        // TODO: allow double clicking list item
         b32 should_close = false;
 
-        if (ImGui::Button("Open") && is_valid_index) {
+        if ((ImGui::Button("Open") || has_double_clicked) && is_valid_index) {
             memmi_ProcessInfo clicked_process = app->running_process_list.data[selected_index];
 
             should_close = app_action_open_process(app, clicked_process.pid);
