@@ -139,7 +139,9 @@ DEFINE_MAYBE_TYPE(usize);
 #define KB(n) ((u64)(n) * 1024u)
 #define MB(n) (KB(n) * 1024u)
 #define GB(n) (MB(n) * 1024u)
+#define TB(n) (GB(n) * 1024u)
 #define ptr_byte_offset(ptr, count) (TYPEOF(ptr))(((u8 *)(ptr) + (count)))
+#define SET_FLAG(res, flag) (*(res) = (TYPEOF(*(res)))((s64)(*(res)) | (s64)(flag)))
 
 #if COMPILER_GCC
 #    define TYPEOF(t) __typeof__(t)

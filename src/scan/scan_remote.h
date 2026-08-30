@@ -11,7 +11,7 @@ struct scan_RegionMatches {
 struct scan_Result {
     // TODO: store type and mode?
     // TODO: total match count?
-    proc_Status         status;
+    proc_Status         errors;
     scan_RegionMatches *first;
     scan_RegionMatches *last;
 };
