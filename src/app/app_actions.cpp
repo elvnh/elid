@@ -40,13 +40,25 @@ void app_action_run_first_scan(app_State *app, scan_Comparison cmp, usize stride
 
     app->current_result_list = scan_remote_memory_first(
         app->scan_result_arena, app->open_process_handle, cmp, stride);
+
+    app->scanner_state = APP_SCANNER_STATE_NEXT_SCAN_READY;
 }
 
 void app_action_run_next_scan(app_State *app, scan_Comparison cmp)
 {
     // TODO: async
     ASSERT(app->current_result_list.total_match_count > 0);
+    ASSERT(app->scanner_state == APP_SCANNER_STATE_NEXT_SCAN_READY);
 
     app->current_result_list = scan_remote_memory_next(
         app->scan_result_arena, app->open_process_handle, cmp, app->current_result_list);
+}
+
+void app_action_reset_scan_results(app_State *app)
+{
+    ASSERT(app->scanner_state != APP_SCANNER_STATE_FIRST_SCAN_READY);
+
+    app->scanner_state = APP_SCANNER_STATE_FIRST_SCAN_READY;
+    app->current_result_list = {};
+    arena_reset(app->scan_result_arena);
 }

@@ -187,17 +187,32 @@ void gui_scan_parameters(gui_State *gui, app_State *app)
 
         // Scan buttons
         {
-            ImGui::BeginDisabled(!parsed_scan_input.ok); {
-                if (ImGui::Button("New/first scan")) {
-                    // TODO: show error if we don't have permissions to scan
-                    app_action_run_first_scan(app, parsed_scan_input.value, scan_stride);
+            b32 scanning_disabled = !parsed_scan_input.ok
+                || memmi_process_is_null(app->open_process_handle);
+
+            ImGui::BeginDisabled(scanning_disabled); {
+                if (app->scanner_state == APP_SCANNER_STATE_FIRST_SCAN_READY) {
+                    if (ImGui::Button("First scan")) {
+                        // TODO: show error if we don't have permissions to scan
+                        app_action_run_first_scan(app, parsed_scan_input.value, scan_stride);
+                    }
+                } else if (ALWAYS(app->scanner_state == APP_SCANNER_STATE_NEXT_SCAN_READY)) {
+                    if (ImGui::Button("New scan")) {
+                        app_action_reset_scan_results(app);
+                    }
                 }
 
                 ImGui::SameLine();
 
-                if (ImGui::Button("Next scan")) {
-                    app_action_run_next_scan(app, parsed_scan_input.value);
-                }
+                b32 next_scan_disabled = app->scanner_state != APP_SCANNER_STATE_NEXT_SCAN_READY
+                    || (app->current_result_list.total_match_count == 0);
+
+                ImGui::BeginDisabled(next_scan_disabled); {
+                    if (ImGui::Button("Next scan")) {
+                        app_action_run_next_scan(app, parsed_scan_input.value);
+                    }
+                } ImGui::EndDisabled();
+
             } ImGui::EndDisabled();
         }
 
