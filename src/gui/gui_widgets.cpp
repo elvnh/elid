@@ -1,6 +1,7 @@
 #include "gui_widgets.h"
 
 #define GUI_OPEN_PROC_POPUP_NAME "Open process"
+#define GUI_MAX_DISPLAYED_RESULT_COUNT THOUSAND(50)
 
 void gui_open_process_button(gui_State *gui, app_State *app)
 {
@@ -88,6 +89,8 @@ void gui_scan_result_table(gui_State *gui, app_State *app)
     const char *table_columns[] = {"Address", "Value", "Previous"};
     s32 column_count = ARRAY_COUNT(table_columns);
 
+    // TODO: turn off highlight on hover
+
     if (ImGui::BeginTable("#scan_result_table", column_count, table_flags, {})) {
         ImGui::TableSetupScrollFreeze(0, 1);
 
@@ -97,33 +100,46 @@ void gui_scan_result_table(gui_State *gui, app_State *app)
 
         ImGui::TableHeadersRow();
 
-        s32 row_count = 10;
+        if (app->current_result_list.total_match_count <= GUI_MAX_DISPLAYED_RESULT_COUNT) {
+            s32 match_count = usize_to_s32(app->current_result_list.total_match_count);
 
-        for (s32 row = 0; row < row_count; ++row) {
-            ImGui::TableNextRow();
+            ImGuiListClipper clipper = {};
+            clipper.Begin(match_count);
 
-            b32 is_row_selected = gui->result_table.selected_row_index == row;
+            while (clipper.Step()) {
+                for (s32 row = clipper.DisplayStart; row < clipper.DisplayEnd; ++row) {
+                    // TODO: optimize lookup of results
+                    // TODO: green text if located inside executable/so file
+                    // TODO: show previous value
+                    scan_MatchDetails match = scan_result_at(&app->current_result_list, (usize)row);
 
-            // TODO: use address as id
-            ImGui::TableSetColumnIndex(0); {
-                char *addr_str = str_format_cstr(app->frame_arena, "%d", row);
-                if (ImGui::Selectable(addr_str, is_row_selected, selectable_flags)) {
-                    gui->result_table.selected_row_index = row;
+                    ImGui::TableNextRow();
+
+                    b32 is_row_selected = gui->result_table.selected_row_index == row;
+
+                    ImGui::TableSetColumnIndex(0); {
+                        char *addr_str = str_format_cstr(app->frame_arena, "%" PRIxPTR, match.address);
+
+                        if (ImGui::Selectable(addr_str, is_row_selected, selectable_flags)) {
+                            gui->result_table.selected_row_index = row;
+                        }
+                    }
+
+                    ImGui::TableSetColumnIndex(1); {
+                        char *value_str = str_format_cstr(app->frame_arena, "%u", match.value.int32);
+
+                        if (ImGui::Selectable(value_str, is_row_selected, selectable_flags)) {
+                            gui->result_table.selected_row_index = row;
+                        }
+                    }
+
+                    ImGui::TableSetColumnIndex(2); {
+                        if (ImGui::Selectable("", is_row_selected, selectable_flags)) {
+                            gui->result_table.selected_row_index = row;
+                        }
+                    }
                 }
-            }
 
-            ImGui::TableSetColumnIndex(1); {
-                char *value_str = str_format_cstr(app->frame_arena, "value %d", row);
-                if (ImGui::Selectable(value_str, is_row_selected, selectable_flags)) {
-                    gui->result_table.selected_row_index = row;
-                }
-            }
-
-            ImGui::TableSetColumnIndex(2); {
-                char *value_str = str_format_cstr(app->frame_arena, "prev value %d", row);
-                if (ImGui::Selectable(value_str, is_row_selected, selectable_flags)) {
-                    gui->result_table.selected_row_index = row;
-                }
             }
         }
     } ImGui::EndTable();

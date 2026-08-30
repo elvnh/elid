@@ -18,5 +18,11 @@ struct scan_Result {
     usize               list_node_count;
 };
 
-scan_Result scan_remote_memory_first(Arena *arena, memmi_Process proc, scan_Comparison cmp, usize stride);
-scan_Result scan_remote_memory_next(Arena *arena, memmi_Process proc, scan_Comparison cmp, scan_Result prev_results);
+struct scan_MatchDetails {
+    uintptr_t  address;
+    scan_Value value;
+};
+
+scan_Result       scan_remote_memory_first(Arena *arena, memmi_Process proc, scan_Comparison cmp, usize stride);
+scan_Result       scan_remote_memory_next(Arena *arena, memmi_Process proc, scan_Comparison cmp, scan_Result prev_results);
+scan_MatchDetails scan_result_at(scan_Result *matches, usize at);
