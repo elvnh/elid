@@ -5,6 +5,24 @@
 // TODO: this is not necessary for 32 bit
 #define SCAN_SKIP_REGION_SIZE_THRESHOLD TB(13)
 
+void scan__push_region_matches(Arena *arena, scan_Result *result, scan_MatchList *matches, uintptr_t region_address, usize region_size)
+{
+    if (matches->count > 0) {
+        scan_RegionMatches *region_matches = arena_alloc_struct(arena, scan_RegionMatches);
+        region_matches->base_address = region_address;
+        region_matches->region_size = region_size;
+        region_matches->head = matches;
+        region_matches->match_count_in_region = matches->total_match_count;
+
+        result->total_match_count += region_matches->match_count_in_region;
+
+        sll_push_back(result, region_matches);
+
+    } else {
+        ASSERT(!matches->next);
+    }
+}
+
 scan_Result scan_remote_memory_first(Arena *arena, memmi_Process proc, scan_Comparison cmp, usize stride)
 {
     scan_Result result = {};
@@ -53,16 +71,7 @@ scan_Result scan_remote_memory_first(Arena *arena, memmi_Process proc, scan_Comp
 
                     ASSERT(matches);
 
-                    if (matches->count > 0) {
-                        scan_RegionMatches *region_matches = arena_alloc_struct(arena, scan_RegionMatches);
-                        region_matches->base_address = region.base_address;
-                        region_matches->region_size = region.size;
-                        region_matches->head = matches;
-
-                        sll_push_back(&result, region_matches);
-                    } else {
-                        ASSERT(!matches->next);
-                    }
+                    scan__push_region_matches(arena, &result, matches, region.base_address, region.size);
                 }
             }
         }
@@ -104,17 +113,7 @@ scan_Result scan_remote_memory_next(Arena *arena, memmi_Process proc, scan_Compa
             scan_MatchList *matches = scan_local_memory_next(arena, region_mem, bytes_read, cmp, match_list->head);
             ASSERT(matches);
 
-            if (matches->count > 0) {
-                scan_RegionMatches *region_matches = arena_alloc_struct(arena, scan_RegionMatches);
-                region_matches->base_address = match_list->base_address;
-                region_matches->region_size = match_list->region_size;
-                region_matches->head = matches;
-
-                sll_push_back(&result, region_matches);
-
-            } else {
-                ASSERT(!matches->next);
-            }
+            scan__push_region_matches(arena, &result, matches, match_list->base_address, match_list->region_size);
         }
     }
 

@@ -32,6 +32,8 @@ static void scan__push_match(Arena *arena, scan_MatchList *list, scan_Match matc
     }
 
     current->data[current->count++] = match;
+
+    ++list->total_match_count;
 }
 
 scan_MatchList *scan_local_memory_first(Arena *arena, void *mem, usize mem_size, scan_Comparison cmp, usize stride)

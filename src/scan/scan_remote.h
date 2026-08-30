@@ -11,8 +11,8 @@ struct scan_RegionMatches {
 
 struct scan_Result {
     // TODO: store type and mode?
-    // TODO: total match count?
     proc_Status         errors;
+    usize               total_match_count;
     scan_RegionMatches *first;
     scan_RegionMatches *last;
     usize               list_node_count;
