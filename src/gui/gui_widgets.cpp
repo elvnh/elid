@@ -148,8 +148,11 @@ void gui_scan_parameters(gui_State *gui, app_State *app)
             );
         }
 
+        u32 scan_value_input_base = gui->scan_parameters.hex ? 16 : 10;
         scan_Value_Maybe parsed_scan_value = gui_try_parse_search_value(
-            gui->scan_parameters.scan_value_text, gui->scan_parameters.selected_value_type);
+            gui->scan_parameters.scan_value_text,
+            gui->scan_parameters.selected_value_type,
+            scan_value_input_base);
 
         // Scan buttons
         {

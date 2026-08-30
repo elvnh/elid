@@ -1,11 +1,10 @@
 #include "gui_utils.h"
 
-scan_Value_Maybe gui_try_parse_search_value(const char *input, scan_ValueType type)
+scan_Value_Maybe gui_try_parse_search_value(const char *input, scan_ValueType type, u32 base)
 {
     scan_Value_Maybe result = {};
 
     size_t length = strlen(input);
-    u32 base = 10;
 
     BEGIN_EXHAUSTIVE_SWITCH;
     switch (type) {
