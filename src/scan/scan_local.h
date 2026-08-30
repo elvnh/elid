@@ -8,7 +8,6 @@ struct scan_Match {
 // TODO: store in unrolled linked list for each thread, then main thread
 // can either join those lists together or merge into flat array
 // TODO: store exact scan results sparsely
-// TODO: don't push to front of list, we probably want the results in order of increasing address
 struct scan_MatchList {
     scan_Match data[2]; // TODO: come up with a good size for this
     usize count; // Number of matches in this list.

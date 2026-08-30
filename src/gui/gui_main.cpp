@@ -68,13 +68,20 @@ static void gui__main_window(gui_State *gui, app_State *app)
         gui_open_process_button(gui, app);
         gui_open_process_popup(gui, app);
 
-        ImGui::TextUnformatted("Results: 0");
-
         // NOTE: widgets wrapped in functions should never themselves call
         // BeginChild, we should only do that from top level like this
-        ImGui::BeginChild("##child_result_table", RESULT_TABLE_SIZE_FRACTION, 0, 0); {
-            gui_scan_result_table(gui, app);
-        }; ImGui::EndChild();
+        {
+            char *result_count_label = str_format_cstr(
+                app->frame_arena,
+                "Results: %zu",
+                app->current_result_list.total_match_count);
+
+            ImGui::TextUnformatted(result_count_label);
+
+            ImGui::BeginChild("##child_result_table", RESULT_TABLE_SIZE_FRACTION, 0, 0); {
+                gui_scan_result_table(gui, app);
+            }; ImGui::EndChild();
+        }
 
         ImGui::SameLine();
 

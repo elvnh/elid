@@ -168,6 +168,7 @@ void gui_scan_parameters(gui_State *gui, app_State *app)
         {
             ImGui::BeginDisabled(!parsed_scan_input.ok); {
                 if (ImGui::Button("New/first scan")) {
+                    // TODO: show error if we don't have permissions to scan
                     app_action_run_first_scan(app, parsed_scan_input.value, scan_stride);
                 }
 
