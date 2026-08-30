@@ -196,7 +196,7 @@ void gui_scan_parameters(gui_State *gui, app_State *app)
                 ImGui::SameLine();
 
                 if (ImGui::Button("Next scan")) {
-                    TODO("scan");
+                    app_action_run_next_scan(app, parsed_scan_input.value);
                 }
             } ImGui::EndDisabled();
         }
