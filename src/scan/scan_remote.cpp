@@ -26,6 +26,8 @@ void scan__push_region_matches(Arena *arena, scan_Result *result, scan_MatchList
 scan_Result scan_remote_memory_first(Arena *arena, memmi_Process proc, scan_Comparison cmp, usize stride)
 {
     scan_Result result = {};
+    result.value_type = cmp.value_type;
+    result.scan_mode = cmp.mode;
 
     // For temporarily storing the memory of a region during the scan of it.
     Arena *scan_scratch_arena = thread_ctx_get()->per_scan_scratch_arena;
@@ -93,6 +95,8 @@ scan_Result scan_remote_memory_first(Arena *arena, memmi_Process proc, scan_Comp
 scan_Result scan_remote_memory_next(Arena *arena, memmi_Process proc, scan_Comparison cmp, scan_Result prev_results)
 {
     scan_Result result = {};
+    result.value_type = cmp.value_type;
+    result.scan_mode = cmp.mode;
 
     // For temporarily storing the memory of a region during the scan of it.
     Arena *scan_scratch_arena = thread_ctx_get()->per_scan_scratch_arena;

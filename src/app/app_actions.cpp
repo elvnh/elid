@@ -81,3 +81,15 @@ void app_action_reset_scan_results(app_State *app)
     app->result_list = {};
 
 }
+
+void app_action_edit_value_at_address(app_State *app, uintptr_t address, scan_ValueType type, scan_Value new_value)
+{
+    // TODO: async
+
+    usize size = scan_val_type_get_size(type);
+    memmi_WriteMemory write_mem_result = memmi_write_memory(app->open_process_handle, address, &new_value, size);
+
+    if (write_mem_result.status != MEMMI_OK) {
+        app_push_error(app, {APP_ERROR_WRITE_FAILED});
+    }
+}

@@ -66,6 +66,10 @@ static void gui__open_error_popup(gui_State *gui, app_Error error)
             gui_popup_open(gui, GUI_POPUP_ERROR_INSUFFICIENT_PERMS_FOR_SCAN);
         } break;
 
+        case APP_ERROR_WRITE_FAILED: {
+            gui_popup_open(gui, GUI_POPUP_ERROR_WRITE_FAILED);
+        } break;
+
         INVALID_DEFAULT_CASE;
     }
     END_EXHAUSTIVE_SWITCH;

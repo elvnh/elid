@@ -128,7 +128,7 @@ static void gui__popup_edit_value(gui_State *gui, app_State *app)
     ImVec2 root_window_size = ImGui::GetContentRegionAvail();
 
     ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, {0.5f, 0.5f});
-    ImGui::SetNextWindowSize({root_window_size.x * 0.75f, root_window_size.y * 0.75f}, ImGuiCond_Appearing);
+    ImGui::SetNextWindowSize({-FLT_MIN, root_window_size.y * 0.75f}, ImGuiCond_Appearing);
 
     s32 popup_flags = ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_AlwaysAutoResize;
 
@@ -136,6 +136,7 @@ static void gui__popup_edit_value(gui_State *gui, app_State *app)
     const char *popup_name = gui__popup_get_name(app->frame_arena, GUI_POPUP_EDIT_VALUE, title);
 
     if (ImGui::BeginPopupModal(popup_name, 0, popup_flags)) {
+        ImGui::SetNextItemWidth(-FLT_MIN);
         ImGui::InputText(
             "##edit_value",
             gui->edit_value_popup.value_textbox,
@@ -146,10 +147,23 @@ static void gui__popup_edit_value(gui_State *gui, app_State *app)
 
         b32 should_close = false;
 
-        if (ImGui::Button("OK", ImVec2(120, 0))) {
-            should_close = true;
-            TODO("Edit value");
-        }
+        uintptr_t address = gui->edit_value_popup.edited_address;
+        scan_ValueType value_type = gui->edit_value_popup.value_type;
+        u32 base = 10; // TODO: allow customizing
+
+        scan_Value_Maybe input_value = gui_try_parse_search_value(
+            gui->edit_value_popup.value_textbox, value_type, base);
+
+        ImGui::BeginDisabled(!input_value.ok); {
+            if (ImGui::Button("OK", ImVec2(120, 0))) {
+                ASSERT(input_value.ok);
+
+                app_action_edit_value_at_address(app, address, value_type, input_value.value);
+
+                should_close = true;
+            }
+        } ImGui::EndDisabled();
+
 
         ImGui::SameLine();
 
@@ -172,14 +186,21 @@ void gui_popup_display_active_popups(gui_State *gui, app_State *app)
             const char *name = gui__popup_get_name(app->frame_arena, popup, 0);
 
             ImGui::OpenPopup(name);
+
+            // Break after first open popup so that they're opened in sequence.
+            // TODO: instead make them stack
+            break;
         }
 
     }
 
     gui__popup_open_process(gui, app);
+    gui__popup_edit_value(gui, app);
+
     gui__generic_error_popup(app->frame_arena, gui, GUI_POPUP_ERROR_INSUFFICIENT_PERMS_FOR_SCAN,
         "Insufficient permissions to perform scan.");
     gui__generic_error_popup(app->frame_arena, gui, GUI_POPUP_ERROR_PROC_DIED_DURING_SCAN,
         "Process died during scan.");
-    gui__popup_edit_value(gui, app);
+    gui__generic_error_popup(app->frame_arena, gui, GUI_POPUP_ERROR_WRITE_FAILED,
+        "Failed to write to address.");
 }

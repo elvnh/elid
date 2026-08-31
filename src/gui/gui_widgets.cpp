@@ -78,12 +78,14 @@ void gui_scan_result_table(gui_State *gui, app_State *app)
 
                         // Right click on row context menu.
                         if (ImGui::BeginPopupContextItem()) {
-                            if (ImGui::Selectable("Change this value...")) {
+                            if (ImGui::Selectable("Edit this value...")) {
                                 gui->edit_value_popup.edited_address = match.address;
 
                                 strncpy(gui->edit_value_popup.value_textbox,
                                     value_str,
                                     array_capacity(gui->edit_value_popup.value_textbox));
+
+                                gui->edit_value_popup.value_type = app->result_list.value_type;
 
                                 gui_popup_open(gui, GUI_POPUP_EDIT_VALUE);
                             }

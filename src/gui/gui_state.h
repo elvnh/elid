@@ -9,6 +9,7 @@ enum gui_Popup {
     /* Errors */
     GUI_POPUP_ERROR_PROC_DIED_DURING_SCAN,
     GUI_POPUP_ERROR_INSUFFICIENT_PERMS_FOR_SCAN,
+    GUI_POPUP_ERROR_WRITE_FAILED,
 
     GUI_POPUP_COUNT,
 };
@@ -38,6 +39,7 @@ struct gui_State {
     struct {
         char value_textbox[256];
         uintptr_t edited_address;
+        scan_ValueType value_type;
     } edit_value_popup;
 };
 

@@ -8,3 +8,4 @@ void app_action_close_opened_process(app_State *app);
 void app_action_run_first_scan(app_State *app, scan_Comparison cmp, usize stride);
 void app_action_run_next_scan(app_State *app, scan_Comparison cmp);
 void app_action_reset_scan_results(app_State *app);
+void app_action_edit_value_at_address(app_State *app, uintptr_t address, scan_ValueType type, scan_Value new_value);
