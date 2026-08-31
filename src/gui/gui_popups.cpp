@@ -6,12 +6,17 @@ const char *gui__popup_get_name(Arena *arena, gui_Popup popup, const char *title
         title = "";
     }
 
-    const char *result = str_format_cstr(arena, "%s###%d", title, (s32)popup);
+    // Only the popup enum will contribute to the ID, meaning we can provide different titles
+    // when opening vs when defining the popup window.
+    const char *id_str = str_format_cstr(arena, "%d", (s32)popup);
+    ImGuiID id = ImGui::GetID(id_str);
+
+    const char *result = str_format_cstr(arena, "%s###%u", title, id);
 
     return result;
 }
 
-void gui_popup_open(Arena *arena, gui_State *gui, gui_Popup popup)
+void gui_popup_open(gui_State *gui, gui_Popup popup)
 {
     gui->popup_states[popup] = true;
 }

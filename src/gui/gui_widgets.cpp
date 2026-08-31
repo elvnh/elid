@@ -9,7 +9,7 @@ void gui_open_process_button(gui_State *gui, app_State *app)
         app_action_get_running_processes(app);
 
         gui->process_list_popup.selected_index = -1;
-        gui_popup_open(app->frame_arena, gui, GUI_POPUP_OPEN_PROCESS);
+        gui_popup_open(gui, GUI_POPUP_OPEN_PROCESS);
     }
 }
 
@@ -26,7 +26,6 @@ void gui_scan_result_table(gui_State *gui, app_State *app)
     s32 column_count = array_capacity(table_columns);
 
     // TODO: turn off highlight on hover
-    b32 should_open_edit_value_popup = false;
 
     if (ImGui::BeginTable("#scan_result_table", column_count, table_flags, {})) {
         ImGui::TableSetupScrollFreeze(0, 1);
@@ -77,15 +76,16 @@ void gui_scan_result_table(gui_State *gui, app_State *app)
                             }
                         }
 
+                        // Right click on row context menu.
                         if (ImGui::BeginPopupContextItem()) {
                             if (ImGui::Selectable("Change this value...")) {
-                                should_open_edit_value_popup = true;
-
                                 gui->edit_value_popup.edited_address = match.address;
 
                                 strncpy(gui->edit_value_popup.value_textbox,
                                     value_str,
                                     array_capacity(gui->edit_value_popup.value_textbox));
+
+                                gui_popup_open(gui, GUI_POPUP_EDIT_VALUE);
                             }
 
                             ImGui::EndPopup();
@@ -97,10 +97,6 @@ void gui_scan_result_table(gui_State *gui, app_State *app)
             }
         }
     } ImGui::EndTable();
-
-    if (should_open_edit_value_popup) {
-        gui_popup_open(app->frame_arena, gui, GUI_POPUP_EDIT_VALUE);
-    }
 }
 
 void gui_scan_parameters(gui_State *gui, app_State *app)
