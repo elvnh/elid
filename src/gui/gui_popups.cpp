@@ -1,31 +1,12 @@
 #include "gui_popups.h"
 
-const char *gui__popup_get_name(gui_Popup popup)
+const char *gui__popup_get_name(Arena *arena, gui_Popup popup, const char *title)
 {
-    const char *result = 0;
-
-    BEGIN_EXHAUSTIVE_SWITCH;
-    switch (popup) {
-        case GUI_POPUP_OPEN_PROCESS: {
-            result = "Open process###open_proc";
-        } break;
-
-        case GUI_POPUP_EDIT_VALUE: {
-            result = "Edit value###edit_value";
-        } break;
-
-        case GUI_POPUP_ERROR_PROC_DIED_DURING_SCAN: {
-            result = "Error###proc_died_during_scan";
-        } break;
-
-        case GUI_POPUP_ERROR_INSUFFICIENT_PERMS_FOR_SCAN: {
-            result = "Error###bad_scan_perms";
-        } break;
-
-        INVALID_CASE(GUI_POPUP_COUNT);
-        INVALID_DEFAULT_CASE;
+    if (!title) {
+        title = "";
     }
-    END_EXHAUSTIVE_SWITCH;
+
+    const char *result = str_format_cstr(arena, "%s###%d", title, (s32)popup);
 
     return result;
 }
@@ -51,9 +32,9 @@ static void gui__popup_open_process(gui_State *gui, app_State *app)
 
     s32 popup_flags = ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar;
 
-    const char *title = gui__popup_get_name(GUI_POPUP_OPEN_PROCESS);
+    const char *name = gui__popup_get_name(app->frame_arena, GUI_POPUP_OPEN_PROCESS, "Open process");
 
-    if (ImGui::BeginPopupModal(title, 0, popup_flags)) {
+    if (ImGui::BeginPopupModal(name, 0, popup_flags)) {
         s32 process_count = usize_to_s32(app->running_process_list.count);
         b32 item_is_highlighted = false;
 
@@ -122,7 +103,7 @@ static void gui__generic_error_popup(Arena *arena, gui_State *gui, gui_Popup pop
 
     s32 popup_flags = ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_AlwaysAutoResize;
 
-    const char *popup_name = gui__popup_get_name(popup);
+    const char *popup_name = gui__popup_get_name(arena, popup, "Error");
 
     if (ImGui::BeginPopupModal(popup_name, 0, popup_flags)) {
         ImGui::TextUnformatted(text);
@@ -146,7 +127,8 @@ static void gui__popup_edit_value(gui_State *gui, app_State *app)
 
     s32 popup_flags = ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_AlwaysAutoResize;
 
-    const char *popup_name = gui__popup_get_name(GUI_POPUP_EDIT_VALUE);
+    const char *title = str_format_cstr(app->frame_arena, "Edit value at %" PRIxPTR, gui->edit_value_popup.edited_address);
+    const char *popup_name = gui__popup_get_name(app->frame_arena, GUI_POPUP_EDIT_VALUE, title);
 
     if (ImGui::BeginPopupModal(popup_name, 0, popup_flags)) {
         ImGui::InputText(
@@ -182,7 +164,7 @@ void gui_popup_display_active_popups(gui_State *gui, app_State *app)
 {
     for (gui_Popup popup = {}; popup < GUI_POPUP_COUNT; inc_enum(&popup)) {
         if (gui->popup_states[popup]) {
-            const char *name = gui__popup_get_name(popup);
+            const char *name = gui__popup_get_name(app->frame_arena, popup, 0);
 
             ImGui::OpenPopup(name);
         }
