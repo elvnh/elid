@@ -9,7 +9,7 @@ void gui_open_process_button(gui_State *gui, app_State *app)
         app_action_get_running_processes(app);
 
         gui->process_list_popup.selected_index = -1;
-        gui_popup_open(app->frame_arena, GUI_POPUP_OPEN_PROCESS);
+        gui_popup_open(app->frame_arena, gui, GUI_POPUP_OPEN_PROCESS);
     }
 }
 
@@ -19,12 +19,14 @@ void gui_scan_result_table(gui_State *gui, app_State *app)
         | ImGuiTableFlags_BordersV
         | ImGuiTableFlags_Borders
         | ImGuiTableFlags_ScrollY;
+
     s32 selectable_flags = ImGuiSelectableFlags_SpanAllColumns;
 
     const char *table_columns[] = {"Address", "Value", "Previous"};
     s32 column_count = array_capacity(table_columns);
 
     // TODO: turn off highlight on hover
+    b32 should_open_edit_value_popup = false;
 
     if (ImGui::BeginTable("#scan_result_table", column_count, table_flags, {})) {
         ImGui::TableSetupScrollFreeze(0, 1);
@@ -52,32 +54,53 @@ void gui_scan_result_table(gui_State *gui, app_State *app)
 
                     b32 is_row_selected = gui->result_table.selected_row_index == row;
 
-                    ImGui::TableSetColumnIndex(0); {
-                        char *addr_str = str_format_cstr(app->frame_arena, "%" PRIxPTR, match.address);
+                    char *addr_str = str_format_cstr(app->frame_arena, "%" PRIxPTR, match.address);
+                    // TODO: value_to_string
+                    char *value_str = str_format_cstr(app->frame_arena, "%u", match.value.int32);
 
-                        if (ImGui::Selectable(addr_str, is_row_selected, selectable_flags)) {
-                            gui->result_table.selected_row_index = row;
+                    ImGui::PushID(row); {
+                        ImGui::TableSetColumnIndex(0); {
+                            if (ImGui::Selectable(addr_str, is_row_selected, selectable_flags)) {
+                                gui->result_table.selected_row_index = row;
+                            }
                         }
-                    }
 
-                    ImGui::TableSetColumnIndex(1); {
-                        char *value_str = str_format_cstr(app->frame_arena, "%u", match.value.int32);
-
-                        if (ImGui::Selectable(value_str, is_row_selected, selectable_flags)) {
-                            gui->result_table.selected_row_index = row;
+                        ImGui::TableSetColumnIndex(1); {
+                            if (ImGui::Selectable(value_str, is_row_selected, selectable_flags)) {
+                                gui->result_table.selected_row_index = row;
+                            }
                         }
-                    }
 
-                    ImGui::TableSetColumnIndex(2); {
-                        if (ImGui::Selectable("", is_row_selected, selectable_flags)) {
-                            gui->result_table.selected_row_index = row;
+                        ImGui::TableSetColumnIndex(2); {
+                            if (ImGui::Selectable("", is_row_selected, selectable_flags)) {
+                                gui->result_table.selected_row_index = row;
+                            }
                         }
-                    }
+
+                        if (ImGui::BeginPopupContextItem()) {
+                            if (ImGui::Selectable("Change this value...")) {
+                                should_open_edit_value_popup = true;
+
+                                gui->edit_value_popup.edited_address = match.address;
+
+                                strncpy(gui->edit_value_popup.value_textbox,
+                                    value_str,
+                                    array_capacity(gui->edit_value_popup.value_textbox));
+                            }
+
+                            ImGui::EndPopup();
+                        }
+                    } ImGui::PopID();
+
                 }
 
             }
         }
     } ImGui::EndTable();
+
+    if (should_open_edit_value_popup) {
+        gui_popup_open(app->frame_arena, gui, GUI_POPUP_EDIT_VALUE);
+    }
 }
 
 void gui_scan_parameters(gui_State *gui, app_State *app)

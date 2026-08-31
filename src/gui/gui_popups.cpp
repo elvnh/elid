@@ -1,37 +1,43 @@
 #include "gui_popups.h"
 
-#define GUI_OPEN_PROC_POPUP_TITLE "Open process"
-
-char *gui__error_popup_name(Arena *arena, gui_Popup popup)
+const char *gui__popup_get_name(gui_Popup popup)
 {
-    char *result = str_format_cstr(arena, "Error##%d", (s32)popup);
+    const char *result = 0;
+
+    BEGIN_EXHAUSTIVE_SWITCH;
+    switch (popup) {
+        case GUI_POPUP_OPEN_PROCESS: {
+            result = "Open process###open_proc";
+        } break;
+
+        case GUI_POPUP_EDIT_VALUE: {
+            result = "Edit value###edit_value";
+        } break;
+
+        case GUI_POPUP_ERROR_PROC_DIED_DURING_SCAN: {
+            result = "Error###proc_died_during_scan";
+        } break;
+
+        case GUI_POPUP_ERROR_INSUFFICIENT_PERMS_FOR_SCAN: {
+            result = "Error###bad_scan_perms";
+        } break;
+
+        INVALID_CASE(GUI_POPUP_COUNT);
+        INVALID_DEFAULT_CASE;
+    }
+    END_EXHAUSTIVE_SWITCH;
 
     return result;
 }
 
-void gui_popup_open(Arena *arena, gui_Popup popup)
+void gui_popup_open(Arena *arena, gui_State *gui, gui_Popup popup)
 {
-    BEGIN_EXHAUSTIVE_SWITCH;
-    switch (popup) {
-        case GUI_POPUP_OPEN_PROCESS: {
-            ImGui::OpenPopup(GUI_OPEN_PROC_POPUP_TITLE);
-        } break;
-
-        case GUI_POPUP_ERROR_PROC_DIED_DURING_SCAN: {
-            ImGui::OpenPopup(gui__error_popup_name(arena, GUI_POPUP_ERROR_PROC_DIED_DURING_SCAN));
-        } break;
-
-        case GUI_POPUP_ERROR_INSUFFICIENT_PERMS_FOR_SCAN: {
-            ImGui::OpenPopup(gui__error_popup_name(arena, GUI_POPUP_ERROR_INSUFFICIENT_PERMS_FOR_SCAN));
-        } break;
-
-        INVALID_DEFAULT_CASE;
-    }
-    END_EXHAUSTIVE_SWITCH;
+    gui->popup_states[popup] = true;
 }
 
-void gui_popup_close()
+void gui_popup_close(gui_State *gui, gui_Popup popup)
 {
+    gui->popup_states[popup] = false;
     ImGui::CloseCurrentPopup();
 }
 
@@ -45,7 +51,9 @@ static void gui__popup_open_process(gui_State *gui, app_State *app)
 
     s32 popup_flags = ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar;
 
-    if (ImGui::BeginPopupModal(GUI_OPEN_PROC_POPUP_TITLE, 0, popup_flags)) {
+    const char *title = gui__popup_get_name(GUI_POPUP_OPEN_PROCESS);
+
+    if (ImGui::BeginPopupModal(title, 0, popup_flags)) {
         s32 process_count = usize_to_s32(app->running_process_list.count);
         b32 item_is_highlighted = false;
 
@@ -97,14 +105,14 @@ static void gui__popup_open_process(gui_State *gui, app_State *app)
         }
 
         if (should_close) {
-            gui_popup_close();
+            gui_popup_close(gui, GUI_POPUP_OPEN_PROCESS);
         }
 
         ImGui::EndPopup();
     }
 }
 
-static void gui__generic_error_popup(Arena *arena, gui_Popup popup, const char *text)
+static void gui__generic_error_popup(Arena *arena, gui_State *gui, gui_Popup popup, const char *text)
 {
     ImVec2 center = ImGui::GetMainViewport()->GetCenter();
     ImVec2 root_window_size = ImGui::GetContentRegionAvail();
@@ -114,14 +122,56 @@ static void gui__generic_error_popup(Arena *arena, gui_Popup popup, const char *
 
     s32 popup_flags = ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_AlwaysAutoResize;
 
-    char *popup_name = gui__error_popup_name(arena, popup);
+    const char *popup_name = gui__popup_get_name(popup);
 
     if (ImGui::BeginPopupModal(popup_name, 0, popup_flags)) {
         ImGui::TextUnformatted(text);
         ImGui::Separator();
 
         if (ImGui::Button("OK", ImVec2(120, 0))) {
-            gui_popup_close();
+            gui_popup_close(gui, popup);
+        }
+
+        ImGui::EndPopup();
+    }
+}
+
+static void gui__popup_edit_value(gui_State *gui, app_State *app)
+{
+    ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+    ImVec2 root_window_size = ImGui::GetContentRegionAvail();
+
+    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, {0.5f, 0.5f});
+    ImGui::SetNextWindowSize({root_window_size.x * 0.75f, root_window_size.y * 0.75f}, ImGuiCond_Appearing);
+
+    s32 popup_flags = ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_AlwaysAutoResize;
+
+    const char *popup_name = gui__popup_get_name(GUI_POPUP_EDIT_VALUE);
+
+    if (ImGui::BeginPopupModal(popup_name, 0, popup_flags)) {
+        ImGui::InputText(
+            "##edit_value",
+            gui->edit_value_popup.value_textbox,
+            array_capacity(gui->edit_value_popup.value_textbox)
+        );
+
+        ImGui::Separator();
+
+        b32 should_close = false;
+
+        if (ImGui::Button("OK", ImVec2(120, 0))) {
+            should_close = true;
+            TODO("Edit value");
+        }
+
+        ImGui::SameLine();
+
+        if (ImGui::Button("Cancel", ImVec2(120, 0))) {
+            should_close = true;
+        }
+
+        if (should_close) {
+            gui_popup_close(gui, GUI_POPUP_EDIT_VALUE);
         }
 
         ImGui::EndPopup();
@@ -130,9 +180,19 @@ static void gui__generic_error_popup(Arena *arena, gui_Popup popup, const char *
 
 void gui_popup_display_active_popups(gui_State *gui, app_State *app)
 {
+    for (gui_Popup popup = {}; popup < GUI_POPUP_COUNT; inc_enum(&popup)) {
+        if (gui->popup_states[popup]) {
+            const char *name = gui__popup_get_name(popup);
+
+            ImGui::OpenPopup(name);
+        }
+
+    }
+
     gui__popup_open_process(gui, app);
-    gui__generic_error_popup(app->frame_arena, GUI_POPUP_ERROR_INSUFFICIENT_PERMS_FOR_SCAN,
+    gui__generic_error_popup(app->frame_arena, gui, GUI_POPUP_ERROR_INSUFFICIENT_PERMS_FOR_SCAN,
         "Insufficient permissions to perform scan.");
-    gui__generic_error_popup(app->frame_arena, GUI_POPUP_ERROR_PROC_DIED_DURING_SCAN,
+    gui__generic_error_popup(app->frame_arena, gui, GUI_POPUP_ERROR_PROC_DIED_DURING_SCAN,
         "Process died during scan.");
+    gui__popup_edit_value(gui, app);
 }

@@ -59,11 +59,11 @@ static void gui__open_error_popup(gui_State *gui, app_State *app, app_Error erro
     BEGIN_EXHAUSTIVE_SWITCH;
     switch (error.kind) {
         case APP_ERROR_PROCESS_DIED_BEFORE_OR_DURING_SCAN: {
-            gui_popup_open(app->frame_arena, GUI_POPUP_ERROR_PROC_DIED_DURING_SCAN);
+            gui_popup_open(app->frame_arena, gui, GUI_POPUP_ERROR_PROC_DIED_DURING_SCAN);
         } break;
 
         case APP_ERROR_INSUFFICIENT_PERMS_FOR_SCAN: {
-            gui_popup_open(app->frame_arena, GUI_POPUP_ERROR_INSUFFICIENT_PERMS_FOR_SCAN);
+            gui_popup_open(app->frame_arena, gui, GUI_POPUP_ERROR_INSUFFICIENT_PERMS_FOR_SCAN);
         } break;
 
         INVALID_DEFAULT_CASE;
@@ -128,7 +128,11 @@ void gui_update_and_render(gui_State *gui, app_State *app)
     } else {
         gui__begin_frame(gui);
 
-        bool show_demo_window = false;
+        static bool show_demo_window = true;
+
+        if (ImGui::IsKeyPressed(ImGuiKey_G)) {
+            show_demo_window = !show_demo_window;
+        }
 
         if (show_demo_window) {
             ImGui::ShowDemoWindow(&show_demo_window);
