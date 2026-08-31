@@ -41,6 +41,28 @@ proc_Status proc_status_from_memmi_status(memmi_Status status)
     return result;
 }
 
+b32 proc_address_is_contained_in_object(memmi_ObjectList objects, uintptr_t addr, usize size)
+{
+    // TODO: return name of object
+    // TODO: providing size is unnecessary?
+
+    b32 result = false;
+
+    if (ALWAYS(objects.status == MEMMI_OK)) {
+        for (usize i = 0; i < objects.count; ++i) {
+            memmi_Object object = objects.data[i];
+
+            if ((object.base_address <= addr) && (addr < (object.base_address + object.size))) {
+                ASSERT(((addr + size) < (object.base_address + object.size)));
+                result = true;
+                break;
+            }
+        }
+    }
+
+    return result;
+}
+
 static void *proc__memmi_allocate_cb(void *context, void *ptr, usize old_count, usize new_count, usize item_size, usize align)
 {
     void *result = 0;

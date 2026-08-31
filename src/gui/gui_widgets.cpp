@@ -1,6 +1,7 @@
 #include "gui_widgets.h"
 
 #define GUI_MAX_DISPLAYED_RESULT_COUNT THOUSAND(50)
+#define GUI_ADDRESS_AT_STATIC_OFFSET_COLOR {0, 1, 0, 1}
 
 void gui_open_process_button(gui_State *gui, app_State *app)
 {
@@ -54,13 +55,23 @@ void gui_scan_result_table(gui_State *gui, app_State *app)
                     b32 is_row_selected = gui->result_table.selected_row_index == row;
 
                     char *addr_str = str_format_cstr(app->frame_arena, "%" PRIxPTR, match.address);
+
                     // TODO: value_to_string
                     char *value_str = str_format_cstr(app->frame_arena, "%u", match.value.int32);
 
                     ImGui::PushID(row); {
                         ImGui::TableSetColumnIndex(0); {
+                            // Display addresses inside process image as green.
+                            if (match.is_at_static_offset) {
+                                ImGui::PushStyleColor(ImGuiCol_Text, GUI_ADDRESS_AT_STATIC_OFFSET_COLOR);
+                            }
+
                             if (ImGui::Selectable(addr_str, is_row_selected, selectable_flags)) {
                                 gui->result_table.selected_row_index = row;
+                            }
+
+                            if (match.is_at_static_offset) {
+                                ImGui::PopStyleColor();
                             }
                         }
 

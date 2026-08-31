@@ -5,16 +5,19 @@
 // TODO: this is not necessary for 32 bit
 #define SCAN_SKIP_REGION_SIZE_THRESHOLD TB(13)
 
-void scan__push_region_matches(Arena *arena, scan_Result *result, scan_MatchList *matches, uintptr_t region_address, usize region_size)
+static void scan__push_region_matches(Arena *arena, scan_Result *result, scan_MatchList *matches,
+    uintptr_t region_address, usize region_size, b32 region_has_static_offset)
 {
     if (matches->count > 0) {
         scan_RegionMatches *region_matches = arena_alloc_struct(arena, scan_RegionMatches);
-        region_matches->base_address = region_address;
+        region_matches->region_base_address = region_address;
         region_matches->region_size = region_size;
         region_matches->head = matches;
         region_matches->match_count_in_region = matches->total_match_count;
 
         result->total_match_count += region_matches->match_count_in_region;
+
+        region_matches->region_is_at_static_offset = region_has_static_offset;
 
         sll_push_back(result, region_matches);
 
@@ -29,6 +32,8 @@ scan_Result scan_remote_memory_first(Arena *arena, memmi_Process proc, scan_Comp
     result.value_type = cmp.value_type;
     result.scan_mode = cmp.mode;
 
+    usize value_type_size = scan_val_type_get_size(cmp.value_type);
+
     // For temporarily storing the memory of a region during the scan of it.
     Arena *scan_scratch_arena = thread_ctx_get()->per_scan_scratch_arena;
     memmi_Allocator scan_scratch_allocator = proc_memmi_allocator_from_arena(scan_scratch_arena);
@@ -36,10 +41,13 @@ scan_Result scan_remote_memory_first(Arena *arena, memmi_Process proc, scan_Comp
     // For allocating memory region metadata array. We allocate those in a separate arena
     // as they're needed for the entire function, while the scan scratch arena gets reset
     // after each region.
+    // TODO: rename, this is no longer accurate
     Temp scratch = scratch_begin();
     memmi_Allocator region_allocator = proc_memmi_allocator_from_arena(scratch.arena);
 
     memmi_MemoryRegions memory_regions = memmi_get_process_memory_regions(proc, region_allocator);
+    memmi_ObjectList process_objects = memmi_get_loaded_objects(proc, region_allocator);
+    ASSERT(process_objects.status == MEMMI_OK);
 
     b32 at_least_one_read_succeeded = false;
 
@@ -60,7 +68,8 @@ scan_Result scan_remote_memory_first(Arena *arena, memmi_Process proc, scan_Comp
                 // scan of that region.
                 arena_reset(scan_scratch_arena);
 
-                memmi_ReadMemory read_mem_result = memmi_read_memory(proc, region.base_address, region.size, scan_scratch_allocator);
+                memmi_ReadMemory read_mem_result = memmi_read_memory(
+                    proc, region.base_address, region.size, scan_scratch_allocator);
 
                 if (read_mem_result.status != MEMMI_OK) {
                     set_flag(&result.errors, proc_status_from_memmi_status(read_mem_result.status));
@@ -77,7 +86,10 @@ scan_Result scan_remote_memory_first(Arena *arena, memmi_Process proc, scan_Comp
 
                     ASSERT(matches);
 
-                    scan__push_region_matches(arena, &result, matches, region.base_address, region.size);
+                    b32 region_has_static_offset =
+                        proc_address_is_contained_in_object(process_objects, region.base_address, value_type_size);
+
+                    scan__push_region_matches(arena, &result, matches, region.base_address, region.size, region_has_static_offset);
                 }
             }
         }
@@ -110,7 +122,7 @@ scan_Result scan_remote_memory_next(Arena *arena, memmi_Process proc, scan_Compa
         arena_reset(scan_scratch_arena);
 
         memmi_ReadMemory read_mem_result =
-            memmi_read_memory(proc, match_list->base_address, match_list->region_size, scan_scratch_allocator);
+            memmi_read_memory(proc, match_list->region_base_address, match_list->region_size, scan_scratch_allocator);
 
         if (read_mem_result.status != MEMMI_OK) {
             set_flag(&result.errors, proc_status_from_memmi_status(read_mem_result.status));
@@ -125,7 +137,9 @@ scan_Result scan_remote_memory_next(Arena *arena, memmi_Process proc, scan_Compa
             scan_MatchList *matches = scan_local_memory_next(arena, region_mem, bytes_read, cmp, match_list->head);
             ASSERT(matches);
 
-            scan__push_region_matches(arena, &result, matches, match_list->base_address, match_list->region_size);
+            b32 has_static_offset = match_list->region_is_at_static_offset;
+
+            scan__push_region_matches(arena, &result, matches, match_list->region_base_address, match_list->region_size, has_static_offset);
         }
     }
 
@@ -156,9 +170,11 @@ scan_MatchDetails scan__region_matches_at(scan_RegionMatches *matches, usize at)
 
     usize index = at - i;
     ASSERT(index < current->count);
+
     scan_Match match = current->data[index];
-    result.address = matches->base_address + match.offset_from_base;
+    result.address = matches->region_base_address + match.offset_from_base;
     result.value = match.value;
+    result.is_at_static_offset = matches->region_is_at_static_offset;
 
     return result;
 }

@@ -6,6 +6,8 @@ enum app_ScannerState {
 };
 
 struct app_State {
+    // TODO: pack members into anonymous structs, similar to gui_State
+
     Arena *frame_arena; // TODO: move to gui?
     Arena *process_list_arena;
     Arena *scan_result_arena;

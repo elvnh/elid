@@ -1,12 +1,17 @@
 #pragma once
 
+// TODO: simplify the result structs, one layer of indirection can probably be removed
+
 struct scan_RegionMatches {
     // TODO: just store memmi region here?
-    usize base_address;
+    usize region_base_address;
     usize region_size;
+    b32   region_is_at_static_offset;
+
+    usize match_count_in_region;
+
     scan_MatchList *head;
     scan_RegionMatches *next;
-    usize match_count_in_region;
 };
 
 struct scan_Result {
@@ -23,6 +28,7 @@ struct scan_Result {
 struct scan_MatchDetails {
     uintptr_t  address;
     scan_Value value;
+    b32        is_at_static_offset;
 };
 
 scan_Result       scan_remote_memory_first(Arena *arena, memmi_Process proc, scan_Comparison cmp, usize stride);
