@@ -46,7 +46,6 @@ void gui_scan_result_table(gui_State *gui, app_State *app)
             while (clipper.Step()) {
                 for (s32 row = clipper.DisplayStart; row < clipper.DisplayEnd; ++row) {
                     // TODO: optimize lookup of results
-                    // TODO: green text if located inside executable/so file
                     // TODO: show previous value
                     scan_MatchDetails match = scan_result_at(&app->result_list, (usize)row);
 
@@ -56,8 +55,7 @@ void gui_scan_result_table(gui_State *gui, app_State *app)
                     b32 match_is_at_static_offset = match.containing_object.ok;
 
                     char *addr_str = gui_cstr_from_match_address(app->frame_arena, match);
-                    // TODO: value_to_string
-                    char *value_str = str_format_cstr(app->frame_arena, "%u", match.value.int32);
+                    char *value_str = gui_cstr_from_match_value(app->frame_arena, match.value, app->result_list.value_type);
 
                     ImGui::PushID(row); {
                         ImGui::TableSetColumnIndex(0); {

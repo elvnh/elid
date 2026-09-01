@@ -120,3 +120,26 @@ char *gui_cstr_from_match_address(Arena *arena, scan_MatchDetails match)
 
     return result;
 }
+
+char *gui_cstr_from_match_value(Arena *arena, scan_Value value, scan_ValueType value_type)
+{
+    char *result = 0;
+
+    BEGIN_EXHAUSTIVE_SWITCH;
+    switch (value_type) {
+        case SCAN_VALUE_TYPE_INT32: {
+            // TODO: allow controlling whether signed or unsigned
+            result = str_format_cstr(arena, "%u", value.int32);
+        } break;
+
+        case SCAN_VALUE_TYPE_FLOAT32: {
+            TODO("Formatting floats");
+        } break;
+
+        INVALID_CASE(SCAN_VALUE_TYPE_COUNT);
+        INVALID_DEFAULT_CASE;
+    }
+    END_EXHAUSTIVE_SWITCH;
+
+    return result;
+}
