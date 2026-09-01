@@ -6,7 +6,7 @@
 #define SCAN_SKIP_REGION_SIZE_THRESHOLD TB(13)
 
 static void scan__push_region_matches(Arena *arena, scan_Result *result, scan_MatchList *matches,
-    uintptr_t region_address, usize region_size, b32 region_has_static_offset)
+    uintptr_t region_address, usize region_size, String containing_object)
 {
     if (matches->count > 0) {
         scan_RegionMatches *region_matches = arena_alloc_struct(arena, scan_RegionMatches);
@@ -14,10 +14,9 @@ static void scan__push_region_matches(Arena *arena, scan_Result *result, scan_Ma
         region_matches->region_size = region_size;
         region_matches->head = matches;
         region_matches->match_count_in_region = matches->total_match_count;
+        region_matches->name_of_containing_object = containing_object;
 
         result->total_match_count += region_matches->match_count_in_region;
-
-        region_matches->region_is_at_static_offset = region_has_static_offset;
 
         sll_push_back(result, region_matches);
 
@@ -86,10 +85,10 @@ scan_Result scan_remote_memory_first(Arena *arena, memmi_Process proc, scan_Comp
 
                     ASSERT(matches);
 
-                    b32 region_has_static_offset =
-                        proc_address_is_contained_in_object(process_objects, region.base_address, value_type_size);
+                    String name_of_containing_object =
+                        proc_get_object_address_is_contained_in(arena, process_objects, region.base_address, value_type_size);
 
-                    scan__push_region_matches(arena, &result, matches, region.base_address, region.size, region_has_static_offset);
+                    scan__push_region_matches(arena, &result, matches, region.base_address, region.size, name_of_containing_object);
                 }
             }
         }
@@ -137,9 +136,8 @@ scan_Result scan_remote_memory_next(Arena *arena, memmi_Process proc, scan_Compa
             scan_MatchList *matches = scan_local_memory_next(arena, region_mem, bytes_read, cmp, match_list->head);
             ASSERT(matches);
 
-            b32 has_static_offset = match_list->region_is_at_static_offset;
-
-            scan__push_region_matches(arena, &result, matches, match_list->region_base_address, match_list->region_size, has_static_offset);
+            scan__push_region_matches(arena, &result, matches, match_list->region_base_address,
+                match_list->region_size, match_list->name_of_containing_object);
         }
     }
 
@@ -174,7 +172,7 @@ scan_MatchDetails scan__region_matches_at(scan_RegionMatches *matches, usize at)
     scan_Match match = current->data[index];
     result.address = matches->region_base_address + match.offset_from_base;
     result.value = match.value;
-    result.is_at_static_offset = matches->region_is_at_static_offset;
+    result.name_of_containing_object = matches->name_of_containing_object;
 
     return result;
 }

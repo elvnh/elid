@@ -95,6 +95,17 @@ String str_null_terminate(Arena *arena, String str)
     return result;
 }
 
+b32 str_is_null_or_empty(String str)
+{
+    b32 result = (str.data == 0) || (str.count == 0);
+
+    if (!str.data) {
+        ASSERT(str.count == 0);
+    }
+
+    return result;
+}
+
 b32 str_eq(String a, String b)
 {
     b32 result = a.count == b.count;

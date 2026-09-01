@@ -41,12 +41,12 @@ proc_Status proc_status_from_memmi_status(memmi_Status status)
     return result;
 }
 
-b32 proc_address_is_contained_in_object(memmi_ObjectList objects, uintptr_t addr, usize size)
+// TODO: bad name
+String proc_get_object_address_is_contained_in(Arena *arena, memmi_ObjectList objects, uintptr_t addr, usize size)
 {
-    // TODO: return name of object
     // TODO: providing size is unnecessary?
 
-    b32 result = false;
+    String result = {};
 
     if (ALWAYS(objects.status == MEMMI_OK)) {
         for (usize i = 0; i < objects.count; ++i) {
@@ -54,7 +54,9 @@ b32 proc_address_is_contained_in_object(memmi_ObjectList objects, uintptr_t addr
 
             if ((object.base_address <= addr) && (addr < (object.base_address + object.size))) {
                 ASSERT(((addr + size) < (object.base_address + object.size)));
-                result = true;
+
+                result = proc_copy_memmi_string(arena, object.path);
+
                 break;
             }
         }
@@ -92,6 +94,14 @@ memmi_Allocator proc_memmi_allocator_from_arena(Arena *arena)
     memmi_Allocator result = {};
     result.context = arena;
     result.function = proc__memmi_allocate_cb;
+
+    return result;
+}
+
+String proc_copy_memmi_string(Arena *arena, memmi_String string)
+{
+    String result = str_alloc(arena, string.count);
+    copy_mem(result.data, (u8 *)string.data, string.count, sizeof(*string.data));
 
     return result;
 }

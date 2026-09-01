@@ -62,7 +62,9 @@ void gui_scan_result_table(gui_State *gui, app_State *app)
                     ImGui::PushID(row); {
                         ImGui::TableSetColumnIndex(0); {
                             // Display addresses inside process image as green.
-                            if (match.is_at_static_offset) {
+                            b32 is_at_static_offset = !str_is_null_or_empty(match.name_of_containing_object);
+
+                            if (is_at_static_offset) {
                                 ImGui::PushStyleColor(ImGuiCol_Text, GUI_ADDRESS_AT_STATIC_OFFSET_COLOR);
                             }
 
@@ -70,7 +72,7 @@ void gui_scan_result_table(gui_State *gui, app_State *app)
                                 gui->result_table.selected_row_index = row;
                             }
 
-                            if (match.is_at_static_offset) {
+                            if (is_at_static_offset) {
                                 ImGui::PopStyleColor();
                             }
                         }

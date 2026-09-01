@@ -4,9 +4,9 @@
 
 struct scan_RegionMatches {
     // TODO: just store memmi region here?
-    usize region_base_address;
-    usize region_size;
-    b32   region_is_at_static_offset;
+    usize  region_base_address;
+    usize  region_size;
+    String name_of_containing_object; // Optional
 
     usize match_count_in_region;
 
@@ -28,7 +28,7 @@ struct scan_Result {
 struct scan_MatchDetails {
     uintptr_t  address;
     scan_Value value;
-    b32        is_at_static_offset;
+    String     name_of_containing_object;
 };
 
 scan_Result       scan_remote_memory_first(Arena *arena, memmi_Process proc, scan_Comparison cmp, usize stride);

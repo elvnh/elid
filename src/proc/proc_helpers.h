@@ -11,5 +11,6 @@ enum proc_Status {
 };
 
 proc_Status     proc_status_from_memmi_status(memmi_Status status);
-b32             proc_address_is_contained_in_object(memmi_ObjectList objects, uintptr_t addr, usize size);
+String          proc_get_object_address_is_contained_in(Arena *arena, memmi_ObjectList objects, uintptr_t addr, usize size);
 memmi_Allocator proc_memmi_allocator_from_arena(Arena *arena);
+String          proc_copy_memmi_string(Arena *arena, memmi_String string);

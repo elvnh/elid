@@ -22,6 +22,7 @@ String      str_alloc(Arena *arena, usize count);
 String      str_copy(Arena *arena, String str);
 String      str_concat(Arena *arena, String a, String b);
 String      str_null_terminate(Arena *arena, String str);
+b32         str_is_null_or_empty(String str);
 u8          str_at(String a, usize index);
 u8         *str_begin(String str);
 u8         *str_end(String str);
