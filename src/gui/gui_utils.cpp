@@ -95,3 +95,28 @@ scan_Comparison_Maybe gui_try_parse_scan_input(const char *input, scan_ValueType
 
     return result;
 }
+
+char *gui_cstr_from_match_address(Arena *arena, scan_MatchDetails match)
+{
+    char *result = 0;
+
+    if (match.containing_object.ok) {
+        // This address is contained in library/executable itself, display as an offset.
+        ASSERT(!str_is_null_or_empty(match.containing_object.value.name));
+        ASSERT(match.containing_object.value.base_address <= match.address);
+
+        proc_Object obj = match.containing_object.value;
+        usize offset = match.address - obj.base_address;
+
+        // TODO: shorten name so we don't get the entire path
+        result = str_format_cstr(arena, "\"" FMT_STR "\"" "+%zu",
+            FMT_STR_ARG(match.containing_object.value.name),
+            offset);
+
+    } else {
+        // This is a regular address, display as normal.
+        result = str_format_cstr(arena, "%" PRIxPTR, match.address);
+    }
+
+    return result;
+}

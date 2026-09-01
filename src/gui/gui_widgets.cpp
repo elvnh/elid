@@ -53,18 +53,16 @@ void gui_scan_result_table(gui_State *gui, app_State *app)
                     ImGui::TableNextRow();
 
                     b32 is_row_selected = gui->result_table.selected_row_index == row;
+                    b32 match_is_at_static_offset = match.containing_object.ok;
 
-                    char *addr_str = str_format_cstr(app->frame_arena, "%" PRIxPTR, match.address);
-
+                    char *addr_str = gui_cstr_from_match_address(app->frame_arena, match);
                     // TODO: value_to_string
                     char *value_str = str_format_cstr(app->frame_arena, "%u", match.value.int32);
 
                     ImGui::PushID(row); {
                         ImGui::TableSetColumnIndex(0); {
                             // Display addresses inside process image as green.
-                            b32 is_at_static_offset = !str_is_null_or_empty(match.name_of_containing_object);
-
-                            if (is_at_static_offset) {
+                            if (match_is_at_static_offset) {
                                 ImGui::PushStyleColor(ImGuiCol_Text, GUI_ADDRESS_AT_STATIC_OFFSET_COLOR);
                             }
 
@@ -72,7 +70,7 @@ void gui_scan_result_table(gui_State *gui, app_State *app)
                                 gui->result_table.selected_row_index = row;
                             }
 
-                            if (is_at_static_offset) {
+                            if (match_is_at_static_offset) {
                                 ImGui::PopStyleColor();
                             }
                         }

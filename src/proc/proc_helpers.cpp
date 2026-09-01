@@ -41,12 +41,10 @@ proc_Status proc_status_from_memmi_status(memmi_Status status)
     return result;
 }
 
-// TODO: bad name
-String proc_get_object_address_is_contained_in(Arena *arena, memmi_ObjectList objects, uintptr_t addr, usize size)
+proc_Object_Maybe proc_get_object_address_is_contained_in(Arena *arena, memmi_ObjectList objects, uintptr_t addr, usize size)
 {
     // TODO: providing size is unnecessary?
-
-    String result = {};
+    proc_Object_Maybe result = {};
 
     if (ALWAYS(objects.status == MEMMI_OK)) {
         for (usize i = 0; i < objects.count; ++i) {
@@ -55,7 +53,11 @@ String proc_get_object_address_is_contained_in(Arena *arena, memmi_ObjectList ob
             if ((object.base_address <= addr) && (addr < (object.base_address + object.size))) {
                 ASSERT(((addr + size) < (object.base_address + object.size)));
 
-                result = proc_copy_memmi_string(arena, object.path);
+                proc_Object found_object = {};
+                found_object.name = proc_copy_memmi_string(arena, object.path);
+                found_object.base_address = object.base_address;
+
+                result = SOME(found_object);
 
                 break;
             }

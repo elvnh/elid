@@ -42,6 +42,11 @@ Cut         str_cut_next(Cut cut);
 usize_Maybe str_find_first_occurrence(String str, u8 ch);
 usize_Maybe str_find_last_occurrence(String str, u8 ch);
 usize_Maybe str_find_first_occurrence_from(String str, u8 ch, usize index);
+
+/* String formatting */
+#define FMT_STR "%.*s"
+#define FMT_STR_ARG(s) usize_to_s32((s).count), (s).data
+
 String      str_format(Arena *arena, const char *fmt, ...) FORMAT_ATTRIBUTE(2, 3);
 char       *str_format_cstr(Arena *arena, const char *fmt, ...) FORMAT_ATTRIBUTE(2, 3);
 String      str_format_v(Arena *arena, const char *fmt, va_list args);
