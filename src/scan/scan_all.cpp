@@ -1,5 +1,6 @@
 #include "scan_value.cpp"
 #include "scan_mode.cpp"
 #include "scan_comparison.cpp"
+#include "scan_result.cpp"
 #include "scan_local.cpp"
 #include "scan_remote.cpp"

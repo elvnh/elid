@@ -116,7 +116,6 @@ char *gui_cstr_from_match_address(Arena *arena, scan_MatchDetails match, proc_Ob
             object_name = obj.name;
         }
 
-        // TODO: shorten name so we don't get the entire path
         result = str_format_cstr(arena, "\"" FMT_STR "\"" "+%" PRIxPTR,
             FMT_STR_ARG(object_name),
             offset);
