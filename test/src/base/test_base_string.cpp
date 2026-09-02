@@ -1,5 +1,3 @@
-#define REQUIRE_STR_EQ(a, b) REQUIRE(str_eq((a), (b)))
-
 TEST_CASE(str_lit_basic)
 {
     String s = str_lit("abc");

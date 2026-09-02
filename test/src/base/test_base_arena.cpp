@@ -242,7 +242,7 @@ TEST_CASE(arena_allocate_entire_arena_different_sizes)
 {
     size_t sizes[] = {1, 1023, 4096, 5000, 10000, 65535, 65536, 70000};
 
-    for (size_t i = 0; i < ARRAY_COUNT(sizes); ++i) {
+    for (size_t i = 0; i < array_capacity(sizes); ++i) {
         size_t size = sizes[i];
 
         Arena *arena = arena_create(size);

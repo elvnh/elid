@@ -54,6 +54,8 @@ do {                              \\
     }                             \\
 } while (0)
 
+#define REQUIRE_STR_EQ(a, b) REQUIRE(str_eq((a), (b)))
+
 #if defined(__GNUC__)
 #    define TEST_DEBUG_BREAK() __builtin_trap()
 #elif defined(_MSC_VER)
