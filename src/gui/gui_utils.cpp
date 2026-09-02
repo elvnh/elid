@@ -159,6 +159,7 @@ scan_Settings gui_get_scan_settings(gui_State *gui)
 {
     // TODO: get scan settings from current gui state
     scan_Settings result = {};
+    result.required_alignment = 4;
 
     return result;
 }

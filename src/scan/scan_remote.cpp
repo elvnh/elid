@@ -83,7 +83,8 @@ scan_Result scan_remote_memory_first(Arena *arena, memmi_Process proc, scan_Sett
                     // by aligning forwards the first step.
                     scan_MatchList *matches =
                         scan_local_memory_first(arena, read_mem_result.memory,
-                            read_mem_result.bytes_read, cmp, SCAN_DEFAULT_STRIDE);
+                            read_mem_result.bytes_read, region.base_address,
+                            cmp, settings.required_alignment);
 
                     ASSERT(matches);
 

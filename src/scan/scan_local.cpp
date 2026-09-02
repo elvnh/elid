@@ -39,15 +39,23 @@ static void scan__push_match(Arena *arena, scan_MatchList *list, scan_Match matc
     ++list->total_match_count;
 }
 
-scan_MatchList *scan_local_memory_first(Arena *arena, void *mem, usize mem_size, scan_Comparison cmp, usize stride)
+scan_MatchList *scan_local_memory_first(Arena *arena, void *mem, usize mem_size, uintptr_t base_address, scan_Comparison cmp, usize alignment)
 {
+    // TODO: now that we're providing the base address, we may as well store the
+    // absolute address in scan_Match
+
     ASSERT(!scan_mode_is_comparative(cmp.mode));
+    ASSERT(is_pow2(alignment)); // TODO: don't require pow2 alignment
 
     scan_MatchList *result = scan__alloc_match_list(arena);
 
     usize type_size = scan_val_type_get_size(cmp.value_type);
 
-    usize offset = 0;
+    // If the base address is misaligned, we'll align it and start scanning at
+    // an aligned address.
+    uintptr_t aligned_base_address = align_pow2(base_address, alignment);
+    usize offset = aligned_base_address - base_address;
+    ASSERT(offset == 0 && "Should never happen as memory regions should always be aligned");
 
     while ((offset + type_size) <= mem_size) {
         void *local_address = ptr_byte_offset(mem, offset);
@@ -67,7 +75,7 @@ scan_MatchList *scan_local_memory_first(Arena *arena, void *mem, usize mem_size,
             scan__push_match(arena, result, match, match_history);
         }
 
-        offset += stride;
+        offset += alignment;
     }
 
     return result;
