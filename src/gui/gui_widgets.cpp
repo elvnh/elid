@@ -23,7 +23,7 @@ void gui_scan_result_table(gui_State *gui, app_State *app)
 
     s32 selectable_flags = ImGuiSelectableFlags_SpanAllColumns;
 
-    const char *table_columns[] = {"Address", "Value", "Previous"};
+    const char *table_columns[] = {"Address", "Value", "Previous", "First"};
     s32 column_count = array_capacity(table_columns);
 
     // TODO: turn off highlight on hover
@@ -46,7 +46,8 @@ void gui_scan_result_table(gui_State *gui, app_State *app)
             while (clipper.Step()) {
                 for (s32 row = clipper.DisplayStart; row < clipper.DisplayEnd; ++row) {
                     // TODO: optimize lookup of results
-                    // TODO: show previous value
+                    // TODO: periodically update visible entries in result by looking up current value
+
                     scan_MatchDetails match = scan_result_at(&app->result_list, (usize)row);
 
                     ImGui::TableNextRow();
@@ -57,9 +58,10 @@ void gui_scan_result_table(gui_State *gui, app_State *app)
                     char *addr_str = gui_cstr_from_match_address(
                         app->frame_arena, match, app->result_list.process_objects);
                     char *value_str = gui_cstr_from_match_value(
-                        app->frame_arena, match.value, app->result_list.value_type);
+                        app->frame_arena, match.match->value, app->result_list.value_type);
 
                     ImGui::PushID(row); {
+                        // Address
                         ImGui::TableSetColumnIndex(0); {
                             // Display addresses inside process image as green.
                             if (match_is_at_static_offset) {
@@ -75,14 +77,29 @@ void gui_scan_result_table(gui_State *gui, app_State *app)
                             }
                         }
 
+                        // Currrent value
                         ImGui::TableSetColumnIndex(1); {
                             if (ImGui::Selectable(value_str, is_row_selected, selectable_flags)) {
                                 gui->result_table.selected_row_index = row;
                             }
                         }
 
+                        // Previous value
                         ImGui::TableSetColumnIndex(2); {
-                            if (ImGui::Selectable("", is_row_selected, selectable_flags)) {
+                            char *prev_value_str = gui_cstr_from_match_value(
+                                app->frame_arena, match.history->previous_value, app->result_list.value_type);
+
+                            if (ImGui::Selectable(prev_value_str, is_row_selected, selectable_flags)) {
+                                gui->result_table.selected_row_index = row;
+                            }
+                        }
+
+                        // First value
+                        ImGui::TableSetColumnIndex(3); {
+                            char *first_value_str = gui_cstr_from_match_value(
+                                app->frame_arena, match.history->first_value, app->result_list.value_type);
+
+                            if (ImGui::Selectable(first_value_str, is_row_selected, selectable_flags)) {
                                 gui->result_table.selected_row_index = row;
                             }
                         }
@@ -90,7 +107,9 @@ void gui_scan_result_table(gui_State *gui, app_State *app)
                         // Right click on row context menu.
                         if (ImGui::BeginPopupContextItem()) {
                             if (ImGui::Selectable("Edit this value...")) {
-                                gui->edit_value_popup.edited_address = match.address;
+                                uintptr_t address = scan_address_from_match_details(match);
+
+                                gui->edit_value_popup.edited_address = address;
 
                                 strncpy(gui->edit_value_popup.value_textbox,
                                     value_str,

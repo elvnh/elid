@@ -18,9 +18,12 @@ static scan_MatchDetails scan__region_matches_at(scan_RegionMatches *matches, us
     usize index = at - i;
     ASSERT(index < current->count);
 
-    scan_Match match = current->match_data[index];
-    result.address = matches->region_base_address + match.offset_from_base;
-    result.value = match.value;
+    scan_Match *match = &current->match_data[index];
+    scan_MatchHistory *hist = &current->match_history_data[index];
+    result.match = match;
+    result.history = hist;
+
+    result.region_base_address = matches->region_base_address;
     result.containing_object = matches->containing_object;
 
     return result;
@@ -45,6 +48,13 @@ scan_MatchDetails scan_result_at(scan_Result *matches, usize at)
         usize index = at - i;
         result = scan__region_matches_at(region_matches, index);
     }
+
+    return result;
+}
+
+uintptr_t scan_address_from_match_details(scan_MatchDetails details)
+{
+    uintptr_t result = details.region_base_address + details.match->offset_from_base;
 
     return result;
 }

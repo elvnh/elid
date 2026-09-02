@@ -96,20 +96,22 @@ scan_Comparison_Maybe gui_try_parse_scan_input(const char *input, scan_ValueType
     return result;
 }
 
-char *gui_cstr_from_match_address(Arena *arena, scan_MatchDetails match, proc_ObjectList objects)
+char *gui_cstr_from_match_address(Arena *arena, scan_MatchDetails match_details, proc_ObjectList objects)
 {
     ASSERT(objects.data);
     ASSERT(objects.count);
 
     char *result = 0;
 
-    if (match.containing_object.ok) {
-        // This address is contained in library/executable itself, display as an offset.
-        ASSERT(!str_is_null_or_empty(match.containing_object.value.name));
-        ASSERT(match.containing_object.value.base_address <= match.address);
+    usize match_address = scan_address_from_match_details(match_details);
 
-        proc_Object obj = match.containing_object.value;
-        usize offset = match.address - obj.base_address;
+    if (match_details.containing_object.ok) {
+        // This address is contained in library/executable itself, display as an offset.
+        ASSERT(match_details.containing_object.value.base_address <= match_address);
+        ASSERT(!str_is_null_or_empty(match_details.containing_object.value.name));
+
+        proc_Object obj = match_details.containing_object.value;
+        usize offset_from_object_base = match_address - obj.base_address;
 
         String object_name = {};
 
@@ -121,11 +123,10 @@ char *gui_cstr_from_match_address(Arena *arena, scan_MatchDetails match, proc_Ob
 
         result = str_format_cstr(arena, "\"" FMT_STR "\"" "+%" PRIxPTR,
             FMT_STR_ARG(object_name),
-            offset);
-
+            offset_from_object_base);
     } else {
         // This is a regular address, display as normal.
-        result = str_format_cstr(arena, "%" PRIxPTR, match.address);
+        result = str_format_cstr(arena, "%" PRIxPTR, match_address);
     }
 
     return result;

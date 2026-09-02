@@ -55,9 +55,16 @@ struct scan_Result {
 };
 
 struct scan_MatchDetails {
-    uintptr_t   address;
-    scan_Value  value;
-    proc_Object_Maybe containing_object;
+    scan_Match         *match;
+    scan_MatchHistory  *history;
+    uintptr_t           region_base_address;
+    proc_Object_Maybe   containing_object;
 };
 
+// TODO: Instead of traversing linked list, when we need to display results in
+// table, flatten them into array. This should be fine as we only display in
+// table when it's a reasonable amount of matches. This will also allow us to
+// sort it by address easily, so it won't matter which order threads put the
+// results in.
 scan_MatchDetails scan_result_at(scan_Result *matches, usize at);
+uintptr_t         scan_address_from_match_details(scan_MatchDetails details);
