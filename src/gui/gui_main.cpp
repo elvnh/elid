@@ -1,4 +1,6 @@
-#define RESULT_TABLE_SIZE_FRACTION {ImGui::GetContentRegionAvail().x * 0.4f, ImGui::GetContentRegionAvail().y * 0.8f}
+#define RESULT_TABLE_WIDTH_FRACTION (ImGui::GetContentRegionAvail().x * 0.4f)
+#define RESULT_TABLE_HEIGHT_FRACTION (ImGui::GetContentRegionAvail().y * 0.8f)
+#define RESULT_TABLE_SIZE_FRACTION {RESULT_TABLE_WIDTH_FRACTION, RESULT_TABLE_HEIGHT_FRACTION}
 
 static void gui__begin_frame(gui_State *gui)
 {
@@ -19,7 +21,10 @@ static void gui__end_frame(gui_State *gui)
 
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
-    glClearColor(clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w);
+    glClearColor(clear_color.x * clear_color.w,
+        clear_color.y * clear_color.w,
+        clear_color.z * clear_color.w,
+        clear_color.w);
     glClear(GL_COLOR_BUFFER_BIT);
 
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -117,7 +122,7 @@ static void gui__main_window(gui_State *gui, app_State *app)
 
         s32 scan_child_flags = ImGuiChildFlags_AutoResizeX | ImGuiChildFlags_AutoResizeY | ImGuiChildFlags_Borders;
 
-        ImGui::BeginChild("##child_scan", {-FLT_MIN, -FLT_MIN}, scan_child_flags, 0); {
+        ImGui::BeginChild("##child_scan", {-FLT_MIN, RESULT_TABLE_HEIGHT_FRACTION}, scan_child_flags, 0); {
             gui_scan_parameters(gui, app);
         } ImGui::EndChild();
     } gui__end_window(gui);

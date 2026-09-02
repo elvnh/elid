@@ -13,6 +13,13 @@ struct scan_MatchHistory {
     scan_Value first_value;
 };
 
+struct scan_MatchDetails {
+    scan_Match         *match;
+    scan_MatchHistory  *history;
+    uintptr_t           region_base_address;
+    proc_Object_Maybe   containing_object;
+};
+
 // TODO: store exact scan results sparsely
 struct scan_MatchList {
     scan_Match        match_data[SCAN_MATCH_LIST_SIZE];
@@ -52,13 +59,6 @@ struct scan_Result {
     scan_RegionMatches *first;
     scan_RegionMatches *last;
     usize               list_node_count;
-};
-
-struct scan_MatchDetails {
-    scan_Match         *match;
-    scan_MatchHistory  *history;
-    uintptr_t           region_base_address;
-    proc_Object_Maybe   containing_object;
 };
 
 // TODO: Instead of traversing linked list, when we need to display results in
