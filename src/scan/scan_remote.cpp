@@ -25,7 +25,7 @@ static void scan__push_region_matches(Arena *arena, scan_Result *result, scan_Ma
     }
 }
 
-scan_Result scan_remote_memory_first(Arena *arena, memmi_Process proc, scan_Comparison cmp, usize stride)
+scan_Result scan_remote_memory_first(Arena *arena, memmi_Process proc, scan_Settings settings, scan_Comparison cmp)
 {
     scan_Result result = {};
     result.value_type = cmp.value_type;
@@ -77,9 +77,13 @@ scan_Result scan_remote_memory_first(Arena *arena, memmi_Process proc, scan_Comp
                 } else {
                     at_least_one_read_succeeded = true;
 
+                    // TODO: use stride provided by caller
+                    // TODO: local memory scan just advances by stride each step.
+                    // Make sure we compensate if the region provided is not aligned
+                    // by aligning forwards the first step.
                     scan_MatchList *matches =
                         scan_local_memory_first(arena, read_mem_result.memory,
-                            read_mem_result.bytes_read, cmp, stride);
+                            read_mem_result.bytes_read, cmp, SCAN_DEFAULT_STRIDE);
 
                     ASSERT(matches);
 
@@ -103,7 +107,7 @@ scan_Result scan_remote_memory_first(Arena *arena, memmi_Process proc, scan_Comp
     return result;
 }
 
-scan_Result scan_remote_memory_next(Arena *arena, memmi_Process proc, scan_Comparison cmp, scan_Result prev_results)
+scan_Result scan_remote_memory_next(Arena *arena, memmi_Process proc, scan_Settings settings, scan_Comparison cmp, scan_Result prev_results)
 {
     scan_Result result = {};
     result.value_type = cmp.value_type;

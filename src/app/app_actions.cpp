@@ -34,14 +34,14 @@ void app_action_close_opened_process(app_State *app)
     app->open_process_handle = {};
 }
 
-void app_action_run_first_scan(app_State *app, scan_Comparison cmp, usize stride)
+void app_action_run_first_scan(app_State *app, scan_Settings settings, scan_Comparison cmp)
 {
     // TODO: async
     arena_reset(app->scan_result_arena);
     arena_reset(app->previous_scan_result_arena);
 
     app->result_list = scan_remote_memory_first(
-        app->scan_result_arena, app->open_process_handle, cmp, stride);
+        app->scan_result_arena, app->open_process_handle, settings, cmp);
 
     proc_Status errors = app->result_list.errors;
 
@@ -56,7 +56,7 @@ void app_action_run_first_scan(app_State *app, scan_Comparison cmp, usize stride
     app->scanner_state = APP_SCANNER_STATE_NEXT_SCAN_READY;
 }
 
-void app_action_run_next_scan(app_State *app, scan_Comparison cmp)
+void app_action_run_next_scan(app_State *app, scan_Settings settings, scan_Comparison cmp)
 {
     // TODO: async
     ASSERT(app->result_list.total_match_count > 0);
@@ -67,7 +67,7 @@ void app_action_run_next_scan(app_State *app, scan_Comparison cmp)
     arena_reset(app->scan_result_arena);
 
     app->result_list = scan_remote_memory_next(
-        app->scan_result_arena, app->open_process_handle, cmp, app->result_list);
+        app->scan_result_arena, app->open_process_handle, settings, cmp, app->result_list);
 }
 
 void app_action_reset_scan_results(app_State *app)

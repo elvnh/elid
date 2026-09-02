@@ -164,7 +164,7 @@ void gui_scan_parameters(gui_State *gui, app_State *app)
             gui->scan_parameters.selected_scan_mode
         );
 
-        usize scan_stride = 4;
+        scan_Settings scan_settings = gui_get_scan_settings(gui);
 
         // Scan buttons
         {
@@ -174,8 +174,7 @@ void gui_scan_parameters(gui_State *gui, app_State *app)
             ImGui::BeginDisabled(scanning_disabled); {
                 if (app->scanner_state == APP_SCANNER_STATE_FIRST_SCAN_READY) {
                     if (ImGui::Button("First scan")) {
-                        // TODO: show error if we don't have permissions to scan
-                        app_action_run_first_scan(app, parsed_scan_input.value, scan_stride);
+                        app_action_run_first_scan(app, scan_settings, parsed_scan_input.value);
                     }
                 } else if (ALWAYS(app->scanner_state == APP_SCANNER_STATE_NEXT_SCAN_READY)) {
                     if (ImGui::Button("New scan")) {
@@ -190,7 +189,7 @@ void gui_scan_parameters(gui_State *gui, app_State *app)
 
                 ImGui::BeginDisabled(next_scan_disabled); {
                     if (ImGui::Button("Next scan")) {
-                        app_action_run_next_scan(app, parsed_scan_input.value);
+                        app_action_run_next_scan(app, scan_settings, parsed_scan_input.value);
                     }
                 } ImGui::EndDisabled();
 

@@ -154,3 +154,11 @@ char *gui_cstr_from_match_value(Arena *arena, scan_Value value, scan_ValueType v
 
     return result;
 }
+
+scan_Settings gui_get_scan_settings(gui_State *gui)
+{
+    // TODO: get scan settings from current gui state
+    scan_Settings result = {};
+
+    return result;
+}
