@@ -54,8 +54,10 @@ void gui_scan_result_table(gui_State *gui, app_State *app)
                     b32 is_row_selected = gui->result_table.selected_row_index == row;
                     b32 match_is_at_static_offset = match.containing_object.ok;
 
-                    char *addr_str = gui_cstr_from_match_address(app->frame_arena, match);
-                    char *value_str = gui_cstr_from_match_value(app->frame_arena, match.value, app->result_list.value_type);
+                    char *addr_str = gui_cstr_from_match_address(
+                        app->frame_arena, match, app->result_list.process_objects);
+                    char *value_str = gui_cstr_from_match_value(
+                        app->frame_arena, match.value, app->result_list.value_type);
 
                     ImGui::PushID(row); {
                         ImGui::TableSetColumnIndex(0); {

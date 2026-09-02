@@ -96,7 +96,7 @@ scan_Comparison_Maybe gui_try_parse_scan_input(const char *input, scan_ValueType
     return result;
 }
 
-char *gui_cstr_from_match_address(Arena *arena, scan_MatchDetails match)
+char *gui_cstr_from_match_address(Arena *arena, scan_MatchDetails match, proc_ObjectList objects)
 {
     char *result = 0;
 
@@ -108,9 +108,17 @@ char *gui_cstr_from_match_address(Arena *arena, scan_MatchDetails match)
         proc_Object obj = match.containing_object.value;
         usize offset = match.address - obj.base_address;
 
+        String object_name = {};
+
+        if (proc_object_has_unique_filename(obj, objects)) {
+            object_name = path_filename(obj.name);
+        } else {
+            object_name = obj.name;
+        }
+
         // TODO: shorten name so we don't get the entire path
-        result = str_format_cstr(arena, "\"" FMT_STR "\"" "+%zu",
-            FMT_STR_ARG(match.containing_object.value.name),
+        result = str_format_cstr(arena, "\"" FMT_STR "\"" "+%" PRIxPTR,
+            FMT_STR_ARG(object_name),
             offset);
 
     } else {

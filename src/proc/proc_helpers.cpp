@@ -19,7 +19,7 @@ proc_Status proc_status_from_memmi_status(memmi_Status status)
         } break;
 
         case MEMMI_INVALID_ARGUMENTS: {
-            ASSERT_ALWAYS(0);
+            ASSERT(0);
         } break;
 
         case MEMMI_ALLOCATION_FAILED: {
@@ -53,10 +53,7 @@ proc_Object_Maybe proc_get_object_address_is_contained_in(Arena *arena, memmi_Ob
             if ((object.base_address <= addr) && (addr < (object.base_address + object.size))) {
                 ASSERT(((addr + size) < (object.base_address + object.size)));
 
-                proc_Object found_object = {};
-                found_object.name = proc_copy_memmi_string(arena, object.path);
-                found_object.base_address = object.base_address;
-
+                proc_Object found_object = proc_object_from_memmi_object(arena, object);
                 result = SOME(found_object);
 
                 break;
@@ -104,6 +101,55 @@ String proc_copy_memmi_string(Arena *arena, memmi_String string)
 {
     String result = str_alloc(arena, string.count);
     copy_mem(result.data, (u8 *)string.data, string.count, sizeof(*string.data));
+
+    return result;
+}
+
+proc_Object proc_object_from_memmi_object(Arena *arena, memmi_Object object)
+{
+    proc_Object result = {};
+    result.name = proc_copy_memmi_string(arena, object.path);
+    result.base_address = object.base_address;
+
+    return result;
+}
+
+proc_ObjectList proc_object_list_from_memmi_object_list(Arena *arena, memmi_ObjectList objects)
+{
+    proc_ObjectList result = {};
+    result.data = arena_alloc_array(arena, proc_Object, objects.count);
+    result.count = objects.count;
+
+    for (usize i = 0; i < objects.count; ++i) {
+        result.data[i] = proc_object_from_memmi_object(arena, objects.data[i]);
+    }
+
+    return result;
+}
+
+b32 proc_object_has_unique_filename(proc_Object object, proc_ObjectList objects)
+{
+    b32 result = true;
+
+    u32 occurrences = 0;
+
+    String filename_a = path_filename(object.name);
+
+    for (usize i = 0; i < objects.count; ++i) {
+        String filename_b = path_filename(objects.data[i].name);
+
+        if (str_eq(filename_a, filename_b)) {
+            ++occurrences;
+
+            if (occurrences > 1) {
+                result = false;
+                break;
+            }
+        }
+    }
+
+    ASSERT(occurrences > 0);
+    ASSERT(occurrences <= 2);
 
     return result;
 }

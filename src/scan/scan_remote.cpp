@@ -48,6 +48,8 @@ scan_Result scan_remote_memory_first(Arena *arena, memmi_Process proc, scan_Comp
     memmi_ObjectList process_objects = memmi_get_loaded_objects(proc, region_allocator);
     ASSERT(process_objects.status == MEMMI_OK);
 
+    result.process_objects = proc_object_list_from_memmi_object_list(arena, process_objects);
+
     b32 at_least_one_read_succeeded = false;
 
     if (memory_regions.status != MEMMI_OK) {
@@ -79,16 +81,19 @@ scan_Result scan_remote_memory_first(Arena *arena, memmi_Process proc, scan_Comp
                 } else {
                     at_least_one_read_succeeded = true;
 
-                    // TODO: return nil match list
+                    // TODO: return first match list by value
                     scan_MatchList *matches =
-                        scan_local_memory_first(arena, read_mem_result.memory, read_mem_result.bytes_read, cmp, stride);
+                        scan_local_memory_first(arena, read_mem_result.memory,
+                            read_mem_result.bytes_read, cmp, stride);
 
                     ASSERT(matches);
 
                     proc_Object_Maybe containing_object =
-                        proc_get_object_address_is_contained_in(arena, process_objects, region.base_address, value_type_size);
+                        proc_get_object_address_is_contained_in(
+                            arena, process_objects, region.base_address, value_type_size);
 
-                    scan__push_region_matches(arena, &result, matches, region.base_address, region.size, containing_object);
+                    scan__push_region_matches(arena, &result, matches, region.base_address,
+                        region.size, containing_object);
                 }
             }
         }

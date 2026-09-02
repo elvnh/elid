@@ -21,6 +21,8 @@ struct scan_Result {
     proc_Status         errors;
     usize               total_match_count;
 
+    proc_ObjectList     process_objects;
+
     scan_RegionMatches *first;
     scan_RegionMatches *last;
     usize               list_node_count;
