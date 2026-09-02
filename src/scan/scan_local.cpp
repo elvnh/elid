@@ -20,18 +20,21 @@ static scan_MatchList *scan__alloc_match_list(Arena *arena)
     return result;
 }
 
-static void scan__push_match(Arena *arena, scan_MatchList *list, scan_Match match)
+static void scan__push_match(Arena *arena, scan_MatchList *list, scan_Match match, scan_MatchHistory history)
 {
     scan_MatchList *current = list->last;
 
-    ASSERT(current->count <= array_capacity(current->data));
+    ASSERT(current->count <= array_capacity(current->match_data));
+    ASSERT(array_capacity(current->match_data) == array_capacity(current->match_history_data));
 
-    if (current->count == array_capacity(current->data)) {
+    if (current->count == array_capacity(current->match_data)) {
         current = scan__alloc_match_list(arena);
         sll_push_back(list, current);
     }
 
-    current->data[current->count++] = match;
+    usize index = current->count++;
+    current->match_data[index] = match;
+    current->match_history_data[index] = history;
 
     ++list->total_match_count;
 }
@@ -56,7 +59,12 @@ scan_MatchList *scan_local_memory_first(Arena *arena, void *mem, usize mem_size,
             match.value = value_at_address;
             match.offset_from_base = offset;
 
-            scan__push_match(arena, result, match);
+            // There is no history yet as this is the first scan.
+            scan_MatchHistory match_history = {};
+            match_history.first_value = match.value;
+            match_history.previous_value = match.value;
+
+            scan__push_match(arena, result, match, match_history);
         }
 
         offset += stride;
@@ -71,7 +79,10 @@ scan_MatchList *scan_local_memory_next(Arena *arena, void *mem, usize mem_size, 
 
     for (scan_MatchList *match_list = prev_matches; match_list; match_list = list_next(match_list)) {
         for (usize i = 0; i < match_list->count; ++i) {
-            scan_Match prev_match = match_list->data[i];
+            scan_Match prev_match = match_list->match_data[i];
+            scan_MatchHistory history = match_list->match_history_data[i];
+            history.previous_value = prev_match.value;
+
             ASSERT(prev_match.offset_from_base < mem_size);
 
             void *address = ptr_byte_offset(mem, prev_match.offset_from_base);
@@ -83,7 +94,7 @@ scan_MatchList *scan_local_memory_next(Arena *arena, void *mem, usize mem_size, 
                 new_match.value = current_value;
                 new_match.offset_from_base = prev_match.offset_from_base;
 
-                scan__push_match(arena, result, new_match);
+                scan__push_match(arena, result, new_match, history);
             }
         }
     }

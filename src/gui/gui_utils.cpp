@@ -98,6 +98,9 @@ scan_Comparison_Maybe gui_try_parse_scan_input(const char *input, scan_ValueType
 
 char *gui_cstr_from_match_address(Arena *arena, scan_MatchDetails match, proc_ObjectList objects)
 {
+    ASSERT(objects.data);
+    ASSERT(objects.count);
+
     char *result = 0;
 
     if (match.containing_object.ok) {

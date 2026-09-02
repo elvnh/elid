@@ -30,6 +30,9 @@ scan_Result scan_remote_memory_first(Arena *arena, memmi_Process proc, scan_Comp
     scan_Result result = {};
     result.value_type = cmp.value_type;
     result.scan_mode = cmp.mode;
+    result.process_objects = proc_get_loaded_objects(arena, proc);
+
+    ASSERT(result.process_objects.status == PROC_STATUS_OK);
 
     usize value_type_size = scan_val_type_get_size(cmp.value_type);
 
@@ -37,18 +40,12 @@ scan_Result scan_remote_memory_first(Arena *arena, memmi_Process proc, scan_Comp
     Arena *scan_scratch_arena = thread_ctx_get()->per_scan_scratch_arena;
     memmi_Allocator scan_scratch_allocator = proc_memmi_allocator_from_arena(scan_scratch_arena);
 
-    // For allocating memory region metadata array. We allocate those in a separate arena
-    // as they're needed for the entire function, while the scan scratch arena gets reset
-    // after each region.
-    // TODO: rename, this is no longer accurate
-    Temp scratch = scratch_begin();
-    memmi_Allocator region_allocator = proc_memmi_allocator_from_arena(scratch.arena);
+    // For allocations that need to live for entire lifetime of function.
+    Temp temp = scratch_begin();
+    memmi_Allocator temp_allocator = proc_memmi_allocator_from_arena(temp.arena);
 
-    memmi_MemoryRegions memory_regions = memmi_get_process_memory_regions(proc, region_allocator);
-    memmi_ObjectList process_objects = memmi_get_loaded_objects(proc, region_allocator);
-    ASSERT(process_objects.status == MEMMI_OK);
+    memmi_MemoryRegions memory_regions = memmi_get_process_memory_regions(proc, temp_allocator);
 
-    result.process_objects = proc_object_list_from_memmi_object_list(arena, process_objects);
 
     b32 at_least_one_read_succeeded = false;
 
@@ -90,7 +87,7 @@ scan_Result scan_remote_memory_first(Arena *arena, memmi_Process proc, scan_Comp
 
                     proc_Object_Maybe containing_object =
                         proc_get_object_address_is_contained_in(
-                            arena, process_objects, region.base_address, value_type_size);
+                            result.process_objects, region.base_address, value_type_size);
 
                     scan__push_region_matches(arena, &result, matches, region.base_address,
                         region.size, containing_object);
@@ -113,6 +110,9 @@ scan_Result scan_remote_memory_next(Arena *arena, memmi_Process proc, scan_Compa
     scan_Result result = {};
     result.value_type = cmp.value_type;
     result.scan_mode = cmp.mode;
+    result.process_objects = proc_get_loaded_objects(arena, proc);
+    ASSERT(result.process_objects.status == PROC_STATUS_OK);
+
 
     // For temporarily storing the memory of a region during the scan of it.
     Arena *scan_scratch_arena = thread_ctx_get()->per_scan_scratch_arena;
@@ -126,7 +126,8 @@ scan_Result scan_remote_memory_next(Arena *arena, memmi_Process proc, scan_Compa
         arena_reset(scan_scratch_arena);
 
         memmi_ReadMemory read_mem_result =
-            memmi_read_memory(proc, match_list->region_base_address, match_list->region_size, scan_scratch_allocator);
+            memmi_read_memory(proc, match_list->region_base_address,
+                match_list->region_size, scan_scratch_allocator);
 
         if (read_mem_result.status != MEMMI_OK) {
             set_flag(&result.errors, proc_status_from_memmi_status(read_mem_result.status));
@@ -138,7 +139,8 @@ scan_Result scan_remote_memory_next(Arena *arena, memmi_Process proc, scan_Compa
             void *region_mem = read_mem_result.memory;
             usize bytes_read = read_mem_result.bytes_read;
 
-            scan_MatchList *matches = scan_local_memory_next(arena, region_mem, bytes_read, cmp, match_list->head);
+            scan_MatchList *matches = scan_local_memory_next(arena, region_mem,
+                bytes_read, cmp, match_list->head);
             ASSERT(matches);
 
             scan__push_region_matches(arena, &result, matches, match_list->region_base_address,

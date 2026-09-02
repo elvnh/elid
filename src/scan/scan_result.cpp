@@ -18,7 +18,7 @@ static scan_MatchDetails scan__region_matches_at(scan_RegionMatches *matches, us
     usize index = at - i;
     ASSERT(index < current->count);
 
-    scan_Match match = current->data[index];
+    scan_Match match = current->match_data[index];
     result.address = matches->region_base_address + match.offset_from_base;
     result.value = match.value;
     result.containing_object = matches->containing_object;

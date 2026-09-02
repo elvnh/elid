@@ -1,13 +1,22 @@
 #pragma once
 
+// TODO: come up with a good size for this
+#define SCAN_MATCH_LIST_SIZE 2
+
 struct scan_Match {
     scan_Value value;
     usize      offset_from_base;
 };
 
+struct scan_MatchHistory {
+    scan_Value previous_value;
+    scan_Value first_value;
+};
+
 // TODO: store exact scan results sparsely
 struct scan_MatchList {
-    scan_Match data[2]; // TODO: come up with a good size for this
+    scan_Match        match_data[SCAN_MATCH_LIST_SIZE];
+    scan_MatchHistory match_history_data[SCAN_MATCH_LIST_SIZE];
     usize count; // Number of matches in this list.
 
     usize total_match_count; // Total number of matches in chain.
