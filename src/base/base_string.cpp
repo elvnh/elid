@@ -38,12 +38,12 @@ String str_alloc(Arena *arena, usize count)
 
 String str_alloc_cstr(Arena *arena, const char *cstr)
 {
-    String result = str_copy(arena, str_from_cstr(cstr));
+    String result = str_clone(arena, str_from_cstr(cstr));
 
     return result;
 }
 
-String str_copy(Arena *arena, String str)
+String str_clone(Arena *arena, String str)
 {
     String result = {};
 

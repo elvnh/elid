@@ -15,14 +15,9 @@ struct Cut {
 DEFINE_LIST_TYPES(String);
 
 #define     str_lit(s) String{(u8 *)s, array_capacity(s) - 1}
-String      str_from_cstr(const char *str);
-char *      str_to_cstr(Arena *arena, String str);
-String      str_alloc_cstr(Arena *arena, const char *cstr);
 String      str_alloc(Arena *arena, usize count);
-String      str_copy(Arena *arena, String str); // TODO: rename to str_clone
-char       *str_clone_cstr(Arena *arena, const char *str);
+String      str_clone(Arena *arena, String str);
 String      str_concat(Arena *arena, String a, String b);
-String      str_null_terminate(Arena *arena, String str);
 b32         str_is_null_or_empty(String str);
 u8          str_at(String a, usize index);
 u8         *str_begin(String str);
@@ -43,6 +38,13 @@ Cut         str_cut_next(Cut cut);
 usize_Maybe str_find_first_occurrence(String str, u8 ch);
 usize_Maybe str_find_last_occurrence(String str, u8 ch);
 usize_Maybe str_find_first_occurrence_from(String str, u8 ch, usize index);
+
+/* C-strings */
+String      str_from_cstr(const char *str);
+char       *str_to_cstr(Arena *arena, String str);
+char       *str_clone_cstr(Arena *arena, const char *str);
+String      str_null_terminate(Arena *arena, String str);
+String      str_alloc_cstr(Arena *arena, const char *cstr); // TODO: isn't this the same as str_clone_cstr?
 
 /* String formatting */
 #define FMT_STR "%.*s"
