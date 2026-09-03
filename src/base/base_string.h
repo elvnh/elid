@@ -19,7 +19,8 @@ String      str_from_cstr(const char *str);
 char *      str_to_cstr(Arena *arena, String str);
 String      str_alloc_cstr(Arena *arena, const char *cstr);
 String      str_alloc(Arena *arena, usize count);
-String      str_copy(Arena *arena, String str);
+String      str_copy(Arena *arena, String str); // TODO: rename to str_clone
+char       *str_clone_cstr(Arena *arena, const char *str);
 String      str_concat(Arena *arena, String a, String b);
 String      str_null_terminate(Arena *arena, String str);
 b32         str_is_null_or_empty(String str);

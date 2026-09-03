@@ -55,6 +55,16 @@ String str_copy(Arena *arena, String str)
     return result;
 }
 
+char *str_clone_cstr(Arena *arena, const char *str)
+{
+    usize length = strlen(str);
+
+    char *result = arena_alloc_array(arena, char, length);
+    strncpy(result, str, length);
+
+    return result;
+}
+
 String str_concat(Arena *arena, String a, String b)
 {
     String result = {};
