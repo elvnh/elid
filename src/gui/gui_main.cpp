@@ -125,6 +125,10 @@ static void gui__main_window(gui_State *gui, app_State *app)
         ImGui::BeginChild("##child_scan", {-FLT_MIN, RESULT_TABLE_HEIGHT_FRACTION}, scan_child_flags, 0); {
             gui_scan_parameters(gui, app);
         } ImGui::EndChild();
+
+        ImGui::BeginChild("##child_address_table", {-FLT_MIN, -FLT_MIN}, scan_child_flags, 0); {
+            gui_address_table(gui, app);
+        } ImGui::EndChild();
     } gui__end_window(gui);
 }
 

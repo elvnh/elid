@@ -169,6 +169,10 @@ DEFINE_MAYBE_TYPE(usize);
     ASSERT_AND_THEN(                                                    \
         (arr)->count < array_capacity((arr)->data),                        \
         (arr)->data[(arr)->count++] = item)
+#define array_is_full(arr)                          \
+    ASSERT_AND_THEN(                                \
+        ((arr)->count <= array_capacity((arr)->data)),    \
+    ((arr)->count >= array_capacity((arr)->data)))
 #define array_clear(arr) ((arr)->count = 0)
 #define array_count(arr) ((arr)->count)
 #define array_at(arr, i)                        \

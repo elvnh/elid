@@ -60,6 +60,7 @@ void gui_scan_result_table(gui_State *gui, app_State *app)
                     char *value_str = gui_cstr_from_match_value(
                         app->frame_arena, match.match->value, app->result_list.value_type);
 
+                    // TODO: is this PushID necessary?
                     ImGui::PushID(row); {
                         // Address
                         ImGui::TableSetColumnIndex(0); {
@@ -123,11 +124,66 @@ void gui_scan_result_table(gui_State *gui, app_State *app)
                             ImGui::EndPopup();
                         }
                     } ImGui::PopID();
-
                 }
-
             }
         }
+    } ImGui::EndTable();
+}
+
+void gui_address_table(gui_State *gui, app_State *app)
+{
+    s32 table_flags = ImGuiTableFlags_Resizable
+        | ImGuiTableFlags_BordersV
+        | ImGuiTableFlags_Borders
+        | ImGuiTableFlags_ScrollY;
+
+    const char *table_columns[] = {"Address", "Type", "Value"};
+
+    s32 column_count = array_capacity(table_columns);
+
+    if (ImGui::BeginTable("##address_table", column_count, table_flags, {})) {
+        ImGui::TableSetupScrollFreeze(0, 1);
+
+        for (s32 col = 0; col < column_count; ++col) {
+            ImGui::TableSetupColumn(table_columns[col]);
+        }
+
+        ImGui::TableHeadersRow();
+
+        app_AddressTable *tbl = &app->address_table;
+        usize row_count = app_addr_table_count(tbl);
+
+        ImGui::TableNextRow();
+
+        for (app_AddressTableEntry *entry = list_head(tbl); entry; entry = list_next(entry)) {
+            // Address
+            ImGui::TableSetColumnIndex(0); {
+                char *addr_str = gui_cstr_from_address(app->frame_arena, entry->address);
+
+                if (ImGui::Selectable(addr_str, false, 0)) {
+
+                }
+            }
+
+            // Type
+            ImGui::TableSetColumnIndex(1); {
+                const char *type_str = scan_val_type_to_cstr(entry->value_type);
+                if (ImGui::Selectable(type_str, false, 0)) {
+
+                }
+            }
+
+            // Value
+            ImGui::TableSetColumnIndex(2); {
+                char *value_str = gui_cstr_from_match_value(app->frame_arena, entry->current_value, entry->value_type);
+
+                if (ImGui::Selectable(value_str, false, 0)) {
+
+                }
+            }
+        }
+
+
     } ImGui::EndTable();
 }
 

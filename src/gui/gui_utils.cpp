@@ -96,6 +96,13 @@ scan_Comparison_Maybe gui_try_parse_scan_input(const char *input, scan_ValueType
     return result;
 }
 
+char *gui_cstr_from_address(Arena *arena, uintptr_t address)
+{
+    char *result = str_format_cstr(arena, "%" PRIxPTR, address);
+
+    return result;
+}
+
 char *gui_cstr_from_match_address(Arena *arena, scan_MatchDetails match_details, proc_ObjectList objects)
 {
     ASSERT(objects.data);
@@ -116,8 +123,11 @@ char *gui_cstr_from_match_address(Arena *arena, scan_MatchDetails match_details,
         String object_name = {};
 
         if (proc_object_has_unique_filename(obj, objects)) {
+            // If this object can be uniquely identified among all loaded objects
+            // by its filename alone, it suffices to display the filename.
             object_name = path_filename(obj.name);
         } else {
+            // Otherwise, we'll display the full path.
             object_name = obj.name;
         }
 
@@ -126,7 +136,7 @@ char *gui_cstr_from_match_address(Arena *arena, scan_MatchDetails match_details,
             offset_from_object_base);
     } else {
         // This is a regular address, display as normal.
-        result = str_format_cstr(arena, "%" PRIxPTR, match_address);
+        result = gui_cstr_from_address(arena, match_address);
     }
 
     return result;
