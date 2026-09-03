@@ -35,31 +35,6 @@ scan_ValueTypeList scan_val_type_get_list()
     return result;
 }
 
-const char *scan_val_type_to_cstr(scan_ValueType type)
-{
-    const char *result = 0;
-
-    BEGIN_EXHAUSTIVE_SWITCH;
-    switch (type) {
-        case SCAN_VALUE_TYPE_INT32: {
-            result = "4 bytes";
-        } break;
-
-        case SCAN_VALUE_TYPE_FLOAT32: {
-            result = "Float";
-        } break;
-
-        case SCAN_VALUE_TYPE_COUNT: {
-            ASSERT_ALWAYS(0);
-        } break;
-
-        INVALID_DEFAULT_CASE;
-    }
-    END_EXHAUSTIVE_SWITCH;
-
-    return result;
-}
-
 scan_Value scan_val_make_int32(u32 value)
 {
     scan_Value result = {};

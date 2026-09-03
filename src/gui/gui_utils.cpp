@@ -165,6 +165,39 @@ char *gui_cstr_from_match_value(Arena *arena, scan_Value value, scan_ValueType v
     return result;
 }
 
+char *gui_cstr_from_value_type(Arena *arena, scan_ValueType type)
+{
+    char *result = 0;
+    const char *str = 0;
+
+    BEGIN_EXHAUSTIVE_SWITCH;
+    switch (type) {
+        case SCAN_VALUE_TYPE_INT32: {
+            str = "4 bytes";
+        } break;
+
+        case SCAN_VALUE_TYPE_FLOAT32: {
+            str = "Float";
+        } break;
+
+        case SCAN_VALUE_TYPE_COUNT: {
+            ASSERT(0);
+
+            str = "<invalid>";
+        } break;
+
+        INVALID_DEFAULT_CASE;
+    }
+    END_EXHAUSTIVE_SWITCH;
+
+    // NOTE: this copy is obviously unnecessary but I do it so that we can return a char * just like
+    // from the other gui_cstr_from_* functions. These strings are so small anyways that it doesn't matter.
+    result = str_clone_cstr(arena, str);
+
+    return result;
+}
+
+
 scan_Settings gui_get_scan_settings(gui_State *gui)
 {
     // TODO: get scan settings from current gui state

@@ -167,7 +167,7 @@ void gui_address_table(gui_State *gui, app_State *app)
 
             // Type
             ImGui::TableSetColumnIndex(1); {
-                const char *type_str = scan_val_type_to_cstr(entry->value_type);
+                char *type_str = gui_cstr_from_value_type(app->frame_arena, entry->value_type);
                 if (ImGui::Selectable(type_str, false, 0)) {
 
                 }
@@ -300,7 +300,7 @@ void gui_scan_parameters(gui_State *gui, app_State *app)
             s32 combo_flags = ImGuiComboFlags_HeightLargest;
 
             scan_ValueTypeList available_types = scan_val_type_get_list();
-            const char *value_type_preview = scan_val_type_to_cstr(gui->scan_parameters.selected_value_type);
+            char *value_type_preview = gui_cstr_from_value_type(app->frame_arena, gui->scan_parameters.selected_value_type);
 
             ImGui::SetNextItemWidth(combo_box_width);
 
@@ -309,7 +309,7 @@ void gui_scan_parameters(gui_State *gui, app_State *app)
                     scan_ValueType type = available_types.data[i];
                     b32 is_type_selected = gui->scan_parameters.selected_value_type == type;
 
-                    const char *type_spelling = scan_val_type_to_cstr(type);
+                    char *type_spelling = gui_cstr_from_value_type(app->frame_arena, type);
 
                     if (ImGui::Selectable(type_spelling, is_type_selected)) {
                         gui->scan_parameters.selected_value_type = type;

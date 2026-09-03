@@ -19,9 +19,6 @@ union scan_Value {
 
 usize               scan_val_type_get_size(scan_ValueType type);
 scan_ValueTypeList  scan_val_type_get_list();
-
-// TODO: move to gui
-const char         *scan_val_type_to_cstr(scan_ValueType type);
 scan_Value          scan_val_make_int32(u32 value);
 scan_Value          scan_val_add(scan_ValueType type, scan_Value a, scan_Value b);
 scan_Value          scan_val_sub(scan_ValueType type, scan_Value a, scan_Value b);
