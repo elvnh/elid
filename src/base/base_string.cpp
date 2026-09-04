@@ -59,7 +59,7 @@ char *str_clone_cstr(Arena *arena, const char *str)
 {
     usize length = strlen(str);
 
-    char *result = arena_alloc_array(arena, char, length);
+    char *result = arena_alloc_array(arena, char, length + 1);
     strncpy(result, str, length);
 
     return result;
