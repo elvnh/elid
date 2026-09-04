@@ -34,6 +34,8 @@ static void gui__end_frame(gui_State *gui)
 
 static void gui__begin_root_window(gui_State *gui)
 {
+    (void)gui;
+
     ImGui::SetNextWindowPos(ImVec2{});
     ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
 
@@ -49,6 +51,8 @@ static void gui__begin_root_window(gui_State *gui)
 
 static void gui__end_window(gui_State *gui)
 {
+    (void)gui;
+
     ImGui::End();
 }
 

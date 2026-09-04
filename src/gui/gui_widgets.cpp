@@ -162,8 +162,6 @@ void gui_address_table(gui_State *gui, app_State *app)
         ImGui::TableHeadersRow();
 
         app_AddressTable *tbl = &app->address_table;
-        usize row_count = app_addr_table_count(tbl);
-
 
         for (app_AddressTableEntry *entry = list_head(tbl); entry; entry = list_next(entry)) {
             ImGui::TableNextRow();
