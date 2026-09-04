@@ -1,6 +1,6 @@
 #include "gui_popups.h"
 
-const char *gui__popup_get_name(Arena *arena, gui_Popup popup, const char *title)
+char *gui__popup_get_name(Arena *arena, gui_Popup popup, const char *title)
 {
     if (!title) {
         title = "";
@@ -11,18 +11,37 @@ const char *gui__popup_get_name(Arena *arena, gui_Popup popup, const char *title
     const char *id_str = str_format_cstr(arena, "%d", (s32)popup);
     ImGuiID id = ImGui::GetID(id_str);
 
-    const char *result = str_format_cstr(arena, "%s###%u", title, id);
+    char *result = str_format_cstr(arena, "%s###%u", title, id);
 
     return result;
 }
 
+void gui__popup_initialize(gui_State *gui, gui_Popup popup)
+{
+    switch (popup) {
+        case GUI_POPUP_ADD_ADDRESS: {
+            zero_mem(&gui->add_address_popup, sizeof(gui->add_address_popup));
+        } break;
+
+        INVALID_CASE(GUI_POPUP_COUNT);
+
+        default: {
+        } break;
+    }
+}
+
 void gui_popup_open(gui_State *gui, gui_Popup popup)
 {
+    ASSERT(popup != GUI_POPUP_COUNT);
+
     gui->popup_states[popup] = true;
+    gui__popup_initialize(gui, popup);
 }
 
 void gui_popup_close(gui_State *gui, gui_Popup popup)
 {
+    ASSERT(popup != GUI_POPUP_COUNT);
+
     gui->popup_states[popup] = false;
     ImGui::CloseCurrentPopup();
 }
@@ -179,6 +198,70 @@ static void gui__popup_edit_value(gui_State *gui, app_State *app)
     }
 }
 
+static void gui__popup_add_address(gui_State *gui, app_State *app)
+{
+    // TODO: this preamble is repeated a lot
+    ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+    ImVec2 root_window_size = ImGui::GetContentRegionAvail();
+
+    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, {0.5f, 0.5f});
+    ImGui::SetNextWindowSize({-FLT_MIN, root_window_size.y * 0.75f}, ImGuiCond_Appearing);
+
+    s32 popup_flags = ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_AlwaysAutoResize;
+
+    const char *title = "Add address";
+    const char *popup_name = gui__popup_get_name(app->frame_arena, GUI_POPUP_ADD_ADDRESS, title);
+
+    if (ImGui::BeginPopupModal(popup_name, 0, popup_flags)) {
+        ImGui::TextUnformatted("Address:");
+
+        ImGui::SameLine();
+
+        ImGui::InputText(
+            "##address",
+            gui->add_address_popup.address_textbox,
+            array_capacity(gui->add_address_popup.address_textbox)
+        );
+
+        ImGui::Separator();
+
+        f32 combo_box_width = 200;
+
+        scan_ValueType current_value_type = gui->add_address_popup.selected_value_type;
+        gui->add_address_popup.selected_value_type =
+            gui_value_type_dropdown(app, "Value type:", current_value_type, combo_box_width);
+
+        b32 should_close = false;
+
+        u32 base = 16;
+        usize_Maybe address = gui_try_parse_address(gui->add_address_popup.address_textbox, base);
+
+        ImGui::BeginDisabled(!address.ok); {
+            if (ImGui::Button("OK")) {
+                should_close = true;
+
+                app_AddressTableEntry entry = {};
+                entry.address = address.value;
+                entry.value_type = gui->add_address_popup.selected_value_type;
+
+                app_action_push_address_table_entry(app, entry);
+            }
+        } ImGui::EndDisabled();
+
+        ImGui::SameLine();
+
+        if (ImGui::Button("Cancel")) {
+            should_close = true;
+        }
+
+        if (should_close) {
+            gui_popup_close(gui, GUI_POPUP_ADD_ADDRESS);
+        }
+
+        ImGui::EndPopup();
+    }
+}
+
 void gui_popup_display_active_popups(gui_State *gui, app_State *app)
 {
     for (gui_Popup popup = {}; popup < GUI_POPUP_COUNT; inc_enum(&popup)) {
@@ -196,6 +279,7 @@ void gui_popup_display_active_popups(gui_State *gui, app_State *app)
 
     gui__popup_open_process(gui, app);
     gui__popup_edit_value(gui, app);
+    gui__popup_add_address(gui, app);
 
     gui__generic_error_popup(app->frame_arena, gui, GUI_POPUP_ERROR_INSUFFICIENT_PERMS_FOR_SCAN,
         "Insufficient permissions to perform scan.");
@@ -203,4 +287,5 @@ void gui_popup_display_active_popups(gui_State *gui, app_State *app)
         "Process died during scan.");
     gui__generic_error_popup(app->frame_arena, gui, GUI_POPUP_ERROR_WRITE_FAILED,
         "Failed to write to address.");
+
 }

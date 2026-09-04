@@ -5,6 +5,7 @@ struct app_AddressTableEntry {
     uintptr_t address;
     scan_ValueType value_type;
     scan_Value current_value;
+    b32 last_read_successful;
 
     app_AddressTableEntry *next;
 };

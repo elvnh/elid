@@ -33,6 +33,23 @@ scan_Value_Maybe gui_try_parse_search_value(const char *input, scan_ValueType ty
     return result;
 }
 
+usize_Maybe gui_try_parse_address(const char *input, u32 base)
+{
+    usize_Maybe result = {};
+
+    usize length = strlen(input);
+
+    // TODO: provide this functionality (usize and ssize) in stn
+    result.ok =
+#if ARCHITECTURE_X64
+        stn_parse_u64(input, length, &result.value, base);
+#elif ARCHITECTURE_X86
+        stn_parse_u32(input, length, &result.value, base);
+#endif
+
+    return result;
+}
+
 scan_Comparison_Maybe gui_try_parse_scan_input(const char *input, scan_ValueType type, u32 base, scan_Mode mode)
 {
     scan_Comparison_Maybe result = {};

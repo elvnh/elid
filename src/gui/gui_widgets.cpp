@@ -141,6 +141,10 @@ void gui_address_table(gui_State *gui, app_State *app)
 
     s32 column_count = array_capacity(table_columns);
 
+    if (ImGui::Button("Add address")) {
+        gui_popup_open(gui, GUI_POPUP_ADD_ADDRESS);
+    }
+
     if (ImGui::BeginTable("##address_table", column_count, table_flags, {})) {
         ImGui::TableSetupScrollFreeze(0, 1);
 
@@ -153,31 +157,46 @@ void gui_address_table(gui_State *gui, app_State *app)
         app_AddressTable *tbl = &app->address_table;
         usize row_count = app_addr_table_count(tbl);
 
-        ImGui::TableNextRow();
 
         for (app_AddressTableEntry *entry = list_head(tbl); entry; entry = list_next(entry)) {
+            ImGui::TableNextRow();
+
+            // TODO: do this async
+            app_action_update_address_table_entry_value(app, entry);
+
             // Address
             ImGui::TableSetColumnIndex(0); {
                 char *addr_str = gui_cstr_from_address(app->frame_arena, entry->address);
+                char *addr_id = str_format_cstr(app->frame_arena, "%s##%p", addr_str, (void *)entry);
 
-                if (ImGui::Selectable(addr_str, false, 0)) {
+                if (ImGui::Selectable(addr_id, false, 0)) {
 
                 }
             }
 
             // Type
             ImGui::TableSetColumnIndex(1); {
-                char *type_str = gui_cstr_from_value_type(app->frame_arena, entry->value_type);
-                if (ImGui::Selectable(type_str, false, 0)) {
+                char *type_selectable_str = gui_cstr_from_value_type(app->frame_arena, entry->value_type);
+                char *type_selectable_id = str_format_cstr(app->frame_arena, "%s##%p", type_selectable_str, (void *)entry);
+
+                if (ImGui::Selectable(type_selectable_id, false, 0)) {
 
                 }
             }
 
             // Value
             ImGui::TableSetColumnIndex(2); {
-                char *value_str = gui_cstr_from_match_value(app->frame_arena, entry->current_value, entry->value_type);
+                char *value_selectable_str = 0;
 
-                if (ImGui::Selectable(value_str, false, 0)) {
+                if (entry->last_read_successful) {
+                    value_selectable_str = gui_cstr_from_match_value(app->frame_arena, entry->current_value, entry->value_type);
+                } else {
+                    value_selectable_str = str_clone_cstr(app->frame_arena, "???");
+                }
+
+                char *value_selectable_id = str_format_cstr(app->frame_arena, "%s##%p", value_selectable_str, (void *)entry);
+
+                if (ImGui::Selectable(value_selectable_id, false, 0)) {
 
                 }
             }

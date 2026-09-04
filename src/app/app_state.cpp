@@ -33,11 +33,6 @@ b32 app_init(app_State *app)
 
     ASSERT(result);
 
-    app_AddressTableEntry entry = {};
-    entry.address = 0xDEADBEEF;
-
-    app_addr_table_push(&app->address_table, entry);
-
     return result;
 }
 
@@ -50,4 +45,11 @@ void app_push_error(app_State *app, app_Error error)
     }
 
     array_push(&app->error_list, error);
+}
+
+b32 app_has_opened_process(app_State *app)
+{
+    b32 result = !memmi_process_is_null(app->open_process_handle);
+
+    return result;
 }

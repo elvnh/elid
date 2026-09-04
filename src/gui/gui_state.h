@@ -5,6 +5,7 @@ enum gui_Popup {
     /* Normal popups */
     GUI_POPUP_OPEN_PROCESS,
     GUI_POPUP_EDIT_VALUE,
+    GUI_POPUP_ADD_ADDRESS,
 
     /* Errors */
     GUI_POPUP_ERROR_PROC_DIED_DURING_SCAN,
@@ -14,6 +15,8 @@ enum gui_Popup {
     GUI_POPUP_COUNT,
 };
 
+// TODO: because of all the textboxes, this struct is getting quite big, might be a good idea to
+// allocate on heap
 struct gui_State {
     GLFWwindow *window;
 
@@ -41,6 +44,11 @@ struct gui_State {
         uintptr_t edited_address;
         scan_ValueType value_type;
     } edit_value_popup;
+
+    struct {
+        char address_textbox[256];
+        scan_ValueType selected_value_type;
+    } add_address_popup;
 };
 
 b32 gui_init(gui_State *gui);
