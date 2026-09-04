@@ -121,6 +121,13 @@ void gui_scan_result_table(gui_State *gui, app_State *app)
                                 gui_popup_open(gui, GUI_POPUP_EDIT_VALUE);
                             }
 
+                            if (ImGui::Selectable("Copy this address")) {
+                                uintptr_t address = scan_address_from_match_details(match);
+
+                                char *address_str = str_format_cstr(app->frame_arena, "%" PRIxPTR, address);
+                                ImGui::SetClipboardText(address_str);
+                            }
+
                             ImGui::EndPopup();
                         }
                     } ImGui::PopID();
