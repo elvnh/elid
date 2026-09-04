@@ -293,33 +293,10 @@ void gui_scan_parameters(gui_State *gui, app_State *app)
         }
 
         // Value type
-        {
-            ImGui::TextUnformatted("Value type:");
-            ImGui::SameLine();
+        scan_ValueType selected_type = gui->scan_parameters.selected_value_type;
 
-            s32 combo_flags = ImGuiComboFlags_HeightLargest;
-
-            scan_ValueTypeList available_types = scan_val_type_get_list();
-            char *value_type_preview = gui_cstr_from_value_type(app->frame_arena, gui->scan_parameters.selected_value_type);
-
-            ImGui::SetNextItemWidth(combo_box_width);
-
-            if (ImGui::BeginCombo("##value_type", value_type_preview, combo_flags)) {
-                for (usize i = 0; i < available_types.count; ++i) {
-                    scan_ValueType type = available_types.data[i];
-                    b32 is_type_selected = gui->scan_parameters.selected_value_type == type;
-
-                    char *type_spelling = gui_cstr_from_value_type(app->frame_arena, type);
-
-                    if (ImGui::Selectable(type_spelling, is_type_selected)) {
-                        gui->scan_parameters.selected_value_type = type;
-                    }
-                }
-
-                ImGui::EndCombo();
-            }
-        }
-
+        gui->scan_parameters.selected_value_type = gui_value_type_dropdown(
+            app, "Value type: ", selected_type, combo_box_width);
     } ImGui::EndChild();
 
     // Scan settings (fast scan, pause while scanning, etc.)

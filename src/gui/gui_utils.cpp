@@ -197,12 +197,44 @@ char *gui_cstr_from_value_type(Arena *arena, scan_ValueType type)
     return result;
 }
 
-
 scan_Settings gui_get_scan_settings(gui_State *gui)
 {
     // TODO: get scan settings from current gui state
     scan_Settings result = {};
     result.required_alignment = 4;
+
+    return result;
+}
+
+scan_ValueType gui_value_type_dropdown(app_State *app, const char *title, scan_ValueType current_type, f32 width)
+{
+    scan_ValueType result = current_type;
+
+    if (title) {
+        ImGui::TextUnformatted("Value type:");
+        ImGui::SameLine();
+    }
+
+    s32 combo_flags = ImGuiComboFlags_HeightLargest;
+    scan_ValueTypeList available_types = scan_val_type_get_list();
+    char *value_type_preview = gui_cstr_from_value_type(app->frame_arena, current_type);
+
+    ImGui::SetNextItemWidth(width);
+
+    if (ImGui::BeginCombo("##value_type", value_type_preview, combo_flags)) {
+        for (usize i = 0; i < available_types.count; ++i) {
+            scan_ValueType type = available_types.data[i];
+            b32 is_type_selected = current_type == type;
+
+            char *type_spelling = gui_cstr_from_value_type(app->frame_arena, type);
+
+            if (ImGui::Selectable(type_spelling, is_type_selected)) {
+                result = type;
+            }
+        }
+
+        ImGui::EndCombo();
+    }
 
     return result;
 }
