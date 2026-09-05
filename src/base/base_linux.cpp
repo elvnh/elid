@@ -1,6 +1,7 @@
 #include <sys/mman.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <semaphore.h>
 
 void *allocate_memory(usize size)
 {
@@ -54,4 +55,50 @@ b32 thread_join(Thread thread)
     b32 result = join_result == 0;
 
     return result;
+}
+
+Semaphore_Maybe sema_create(u32 initial_count)
+{
+    Semaphore_Maybe result = {};
+
+    // NOTE: POSIX semaphores can't be copied, which is why we have to allocate them on the
+    // heap. The reason for not using arenas is that it would create a circular dependency, as
+    // arenas depend on this file.
+    sem_t *sem = (sem_t *)allocate_memory(sizeof(sem_t));
+
+    if (sem) {
+        int init_result = sem_init(sem, 0, initial_count);
+
+        if (init_result == 0) {
+            result = SOME({(u64)sem});
+        } else {
+            free_memory(sem, sizeof(sem_t));
+        }
+    }
+
+    return result;
+}
+
+void sema_free(Semaphore sema)
+{
+    sem_t *handle = (sem_t *)sema.data;
+    sem_destroy(handle);
+    free_memory(handle, sizeof(*handle));
+}
+
+void sema_inc(Semaphore sema)
+{
+    sem_t *handle = (sem_t *)sema.data;
+
+    int post_result = sem_post(handle);
+
+    ASSERT_ALWAYS(post_result == 0);
+}
+
+void sema_dec(Semaphore sema)
+{
+    sem_t *handle = (sem_t *)sema.data;
+
+    int wait_result = sem_wait(handle);
+    ASSERT_ALWAYS(wait_result == 0);
 }
