@@ -204,7 +204,6 @@ void cond_var_wait(ConditionVariable cond_var, Mutex mutex)
     pthread_mutex_t *mutex_data = (pthread_mutex_t *)mutex.data;
     ASSERT(mutex_data);
 
-
     int wait_result = pthread_cond_wait(cond_data, mutex_data);
     ASSERT_ALWAYS(wait_result == 0);
 }

@@ -45,3 +45,16 @@ void              cond_var_free(ConditionVariable cond_var);
 void              cond_var_signal(ConditionVariable cond_var);
 void              cond_var_broadcast(ConditionVariable cond_var);
 void              cond_var_wait(ConditionVariable cond_var, Mutex mutex);
+
+/* Atomics */
+#if COMPILER_GCC
+#    define atomic_load_u32(ptr)          __atomic_load_n((ptr), __ATOMIC_SEQ_CST)
+#    define atomic_store_u32(ptr, val)    __atomic_store_n((ptr), (val), __ATOMIC_SEQ_CST)
+#    define atomic_add_u32(ptr, val)      __atomic_add_fetch((ptr), (val), __ATOMIC_SEQ_CST)
+#    define atomic_sub_u32(ptr, val)      __atomic_sub_fetch((ptr), (val), __ATOMIC_SEQ_CST)
+#    define atomic_inc_u32(ptr)           __atomic_add_fetch((ptr), 1, __ATOMIC_SEQ_CST)
+#    define atomic_dec_u32(ptr)           __atomic_sub_fetch((ptr), 1, __ATOMIC_SEQ_CST)
+#    define atomic_exchange_u32(ptr, val) __atomic_exchange_n((ptr), (val), __ATOMIC_SEQ_CST)
+#else
+#    error Atomics not defined for this compiler.
+#endif
