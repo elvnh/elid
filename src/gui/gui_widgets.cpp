@@ -107,6 +107,16 @@ void gui_scan_result_table(gui_State *gui, app_State *app)
 
                         // Right click on row context menu.
                         if (ImGui::BeginPopupContextItem()) {
+                            if (ImGui::Selectable("Add to table")) {
+                                app_AddressTableEntry entry = {};
+                                entry.address = scan_address_from_match_details(match);
+                                entry.value_type = app->result_list.value_type;
+                                entry.current_value = match.match->value;
+                                entry.last_read_successful = true;
+
+                                app_addr_table_push(&app->address_table, entry);
+                            }
+
                             if (ImGui::Selectable("Edit this value...")) {
                                 uintptr_t address = scan_address_from_match_details(match);
 
@@ -206,7 +216,6 @@ void gui_address_table(gui_State *gui, app_State *app)
                 }
             }
         }
-
 
     } ImGui::EndTable();
 }
