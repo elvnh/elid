@@ -37,17 +37,17 @@ TEST_CASE(str_from_cstr_empty)
     REQUIRE_STR_EQ(s, str_lit(""));
 }
 
-TEST_CASE(str_copy_from_literal)
+TEST_CASE(str_clone_from_literal)
 {
     String a = str_lit("abc");
-    String b = str_copy(test_arena, a);
+    String b = str_clone(test_arena, a);
 
     REQUIRE_STR_EQ(a, b);
     REQUIRE(a.data != b.data);
     REQUIRE(a.count == b.count);
 }
 
-TEST_CASE(str_copy_from_heap)
+TEST_CASE(str_clone_from_heap)
 {
     const char *literal = "abc";
     char *str = (char *)malloc(strlen(literal) + 1);
@@ -55,27 +55,27 @@ TEST_CASE(str_copy_from_heap)
 
     String a = str_from_cstr(str);
 
-    String b = str_copy(test_arena, a);
+    String b = str_clone(test_arena, a);
     REQUIRE_STR_EQ(a, b);
 
     free(str);
 }
 
-TEST_CASE(str_copy_empty_string)
+TEST_CASE(str_clone_empty_string)
 {
     usize prev_mem_usage = arena_get_memory_usage(test_arena);
 
-    String a = str_copy(test_arena, str_lit(""));
+    String a = str_clone(test_arena, str_lit(""));
 
     REQUIRE(a.data == 0);
     REQUIRE(arena_get_memory_usage(test_arena) == prev_mem_usage);
 }
 
 
-TEST_CASE(str_copy_from_arena)
+TEST_CASE(str_clone_from_arena)
 {
-    String a = str_copy(test_arena, str_lit("abc"));
-    String b = str_copy(test_arena, a);
+    String a = str_clone(test_arena, str_lit("abc"));
+    String b = str_clone(test_arena, a);
 
     REQUIRE(str_eq(a, b));
     REQUIRE(a.data != b.data);
