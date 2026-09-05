@@ -34,3 +34,8 @@ Mutex mutex_create();
 void  mutex_free(Mutex mutex);
 void  mutex_lock(Mutex mutex);
 void  mutex_unlock(Mutex mutex);
+
+/* Condition variables */
+struct ConditionVariable {
+    u64 data;
+};

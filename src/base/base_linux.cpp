@@ -103,57 +103,54 @@ void sema_dec(Semaphore sema)
     ASSERT_ALWAYS(wait_result == 0);
 }
 
-struct lnx_Mutex {
-    pthread_mutex_t handle;
-    pthread_mutexattr_t attributes;
-};
-
 Mutex mutex_create()
 {
-    lnx_Mutex *data = (lnx_Mutex *)allocate_memory(sizeof(lnx_Mutex));
-    ASSERT_ALWAYS(data);
+    pthread_mutex_t *handle = (pthread_mutex_t *)allocate_memory(sizeof(pthread_mutex_t));
+    ASSERT_ALWAYS(handle);
 
-    int attr_init_result = pthread_mutexattr_init(&data->attributes);
+    pthread_mutexattr_t attr = {};
+    int attr_init_result = pthread_mutexattr_init(&attr);
     ASSERT_ALWAYS(attr_init_result == 0);
 
-    int setattr_result = pthread_mutexattr_settype(&data->attributes, PTHREAD_MUTEX_RECURSIVE);
-    ASSERT_ALWAYS(setattr_result == 0);
+    int attr_set_result = pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+    ASSERT_ALWAYS(attr_set_result == 0);
 
-    pthread_mutex_init(&data->handle, &data->attributes);
+    pthread_mutex_init(handle, &attr);
 
-    Mutex result = {(u64)data};
+    // TODO: is it fine to destroy the attributes here?
+    int attr_destroy_result = pthread_mutexattr_destroy(&attr);
+    ASSERT_ALWAYS(attr_destroy_result == 0);
+
+    Mutex result = {(u64)handle};
 
     return result;
 }
 
 void mutex_free(Mutex mutex)
 {
-    lnx_Mutex *data = (lnx_Mutex *)mutex.data;
-    ASSERT(data);
+    pthread_mutex_t *handle = (pthread_mutex_t *)mutex.data;
+    ASSERT(handle);
 
-    int destroy_attr_result = pthread_mutexattr_destroy(&data->attributes);
-    int destroy_mutex_result = pthread_mutex_destroy(&data->handle);
+    int destroy_result = pthread_mutex_destroy(handle);
+    ASSERT_ALWAYS(destroy_result == 0);
 
-    ASSERT_ALWAYS(destroy_attr_result == 0);
-    ASSERT_ALWAYS(destroy_mutex_result == 0);
-
-    free_memory(data, sizeof(*data));
+    free_memory(handle, sizeof(*handle));
 }
 
 void mutex_lock(Mutex mutex)
 {
-    lnx_Mutex *data = (lnx_Mutex *)mutex.data;
-    ASSERT(data);
+    pthread_mutex_t *handle = (pthread_mutex_t *)mutex.data;
+    ASSERT(handle);
 
-    int lock_result = pthread_mutex_lock(&data->handle);
+    int lock_result = pthread_mutex_lock(handle);
     ASSERT_ALWAYS(lock_result == 0);
 }
 
 void mutex_unlock(Mutex mutex)
 {
-    lnx_Mutex *data = (lnx_Mutex *)mutex.data;
-    ASSERT(data);
+    pthread_mutex_t *handle = (pthread_mutex_t *)mutex.data;
+    ASSERT(handle);
 
-    int unlock_result = pthread_mutex_unlock(&data->handle);
+    int unlock_result = pthread_mutex_unlock(handle);
     ASSERT_ALWAYS(unlock_result == 0);
 }
