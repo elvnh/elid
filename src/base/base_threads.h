@@ -39,3 +39,9 @@ void  mutex_unlock(Mutex mutex);
 struct ConditionVariable {
     u64 data;
 };
+
+ConditionVariable cond_var_create();
+void              cond_var_free(ConditionVariable cond_var);
+void              cond_var_signal(ConditionVariable cond_var);
+void              cond_var_broadcast(ConditionVariable cond_var);
+void              cond_var_wait(ConditionVariable cond_var, Mutex mutex);

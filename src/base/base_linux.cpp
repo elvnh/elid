@@ -154,3 +154,57 @@ void mutex_unlock(Mutex mutex)
     int unlock_result = pthread_mutex_unlock(handle);
     ASSERT_ALWAYS(unlock_result == 0);
 }
+
+ConditionVariable cond_var_create()
+{
+    pthread_cond_t *data = (pthread_cond_t *)allocate_memory(sizeof(pthread_cond_t));
+    ASSERT_ALWAYS(data);
+
+    int init_cond_result = pthread_cond_init(data, 0);
+    ASSERT_ALWAYS(init_cond_result == 0);
+
+    ConditionVariable result = {(u64)data};
+
+    return result;
+}
+
+void cond_var_free(ConditionVariable cond_var)
+{
+    pthread_cond_t *data = (pthread_cond_t *)cond_var.data;
+    ASSERT(data);
+
+    int destroy_result = pthread_cond_destroy(data);
+    ASSERT(destroy_result == 0);
+
+    free_memory(data, sizeof(*data));
+}
+
+void cond_var_signal(ConditionVariable cond_var)
+{
+    pthread_cond_t *data = (pthread_cond_t *)cond_var.data;
+    ASSERT(data);
+
+    int signal_result = pthread_cond_signal(data);
+    ASSERT_ALWAYS(signal_result == 0);
+}
+
+void cond_var_broadcast(ConditionVariable cond_var)
+{
+    pthread_cond_t *data = (pthread_cond_t *)cond_var.data;
+    ASSERT(data);
+
+    int signal_result = pthread_cond_broadcast(data);
+    ASSERT_ALWAYS(signal_result == 0);
+}
+
+void cond_var_wait(ConditionVariable cond_var, Mutex mutex)
+{
+    pthread_cond_t *cond_data = (pthread_cond_t *)cond_var.data;
+    ASSERT(cond_data);
+    pthread_mutex_t *mutex_data = (pthread_mutex_t *)mutex.data;
+    ASSERT(mutex_data);
+
+
+    int wait_result = pthread_cond_wait(cond_data, mutex_data);
+    ASSERT_ALWAYS(wait_result == 0);
+}
