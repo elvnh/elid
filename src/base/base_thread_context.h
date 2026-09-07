@@ -11,7 +11,6 @@ struct ThreadContext {
     Arena *scratch_arena;
     // For reading memory to scan and then discard.
     Arena *per_scan_scratch_arena;
-    // TODO: per scan arena, for storing results
 };
 
 // TODO: make sure to call this when creating a new thread

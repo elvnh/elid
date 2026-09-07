@@ -1,0 +1,250 @@
+#include "app_work_queue.h"
+
+#define APP_WQ_TASK_USER_DATA_SIZE KB(4)
+#define APP_WQ_INITIAL_FREE_TASK_CAP 16
+#define APP_WQ_THREAD_WORK_QUEUE_ARENA_SIZE APP_WQ_INITIAL_FREE_TASK_CAP * sizeof(app__Task)
+
+struct app__Task {
+    char user_data[APP_WQ_TASK_USER_DATA_SIZE];
+
+    app_TaskFunction function;
+    app__Task *parent;
+    app__ThreadWorkQueue *from_queue;
+    app_TaskGeneration generation;
+    s32 unfinished_task_count;
+
+    app__Task *next;
+};
+
+struct app__ThreadWorkQueue {
+    Arena *arena;
+    app_WorkQueue *parent_queue;
+
+    Mutex queue_mutex;
+    app__Task *first_free_task;
+
+    struct {
+        app__Task *first;
+        app__Task *last;
+        usize list_node_count;
+    } queued_tasks;
+};
+
+static void app__wq_alloc_free_tasks(app__ThreadWorkQueue *queue)
+{
+    static bool first = true;
+
+    if (!first) {
+        printf("allocating new free tasks\n");
+    } else {
+        first = false;
+
+    }
+
+    ASSERT(queue->arena);
+
+    app__Task *free_tasks = arena_alloc_array(queue->arena, app__Task, APP_WQ_INITIAL_FREE_TASK_CAP);
+
+    for (s32 i = 0; i < APP_WQ_INITIAL_FREE_TASK_CAP; ++i) {
+        free_tasks[i].next = queue->first_free_task;
+        queue->first_free_task = &free_tasks[i];
+    }
+}
+
+static app__ThreadWorkQueue *app__wq_get_random_thread_queue(app_WorkQueue *wq)
+{
+    s32 index = 0; // TODO: actual randomness
+    app__ThreadWorkQueue *result = &wq->thread_queues[index];
+
+    return result;
+}
+
+static app__Task *app__wq_pop_queued_task(app__ThreadWorkQueue *queue)
+{
+    mutex_lock(queue->queue_mutex);
+
+    app__Task *result = queue->queued_tasks.first;
+    queue_pop(&queue->queued_tasks);
+
+    mutex_unlock(queue->queue_mutex);
+
+    return result;
+}
+
+static app__Task *app__wq_get_next_task(app_WorkQueue *wq, app__ThreadWorkQueue *queue)
+{
+    app__Task *result = 0;
+
+    if (!queue) {
+        queue = app__wq_get_random_thread_queue(wq);
+    }
+
+    result = app__wq_pop_queued_task(queue);
+
+    if (result) {
+        app__ThreadWorkQueue *steal_queue = app__wq_get_random_thread_queue(wq);
+
+        if (steal_queue != queue) {
+            printf("No work left, stealing from %p...\n", (void *)steal_queue);
+            result = app__wq_pop_queued_task(steal_queue);
+
+            if (result) {
+                printf("Successfully stole task %p from %p\n", (void *)result, (void *)steal_queue);
+            } else {
+                printf("Failed to steal task\n");
+            }
+        }
+    }
+
+    return result;
+}
+
+static app__Task *app__wq_task_from_id(app_TaskID id)
+{
+    app__Task *result = (app__Task *)id.id;
+
+    if (atomic_load_u32(&result->generation) != id.generation) {
+        // Stale ID.
+        result = 0;
+    }
+
+    return result;
+}
+
+void app_wq_run_task(app_WorkQueue *wq, app_TaskID id)
+{
+    app__Task *task = app__wq_task_from_id(id);
+    ASSERT(task && "Stale ID provided to app_wq_run_task");
+
+    app__ThreadWorkQueue *queue = task->from_queue;
+
+    mutex_lock(queue->queue_mutex);
+
+    queue_push(&queue->queued_tasks, task);
+
+    mutex_unlock(queue->queue_mutex);
+}
+
+static void app__wq_finish_task(app__Task *task)
+{
+    s32 new_unfinished_count = atomic_dec_s32(&task->unfinished_task_count);
+    ASSERT(new_unfinished_count >= 0);
+
+    if (new_unfinished_count == 0) {
+        printf("unfinished count reached 0, finishing task...\n");
+
+        if (task->parent) {
+            printf("recursively finishing parent task...\n");
+            app__wq_finish_task(task->parent);
+        }
+
+        atomic_inc_s32(&task->generation);
+
+        app__ThreadWorkQueue *queue = task->from_queue;
+        mutex_lock(queue->queue_mutex);
+
+        #if DEBUG_BUILD
+        for (app__Task *t = list_head(&queue->queued_tasks); t; t = list_next(t)) {
+            if (t == task) {
+                ASSERT(0 && "Task exists as a task in flight and a queued task at the same time");
+            }
+        }
+        #endif
+
+        task->next = queue->first_free_task;
+        queue->first_free_task = task;
+
+        mutex_unlock(queue->queue_mutex);
+    }
+}
+
+static void app__wq_execute_task(app__Task *task)
+{
+    task->function(task->user_data);
+    app__wq_finish_task(task);
+}
+
+static void *app__wq_thread_loop(void *user_data)
+{
+    app__ThreadWorkQueue *queue = (app__ThreadWorkQueue *)user_data;
+
+    while (true) {
+        // TODO: wait on condition variable
+        app__Task *task = app__wq_get_next_task(queue->parent_queue, queue);
+
+        if (task) {
+            printf("grabbiing task %p\n...", (void *)task);
+            app__wq_execute_task(task);
+        } else {
+            // TODO: sleep
+        }
+    }
+
+    return 0;
+}
+
+static void app__wq_init_thread_work_queue(app_WorkQueue *wq, app__ThreadWorkQueue *queue)
+{
+    queue->arena = arena_create(APP_WQ_THREAD_WORK_QUEUE_ARENA_SIZE);
+    queue->queue_mutex = mutex_create();
+    queue->parent_queue = wq;
+
+    app__wq_alloc_free_tasks(queue);
+}
+
+app_WorkQueue *app_wq_create(Arena *arena, s32 thread_count)
+{
+    app_WorkQueue *result = arena_alloc_struct(arena, app_WorkQueue);
+    result->thread_queues = arena_alloc_array(arena, app__ThreadWorkQueue, s32_to_usize(thread_count));
+    result->thread_count = thread_count;
+
+    for (s32 i = 0; i < thread_count; ++i) {
+        app__ThreadWorkQueue *queue = &result->thread_queues[i];
+        app__wq_init_thread_work_queue(result, queue);
+    }
+
+    for (s32 i = 0; i < thread_count; ++i) {
+        thread_create(app__wq_thread_loop, &result->thread_queues[i]);
+    }
+
+    return result;
+}
+
+static app_TaskID app__id_from_task(app__Task *task)
+{
+    app_TaskID result = {};
+    result.id = (uintptr_t)task;
+    result.generation = atomic_load_u32(&task->generation);
+
+    return result;
+}
+
+app_TaskID app_wq_create_task(app_WorkQueue *wq, app_TaskFunction function, void *user_data, usize user_data_size)
+{
+    app__ThreadWorkQueue *queue = app__wq_get_random_thread_queue(wq);
+
+    // TODO: scoped lock
+    mutex_lock(queue->queue_mutex);
+
+    if (!queue->first_free_task) {
+        app__wq_alloc_free_tasks(queue);
+    }
+
+    app__Task *task = queue->first_free_task;
+    queue->first_free_task = task->next;
+
+    mutex_unlock(queue->queue_mutex);
+
+    task->function = function;
+    task->from_queue = queue;
+    task->unfinished_task_count = 1;
+    task->next = 0;
+
+    if (user_data) {
+        memcpy(task->user_data, user_data, user_data_size);
+    }
+
+    app_TaskID result = app__id_from_task(task);
+
+    return result;
+}
