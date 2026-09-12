@@ -46,7 +46,7 @@ static void app__wq_alloc_free_tasks(app__ThreadWorkQueue *queue)
     static bool first = true;
 
     if (!first) {
-        printf("allocating new free tasks in %p\n", (void *)queue);
+        // printf("allocating new free tasks in %p\n", (void *)queue);
     } else {
         first = false;
 
@@ -71,8 +71,12 @@ static void app__wq_alloc_free_tasks(app__ThreadWorkQueue *queue)
 
 static app__ThreadWorkQueue *app__wq_get_random_thread_queue(app_WorkQueue *wq)
 {
-    s32 index = 0; // TODO: actual randomness
+    // TODO: randomize
+    static thread_local s32 index = 0;
+
     app__ThreadWorkQueue *result = &wq->thread_queues[index];
+
+    index = (index + 1) % wq->thread_count;
 
     return result;
 }
@@ -92,8 +96,6 @@ static app__Task *app__wq_pop_queued_task(app__ThreadWorkQueue *queue)
 
 static app__Task *app__wq_get_next_task(app_WorkQueue *wq, app__ThreadWorkQueue *queue)
 {
-    app__Task *result = 0;
-
     if (!queue) {
         // This branch will be entered when a thread that waits for a task grabs
         // some other task to do while waiting.
@@ -102,20 +104,25 @@ static app__Task *app__wq_get_next_task(app_WorkQueue *wq, app__ThreadWorkQueue 
         queue = app__wq_get_random_thread_queue(wq);
     }
 
-    result = app__wq_pop_queued_task(queue);
+    app__Task *result = app__wq_pop_queued_task(queue);
 
-    if (!result) {
-        app__ThreadWorkQueue *steal_queue = app__wq_get_random_thread_queue(wq);
+    return result;
+}
 
-        if (steal_queue != queue) {
-            // printf("No work left, stealing from %p...\n", (void *)steal_queue);
-            result = app__wq_pop_queued_task(steal_queue);
+static app__Task *app__wq_try_steal_task(app_WorkQueue *wq, app__ThreadWorkQueue *self)
+{
+    app__Task *result = 0;
 
-            if (result) {
-                printf("Successfully stole task %p from %p\n", (void *)result, (void *)steal_queue);
-            } else {
-                // printf("Failed to steal task\n");
-            }
+    app__ThreadWorkQueue *steal_queue = app__wq_get_random_thread_queue(wq);
+
+    if (steal_queue != self) {
+        // printf("No work left, stealing from %p...\n", (void *)steal_queue);
+        result = app__wq_pop_queued_task(steal_queue);
+
+        if (result) {
+            // printf("Successfully stole task %p from %p\n", (void *)result, (void *)steal_queue);
+        } else {
+            // printf("Failed to steal task\n");
         }
     }
 
@@ -179,7 +186,7 @@ static void app__wq_finish_task(app__Task *task)
     ASSERT(new_unfinished_count >= 0);
 
     if (new_unfinished_count == 0) {
-        printf("unfinished count reached 0, finishing task...\n");
+        // printf("unfinished count reached 0, finishing task...\n");
 
         {
             mutex_lock(task->task_finish_mutex);
@@ -191,7 +198,7 @@ static void app__wq_finish_task(app__Task *task)
         cond_var_broadcast(task->task_finish_cond_var);
 
         if (task->parent) {
-            printf("recursively finishing parent task...\n");
+            // printf("recursively finishing parent task...\n");
             app__wq_finish_task(task->parent);
         }
 
@@ -228,15 +235,24 @@ static void *app__wq_thread_loop(void *user_data)
     app_WorkQueue *wq = queue->parent_queue;
 
     while (!atomic_load_s32(&wq->should_terminate)) {
+        // TODO: this will lock even though we already have the lock
         app__Task *task = app__wq_get_next_task(queue->parent_queue, queue);
 
         if (task) {
-            printf("starting task %p...\n", (void *)task);
+            // printf("starting task %p...\n", (void *)task);
             app__wq_execute_task(task);
         } else {
-            printf("Failed to get task, sleeping...\n");
+            // Try to steal from other queue. We might grab another threads queue lock while
+            // doing so, so we'll release ours to avoid order inversion.
+            mutex_unlock(queue->queue_mutex);
+            task = app__wq_try_steal_task(wq, queue);
+            mutex_lock(queue->queue_mutex);
+        }
+
+        if (!task) {
+            // printf("Failed to get task, sleeping...\n");
             cond_var_wait(queue->task_available_cond_var, queue->queue_mutex);
-            printf("woke up...\n");
+            // printf("woke up...\n");
         }
     }
 
