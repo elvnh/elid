@@ -10,8 +10,11 @@ struct app__Task {
     app_TaskFunction function;
     app__Task *parent;
     app__ThreadWorkQueue *from_queue;
-    app_TaskGeneration generation;
     s32 unfinished_task_count;
+
+    Mutex task_finish_mutex;
+    ConditionVariable task_finish_cond_var;
+    app_TaskGeneration generation; // Increased when a task is finished
 
     app__Task *next;
 };
@@ -35,7 +38,7 @@ static void app__wq_alloc_free_tasks(app__ThreadWorkQueue *queue)
     static bool first = true;
 
     if (!first) {
-        printf("allocating new free tasks\n");
+        printf("allocating new free tasks in %p\n", (void *)queue);
     } else {
         first = false;
 
@@ -46,8 +49,12 @@ static void app__wq_alloc_free_tasks(app__ThreadWorkQueue *queue)
     app__Task *free_tasks = arena_alloc_array(queue->arena, app__Task, APP_WQ_INITIAL_FREE_TASK_CAP);
 
     for (s32 i = 0; i < APP_WQ_INITIAL_FREE_TASK_CAP; ++i) {
-        free_tasks[i].next = queue->first_free_task;
-        queue->first_free_task = &free_tasks[i];
+        app__Task *task = &free_tasks[i];
+        task->next = queue->first_free_task;
+        queue->first_free_task = task;
+
+        task->task_finish_mutex = mutex_create();
+        task->task_finish_cond_var = cond_var_create();
     }
 }
 
@@ -76,22 +83,26 @@ static app__Task *app__wq_get_next_task(app_WorkQueue *wq, app__ThreadWorkQueue 
     app__Task *result = 0;
 
     if (!queue) {
+        // This branch will be entered when a thread that waits for a task grabs
+        // some other task to do while waiting.
+        // TODO: make it so that each thread has its own thread local queue
+        ASSERT(0);
         queue = app__wq_get_random_thread_queue(wq);
     }
 
     result = app__wq_pop_queued_task(queue);
 
-    if (result) {
+    if (!result) {
         app__ThreadWorkQueue *steal_queue = app__wq_get_random_thread_queue(wq);
 
         if (steal_queue != queue) {
-            printf("No work left, stealing from %p...\n", (void *)steal_queue);
+            // printf("No work left, stealing from %p...\n", (void *)steal_queue);
             result = app__wq_pop_queued_task(steal_queue);
 
             if (result) {
                 printf("Successfully stole task %p from %p\n", (void *)result, (void *)steal_queue);
             } else {
-                printf("Failed to steal task\n");
+                // printf("Failed to steal task\n");
             }
         }
     }
@@ -103,26 +114,43 @@ static app__Task *app__wq_task_from_id(app_TaskID id)
 {
     app__Task *result = (app__Task *)id.id;
 
-    if (atomic_load_u32(&result->generation) != id.generation) {
-        // Stale ID.
-        result = 0;
-    }
-
     return result;
 }
 
 void app_wq_run_task(app_WorkQueue *wq, app_TaskID id)
 {
     app__Task *task = app__wq_task_from_id(id);
-    ASSERT(task && "Stale ID provided to app_wq_run_task");
+
+    mutex_lock(task->task_finish_mutex);
+    ASSERT((task->generation == id.generation) && "Stale task provided");
+    mutex_unlock(task->task_finish_mutex);
 
     app__ThreadWorkQueue *queue = task->from_queue;
 
     mutex_lock(queue->queue_mutex);
 
+    // TODO: how do we make it so that the thread that owns this queue sees the
+    // task before any other threads?
     queue_push(&queue->queued_tasks, task);
 
     mutex_unlock(queue->queue_mutex);
+}
+
+// TODO: app__wq_ -> app_wq__
+
+void app_wq_wait_for_task(app_WorkQueue *wq, app_TaskID id)
+{
+    app__Task *task = app__wq_task_from_id(id);
+
+    mutex_lock(task->task_finish_mutex);
+
+    // We only need to wait if this ID has the same generation as the task. If
+    // it doesn't, the task has already finished and we don't need to wait.
+    while (task->generation == id.generation) {
+        cond_var_wait(task->task_finish_cond_var, task->task_finish_mutex);
+    }
+
+    mutex_unlock(task->task_finish_mutex);
 }
 
 static void app__wq_finish_task(app__Task *task)
@@ -133,12 +161,19 @@ static void app__wq_finish_task(app__Task *task)
     if (new_unfinished_count == 0) {
         printf("unfinished count reached 0, finishing task...\n");
 
+        {
+            mutex_lock(task->task_finish_mutex);
+            ++task->generation;
+            mutex_unlock(task->task_finish_mutex);
+        }
+
+        // Signal to any threads waiting for the task to finish.
+        cond_var_broadcast(task->task_finish_cond_var);
+
         if (task->parent) {
             printf("recursively finishing parent task...\n");
             app__wq_finish_task(task->parent);
         }
-
-        atomic_inc_s32(&task->generation);
 
         app__ThreadWorkQueue *queue = task->from_queue;
         mutex_lock(queue->queue_mutex);
@@ -173,10 +208,11 @@ static void *app__wq_thread_loop(void *user_data)
         app__Task *task = app__wq_get_next_task(queue->parent_queue, queue);
 
         if (task) {
-            printf("grabbiing task %p\n...", (void *)task);
+            printf("grabbing task %p...\n", (void *)task);
             app__wq_execute_task(task);
         } else {
             // TODO: sleep
+            // printf("no task available\n");
         }
     }
 

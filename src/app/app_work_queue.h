@@ -23,3 +23,4 @@ app_WorkQueue *app_wq_create(Arena *arena, s32 thread_count);
 // TODO: macro that passes size automatically
 app_TaskID app_wq_create_task(app_WorkQueue *wq, app_TaskFunction function, void *user_data, usize user_data_size);
 void app_wq_run_task(app_WorkQueue *wq, app_TaskID id);
+void app_wq_wait_for_task(app_WorkQueue *wq, app_TaskID id);
