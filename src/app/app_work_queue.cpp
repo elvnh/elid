@@ -16,7 +16,8 @@ struct app__Task {
     ConditionVariable task_finish_cond_var;
     app_TaskGeneration generation; // Increased when a task is finished
 
-    app__Task *next;
+    app__Task *next; // Either next free task or next queued task
+    app__Task *next_in_complete_task_list;
 
     #if DEBUG_BUILD
     b32 has_been_run;
@@ -30,6 +31,7 @@ struct app__ThreadWorkQueue {
 
     Mutex queue_mutex;
     ConditionVariable task_available_cond_var;
+    app__Task *first_in_complete_task_list;
     app__Task *first_free_task;
 
     struct {
@@ -58,6 +60,9 @@ static void app__wq_alloc_free_tasks(app__ThreadWorkQueue *queue)
         app__Task *task = &free_tasks[i];
         task->next = queue->first_free_task;
         queue->first_free_task = task;
+
+        task->next_in_complete_task_list = queue->first_in_complete_task_list;
+        queue->first_in_complete_task_list = task->next_in_complete_task_list;
 
         task->task_finish_mutex = mutex_create();
         task->task_finish_cond_var = cond_var_create();
@@ -226,11 +231,12 @@ static void *app__wq_thread_loop(void *user_data)
         app__Task *task = app__wq_get_next_task(queue->parent_queue, queue);
 
         if (task) {
-            printf("grabbing task %p...\n", (void *)task);
+            printf("starting task %p...\n", (void *)task);
             app__wq_execute_task(task);
         } else {
             printf("Failed to get task, sleeping...\n");
             cond_var_wait(queue->task_available_cond_var, queue->queue_mutex);
+            printf("woke up...\n");
         }
     }
 
@@ -266,6 +272,28 @@ app_WorkQueue *app_wq_create(Arena *arena, s32 thread_count)
     }
 
     return result;
+}
+
+void app_wq_destroy(app_WorkQueue *wq)
+{
+    atomic_store_s32(&wq->should_terminate, true);
+
+    for (s32 i = 0; i < wq->thread_count; ++i) {
+        app__ThreadWorkQueue *queue = &wq->thread_queues[i];
+        cond_var_broadcast(queue->task_available_cond_var);
+
+        thread_join(queue->thread);
+
+        mutex_free(queue->queue_mutex);
+        cond_var_free(queue->task_available_cond_var);
+
+        for (app__Task *task = queue->first_in_complete_task_list; task; task = task->next_in_complete_task_list) {
+            mutex_free(task->task_finish_mutex);
+            cond_var_free(task->task_finish_cond_var);
+        }
+
+        arena_destroy(queue->arena);
+    }
 }
 
 app_TaskID app_wq_create_task_impl(app_WorkQueue *wq, app_TaskFunction fn, app_TaskID parent, const void *data, usize size)
@@ -323,13 +351,3 @@ app_TaskID app_wq_create_task_impl(app_WorkQueue *wq, app_TaskFunction fn, app_T
     return result;
 }
 
-void app_wq_terminate(app_WorkQueue *wq)
-{
-    atomic_store_s32(&wq->should_terminate, true);
-
-    for (s32 i = 0; i < wq->thread_count; ++i) {
-        app__ThreadWorkQueue *queue = &wq->thread_queues[i];
-        cond_var_signal(queue->task_available_cond_var);
-        thread_join(queue->thread);
-    }
-}
