@@ -238,10 +238,7 @@ static void *app__wq_thread_loop(void *user_data)
         // TODO: this will lock even though we already have the lock
         app__Task *task = app__wq_get_next_task(queue->parent_queue, queue);
 
-        if (task) {
-            // printf("starting task %p...\n", (void *)task);
-            app__wq_execute_task(task);
-        } else {
+        if (!task) {
             // Try to steal from other queue. We might grab another threads queue lock while
             // doing so, so we'll release ours to avoid order inversion.
             mutex_unlock(queue->queue_mutex);
@@ -249,10 +246,12 @@ static void *app__wq_thread_loop(void *user_data)
             mutex_lock(queue->queue_mutex);
         }
 
-        if (!task) {
-            // printf("Failed to get task, sleeping...\n");
-            cond_var_wait(queue->task_available_cond_var, queue->queue_mutex);
-            // printf("woke up...\n");
+        if (!atomic_load_s32(&wq->should_terminate)) {
+            if (task) {
+                app__wq_execute_task(task);
+            } else {
+                cond_var_wait(queue->task_available_cond_var, queue->queue_mutex);
+            }
         }
     }
 
