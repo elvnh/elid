@@ -83,38 +83,24 @@ static app__ThreadWorkQueue *app__wq_get_random_thread_queue(app_WorkQueue *wq)
 
 static app__Task *app__wq_pop_queued_task(app__ThreadWorkQueue *queue)
 {
-    // TODO: don't lock here, lock in calling function
-    ScopedLock lock = scoped_lock(queue->queue_mutex);
-
+    // NOTE: this should only be called when already holding mutex.
     app__Task *result = queue->queued_tasks.first;
     queue_pop(&queue->queued_tasks);
 
     return result;
 }
 
-static app__Task *app__wq_get_next_task(app_WorkQueue *wq, app__ThreadWorkQueue *queue)
-{
-    if (!queue) {
-        // This branch will be entered when a thread that waits for a task grabs
-        // some other task to do while waiting.
-        // TODO: make it so that each thread has its own thread local queue
-        ASSERT(0);
-        queue = app__wq_get_random_thread_queue(wq);
-    }
-
-    app__Task *result = app__wq_pop_queued_task(queue);
-
-    return result;
-}
-
 static app__Task *app__wq_try_steal_task(app_WorkQueue *wq, app__ThreadWorkQueue *self)
 {
+    ASSERT(self);
+
     app__Task *result = 0;
 
     app__ThreadWorkQueue *steal_queue = app__wq_get_random_thread_queue(wq);
 
     if (steal_queue != self) {
         // printf("No work left, stealing from %p...\n", (void *)steal_queue);
+        ScopedLock lock = scoped_lock(steal_queue->queue_mutex);
         result = app__wq_pop_queued_task(steal_queue);
 
         if (result) {
@@ -228,8 +214,7 @@ static void *app__wq_thread_loop(void *user_data)
     app_WorkQueue *wq = queue->parent_queue;
 
     while (!atomic_load_s32(&wq->should_terminate)) {
-        // TODO: this will lock even though we already have the lock
-        app__Task *task = app__wq_get_next_task(queue->parent_queue, queue);
+        app__Task *task = app__wq_pop_queued_task(queue);
 
         if (!task) {
             // Try to steal from other queue. We might grab another threads queue lock while
