@@ -7,6 +7,7 @@ CXXFLAGS="
     -DPOISON_MEMORY=1
     -I../src
     -I../deps/memmi/include
+    -I../deps/memmi/include/memmi
     -Werror
     -fsanitize=address,undefined
     -std=c++11
@@ -42,6 +43,7 @@ CXXFLAGS="
 GENERATED_TEST_RUNNER="src/generated/test_runner.cpp"
 BUILD_DIR="build"
 BIN="${BUILD_DIR}/elid-tests"
+MEMMI_SRCS="../deps/memmi/src/memmi.c"
 
 cd $(dirname $0);
 
@@ -49,4 +51,4 @@ mkdir -p ${BUILD_DIR};
 mkdir -p $(dirname ${GENERATED_TEST_RUNNER});
 
 python3 generate_test_runner.py src/**/* -o ${GENERATED_TEST_RUNNER} &&
-${CXX} ${CXXFLAGS} ${GENERATED_TEST_RUNNER} -o ${BIN}
+${CXX} ${CXXFLAGS} ${GENERATED_TEST_RUNNER} -o ${BIN} ${MEMMI_SRCS}

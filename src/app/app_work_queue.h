@@ -26,7 +26,7 @@ struct app_WorkQueue {
 // Can be provided as argument when creating task if no input to task function is needed.
 global const s32 app_wq_null_arg = {};
 
-app_WorkQueue *app_wq_create(s32 thread_count);
+app_WorkQueue *app_wq_create(Arena *arena, s32 thread_count);
 void           app_wq_destroy(app_WorkQueue *wq);
 #define        app_wq_create_task(wq, fn, data) app_wq_create_task_impl((wq), (fn), {}, &(data), sizeof((data)))
 #define        app_wq_create_task_as_child(wq, fn, data, parent) app_wq_create_task_impl((wq), (fn), (parent), &(data), sizeof((data)))
