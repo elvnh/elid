@@ -250,16 +250,7 @@ app_WorkQueue *app_wq_create(Arena *arena, s32 thread_count)
     return result;
 }
 
-static app_TaskID app__id_from_task(app__Task *task)
-{
-    app_TaskID result = {};
-    result.id = (uintptr_t)task;
-    result.generation = atomic_load_u32(&task->generation);
-
-    return result;
-}
-
-app_TaskID app_wq_create_task_impl(app_WorkQueue *wq, app_TaskFunction fn, const void *data, usize data_size)
+app_TaskID app_wq_create_task_impl(app_WorkQueue *wq, app_TaskFunction fn, app_TaskID parent, const void *data, usize size)
 {
     app__ThreadWorkQueue *queue = app__wq_get_random_thread_queue(wq);
 
@@ -279,12 +270,28 @@ app_TaskID app_wq_create_task_impl(app_WorkQueue *wq, app_TaskFunction fn, const
     task->from_queue = queue;
     task->unfinished_task_count = 1;
     task->next = 0;
+    task->parent = app__wq_task_from_id(parent);
 
-    if (data) {
-        memcpy(task->user_data, data, data_size);
+    if (task->parent) {
+        atomic_inc_s32(&task->parent->unfinished_task_count);
+
+        #if DEBUG_BUILD
+        // Check that user didn't provide an already finished task as parent
+        mutex_lock(task->parent->task_finish_mutex);
+
+        ASSERT((task->parent->generation == parent.generation) && "Provided finished task as parent");
+
+        mutex_unlock(task->parent->task_finish_mutex);
+        #endif
     }
 
-    app_TaskID result = app__id_from_task(task);
+    if (data) {
+        memcpy(task->user_data, data, size);
+    }
+
+    app_TaskID result = {};
+    result.id = (uintptr_t)task;
+    result.generation = task->generation;
 
     return result;
 }
