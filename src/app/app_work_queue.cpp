@@ -246,12 +246,10 @@ static void *app__wq_thread_loop(void *user_data)
             mutex_lock(queue->queue_mutex);
         }
 
-        if (!atomic_load_s32(&wq->should_terminate)) {
-            if (task) {
-                app__wq_execute_task(task);
-            } else {
-                cond_var_wait(queue->task_available_cond_var, queue->queue_mutex);
-            }
+        if (task) {
+            app__wq_execute_task(task);
+        } else {
+            cond_var_wait(queue->task_available_cond_var, queue->queue_mutex);
         }
     }
 
@@ -296,7 +294,12 @@ void app_wq_destroy(app_WorkQueue *wq)
     // Join threads before destroying resources in case any of the threads are using them.
     for (s32 i = 0; i < wq->thread_count; ++i) {
         app__ThreadWorkQueue *queue = &wq->thread_queues[i];
+        // If the thread missed the should_terminate flag being set as well as the broadcast, it
+        // will wait on the condition variable and not wake up. So we'll lock the mutex before
+        // broadcasting, since then we can be sure that the thread is waiting on the condition variable.
+        mutex_lock(queue->queue_mutex);
         cond_var_broadcast(queue->task_available_cond_var);
+        mutex_unlock(queue->queue_mutex);
 
         thread_join(queue->thread);
     }
