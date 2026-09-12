@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <semaphore.h>
+#include <errno.h>
 
 void *allocate_memory(usize size)
 {
@@ -39,7 +40,7 @@ Thread_Maybe thread_create(ThreadEntryPoint entry_point, void *user_data)
     pthread_t thread = 0;
     int create_result = pthread_create(&thread, 0, entry_point, user_data);
 
-    if (create_result == 0) {
+    if (ALWAYS(create_result == 0)) {
         result.ok = true;
         result.value.data = thread;
     }
@@ -51,6 +52,7 @@ b32 thread_join(Thread thread)
 {
     pthread_t handle = (pthread_t)thread.data;
     int join_result = pthread_join(handle, 0);
+    ASSERT(errno == 0);
 
     b32 result = join_result == 0;
 

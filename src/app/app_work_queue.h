@@ -1,12 +1,15 @@
 #pragma once
 
 /* TODO:
-   - Terminating all threads
+   - Make sure that user doesn't provide finished task as parent. This is only checked when
+     CREATING the child task, but it should also be checked when finishing it. Otherwise, we'll
+     decrement unfinished task count of wrong parent task.
    - Clean up locks, lock in calling function rather than callee
    - Thread local queues so that any thread can start doing work, not only those
      that run the worker thread loop. This way, any thread can do work while waiting for
      a task to finish.
    - Use scoped mutex locks
+   - Logging at which source location a task was created
  */
 
 struct app__ThreadWorkQueue;
@@ -22,6 +25,7 @@ struct app_TaskID {
 struct app_WorkQueue {
     app__ThreadWorkQueue *thread_queues;
     s32 thread_count;
+    b32 should_terminate; // Atomic
 };
 
 // Can be provided as argument when creating task if no input to task function is needed.
@@ -33,3 +37,4 @@ app_WorkQueue *app_wq_create(Arena *arena, s32 thread_count);
 app_TaskID     app_wq_create_task_impl(app_WorkQueue *wq, app_TaskFunction fn, app_TaskID parent, const void *data, usize size);
 void           app_wq_run_task(app_WorkQueue *wq, app_TaskID id);
 void           app_wq_wait_for_task(app_WorkQueue *wq, app_TaskID id);
+void           app_wq_terminate(app_WorkQueue *wq);

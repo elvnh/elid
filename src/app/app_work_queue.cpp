@@ -24,6 +24,7 @@ struct app__Task {
 };
 
 struct app__ThreadWorkQueue {
+    Thread thread;
     Arena *arena;
     app_WorkQueue *parent_queue;
 
@@ -215,7 +216,9 @@ static void *app__wq_thread_loop(void *user_data)
 
     mutex_lock(queue->queue_mutex);
 
-    while (true) {
+    app_WorkQueue *wq = queue->parent_queue;
+
+    while (!atomic_load_s32(&wq->should_terminate)) {
         app__Task *task = app__wq_get_next_task(queue->parent_queue, queue);
 
         if (task) {
@@ -254,7 +257,8 @@ app_WorkQueue *app_wq_create(Arena *arena, s32 thread_count)
     }
 
     for (s32 i = 0; i < thread_count; ++i) {
-        thread_create(app__wq_thread_loop, &result->thread_queues[i]);
+        app__ThreadWorkQueue *queue = &result->thread_queues[i];
+        queue->thread = thread_create(app__wq_thread_loop, queue).value;
     }
 
     return result;
@@ -286,7 +290,6 @@ app_TaskID app_wq_create_task_impl(app_WorkQueue *wq, app_TaskFunction fn, app_T
         atomic_inc_s32(&task->parent->unfinished_task_count);
 
         #if DEBUG_BUILD
-        // Check that user didn't provide an already finished task as parent
         mutex_lock(task->parent->task_finish_mutex);
 
         ASSERT((task->parent->generation == parent.generation) && "Provided finished task as parent");
@@ -304,4 +307,15 @@ app_TaskID app_wq_create_task_impl(app_WorkQueue *wq, app_TaskFunction fn, app_T
     result.generation = task->generation;
 
     return result;
+}
+
+void app_wq_terminate(app_WorkQueue *wq)
+{
+    atomic_store_s32(&wq->should_terminate, true);
+
+    for (s32 i = 0; i < wq->thread_count; ++i) {
+        app__ThreadWorkQueue *queue = &wq->thread_queues[i];
+        cond_var_signal(queue->task_available_cond_var);
+        thread_join(queue->thread);
+    }
 }
