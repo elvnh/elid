@@ -239,10 +239,17 @@ static void *app__wq_thread_loop(void *user_data)
             mutex_lock(queue->queue_mutex);
         }
 
-        if (task) {
-            app__wq_execute_task(task);
-        } else {
-            cond_var_wait(queue->task_available_cond_var, queue->queue_mutex);
+        // If we stole a task (or tried to), we temporarily released the queue mutex above. During
+        // that time, the should_terminate flag may have been set and the condition variable
+        // broadcasted to (other threads can't do that if we hold the mutex). If we failed to steal
+        // a task, we'll go right back to waiting on the condition variable, unless we check the
+        // flag one more time.
+        if (!atomic_load_s32(&wq->should_terminate)) {
+            if (task) {
+                app__wq_execute_task(task);
+            } else {
+                cond_var_wait(queue->task_available_cond_var, queue->queue_mutex);
+            }
         }
     }
 
