@@ -84,12 +84,10 @@ static app__ThreadWorkQueue *app__wq_get_random_thread_queue(app_WorkQueue *wq)
 static app__Task *app__wq_pop_queued_task(app__ThreadWorkQueue *queue)
 {
     // TODO: don't lock here, lock in calling function
-    mutex_lock(queue->queue_mutex);
+    ScopedLock lock = scoped_lock(queue->queue_mutex);
 
     app__Task *result = queue->queued_tasks.first;
     queue_pop(&queue->queued_tasks);
-
-    mutex_unlock(queue->queue_mutex);
 
     return result;
 }
@@ -147,18 +145,18 @@ void app_wq_run_task(app_WorkQueue *wq, app_TaskID id)
             && "Ran same task twice");
 
         {
-            mutex_lock(task->task_finish_mutex);
+            ScopedLock lock = scoped_lock(task->task_finish_mutex);
             ASSERT((task->generation == id.generation) && "Stale task provided");
-            mutex_unlock(task->task_finish_mutex);
         }
     }
     #endif
 
     app__ThreadWorkQueue *queue = task->from_queue;
 
-    mutex_lock(queue->queue_mutex);
-    queue_push(&queue->queued_tasks, task);
-    mutex_unlock(queue->queue_mutex);
+    {
+        ScopedLock lock = scoped_lock(queue->queue_mutex);
+        queue_push(&queue->queued_tasks, task);
+    }
 
     cond_var_signal(queue->task_available_cond_var);
 }
@@ -169,15 +167,13 @@ void app_wq_wait_for_task(app_WorkQueue *wq, app_TaskID id)
 {
     app__Task *task = app__wq_task_from_id(id);
 
-    mutex_lock(task->task_finish_mutex);
+    ScopedLock lock = scoped_lock(task->task_finish_mutex);
 
     // We only need to wait if this ID has the same generation as the task. If
     // it doesn't, the task has already finished and we don't need to wait.
     while (task->generation == id.generation) {
         cond_var_wait(task->task_finish_cond_var, task->task_finish_mutex);
     }
-
-    mutex_unlock(task->task_finish_mutex);
 }
 
 static void app__wq_finish_task(app__Task *task)
@@ -189,9 +185,8 @@ static void app__wq_finish_task(app__Task *task)
         // printf("unfinished count reached 0, finishing task...\n");
 
         {
-            mutex_lock(task->task_finish_mutex);
+            ScopedLock lock = scoped_lock(task->task_finish_mutex);
             ++task->generation;
-            mutex_unlock(task->task_finish_mutex);
         }
 
         // Signal to any threads waiting for the task to finish.
@@ -203,7 +198,7 @@ static void app__wq_finish_task(app__Task *task)
         }
 
         app__ThreadWorkQueue *queue = task->from_queue;
-        mutex_lock(queue->queue_mutex);
+        ScopedLock lock = scoped_lock(queue->queue_mutex);
 
         #if DEBUG_BUILD
         for (app__Task *t = list_head(&queue->queued_tasks); t; t = list_next(t)) {
@@ -215,8 +210,6 @@ static void app__wq_finish_task(app__Task *task)
 
         task->next = queue->first_free_task;
         queue->first_free_task = task;
-
-        mutex_unlock(queue->queue_mutex);
     }
 }
 
@@ -297,9 +290,10 @@ void app_wq_destroy(app_WorkQueue *wq)
         // If the thread missed the should_terminate flag being set as well as the broadcast, it
         // will wait on the condition variable and not wake up. So we'll lock the mutex before
         // broadcasting, since then we can be sure that the thread is waiting on the condition variable.
-        mutex_lock(queue->queue_mutex);
-        cond_var_broadcast(queue->task_available_cond_var);
-        mutex_unlock(queue->queue_mutex);
+        {
+            ScopedLock lock = scoped_lock(queue->queue_mutex);
+            cond_var_broadcast(queue->task_available_cond_var);
+        }
 
         thread_join(queue->thread);
     }
@@ -322,18 +316,18 @@ void app_wq_destroy(app_WorkQueue *wq)
 app_TaskID app_wq_create_task_impl(app_WorkQueue *wq, app_TaskFunction fn, app_TaskID parent, const void *data, usize size)
 {
     app__ThreadWorkQueue *queue = app__wq_get_random_thread_queue(wq);
+    app__Task *task = 0;
 
-    // TODO: scoped lock
-    mutex_lock(queue->queue_mutex);
+    {
+        ScopedLock lock = scoped_lock(queue->queue_mutex);
 
-    if (!queue->first_free_task) {
-        app__wq_alloc_free_tasks(queue);
+        if (!queue->first_free_task) {
+            app__wq_alloc_free_tasks(queue);
+        }
+
+        task = queue->first_free_task;
+        queue->first_free_task = task->next;
     }
-
-    app__Task *task = queue->first_free_task;
-    queue->first_free_task = task->next;
-
-    mutex_unlock(queue->queue_mutex);
 
     task->function = fn;
     task->from_queue = queue;
@@ -350,13 +344,11 @@ app_TaskID app_wq_create_task_impl(app_WorkQueue *wq, app_TaskFunction fn, app_T
     if (task->parent) {
         #if DEBUG_BUILD
         {
-            mutex_lock(task->parent->task_finish_mutex);
+            ScopedLock lock = scoped_lock(task->parent->task_finish_mutex);
 
             ASSERT(((task->parent->generation == parent.generation)
                     && (!atomic_load_s32(&task->parent->has_been_run)))
                 && "Provided finished task as parent");
-
-            mutex_unlock(task->parent->task_finish_mutex);
         }
         #endif
 

@@ -35,6 +35,28 @@ void  mutex_free(Mutex mutex);
 void  mutex_lock(Mutex mutex);
 void  mutex_unlock(Mutex mutex);
 
+/* Scoped lock */
+struct ScopedLock {
+    Mutex mutex;
+
+    ~ScopedLock()
+    {
+        ASSERT(mutex.data);
+
+        mutex_unlock(mutex);
+
+        #if DEBUG_BUILD
+        mutex = {};
+        #endif
+    }
+};
+
+ScopedLock scoped_lock(Mutex mutex)
+{
+    mutex_lock(mutex);
+    return {mutex};
+}
+
 /* Condition variables */
 struct ConditionVariable {
     u64 data;
