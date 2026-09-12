@@ -259,7 +259,7 @@ static app_TaskID app__id_from_task(app__Task *task)
     return result;
 }
 
-app_TaskID app_wq_create_task(app_WorkQueue *wq, app_TaskFunction function, void *user_data, usize user_data_size)
+app_TaskID app_wq_create_task_impl(app_WorkQueue *wq, app_TaskFunction fn, const void *data, usize data_size)
 {
     app__ThreadWorkQueue *queue = app__wq_get_random_thread_queue(wq);
 
@@ -275,13 +275,13 @@ app_TaskID app_wq_create_task(app_WorkQueue *wq, app_TaskFunction function, void
 
     mutex_unlock(queue->queue_mutex);
 
-    task->function = function;
+    task->function = fn;
     task->from_queue = queue;
     task->unfinished_task_count = 1;
     task->next = 0;
 
-    if (user_data) {
-        memcpy(task->user_data, user_data, user_data_size);
+    if (data) {
+        memcpy(task->user_data, data, data_size);
     }
 
     app_TaskID result = app__id_from_task(task);

@@ -3,7 +3,6 @@
 /* TODO:
    - Parent tasks
    - Terminating all threads
-   - Better API for providing user data
    - The queue that the task is pushed to should be notified first
    - Signal cond var before or after releasing lock?
    - Task functions should have void return type
@@ -11,6 +10,7 @@
    - Thread local queues so that any thread can start doing work, not only those
      that run the worker thread loop. This way, any thread can do work while waiting for
      a task to finish.
+   - Use scoped mutex locks
  */
 
 struct app__ThreadWorkQueue;
@@ -28,8 +28,11 @@ struct app_WorkQueue {
     s32 thread_count;
 };
 
-app_WorkQueue *app_wq_create(Arena *arena, s32 thread_count);
+// Can be provided as argument when creating task if no input to task function is needed.
+global const s32 app_wq_null_arg = 0;
 
-app_TaskID app_wq_create_task(app_WorkQueue *wq, app_TaskFunction function, void *user_data, usize user_data_size);
-void app_wq_run_task(app_WorkQueue *wq, app_TaskID id);
-void app_wq_wait_for_task(app_WorkQueue *wq, app_TaskID id);
+app_WorkQueue *app_wq_create(Arena *arena, s32 thread_count);
+#define        app_wq_create_task(wq, fn, data) app_wq_create_task_impl((wq), (fn), &(data), sizeof((data)))
+app_TaskID     app_wq_create_task_impl(app_WorkQueue *wq, app_TaskFunction fn, const void *data, usize data_size);
+void           app_wq_run_task(app_WorkQueue *wq, app_TaskID id);
+void           app_wq_wait_for_task(app_WorkQueue *wq, app_TaskID id);
