@@ -33,17 +33,13 @@ usize get_system_page_size(void)
     return result;
 }
 
-Thread_Maybe thread_create(ThreadEntryPoint entry_point, void *user_data)
+Thread thread_create(ThreadEntryPoint entry_point, void *user_data)
 {
-    Thread_Maybe result = {};
-
     pthread_t thread = 0;
     int create_result = pthread_create(&thread, 0, entry_point, user_data);
+    ASSERT_ALWAYS(create_result == 0);
 
-    if (ALWAYS(create_result == 0)) {
-        result.ok = true;
-        result.value.data = thread;
-    }
+    Thread result = {(u64)thread};
 
     return result;
 }
@@ -59,29 +55,23 @@ b32 thread_join(Thread thread)
     return result;
 }
 
-Semaphore_Maybe sema_create(u32 initial_count)
+Semaphore sema_create(u32 initial_count)
 {
-    Semaphore_Maybe result = {};
-
     // NOTE: POSIX semaphores can't be copied, which is why we have to allocate them on the
     // heap. The reason for not using arenas is that it would create a circular dependency, as
     // arenas depend on this file.
     sem_t *sem = (sem_t *)allocate_memory(sizeof(sem_t));
+    ASSERT_ALWAYS(sem);
 
-    if (sem) {
-        int init_result = sem_init(sem, 0, initial_count);
+    int init_result = sem_init(sem, 0, initial_count);
+    ASSERT_ALWAYS(init_result == 0);
 
-        if (init_result == 0) {
-            result = SOME({(u64)sem});
-        } else {
-            free_memory(sem, sizeof(sem_t));
-        }
-    }
+    Semaphore result = {(u64)sem};
 
     return result;
 }
 
-void sema_free(Semaphore sema)
+void sema_destroy(Semaphore sema)
 {
     sem_t *handle = (sem_t *)sema.data;
     sem_destroy(handle);
@@ -128,7 +118,7 @@ Mutex mutex_create()
     return result;
 }
 
-void mutex_free(Mutex mutex)
+void mutex_destroy(Mutex mutex)
 {
     pthread_mutex_t *handle = (pthread_mutex_t *)mutex.data;
     ASSERT(handle);
@@ -170,7 +160,7 @@ ConditionVariable cond_var_create()
     return result;
 }
 
-void cond_var_free(ConditionVariable cond_var)
+void cond_var_destroy(ConditionVariable cond_var)
 {
     pthread_cond_t *data = (pthread_cond_t *)cond_var.data;
     ASSERT(data);
