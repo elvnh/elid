@@ -17,6 +17,10 @@ struct app__Task {
     app_TaskGeneration generation; // Increased when a task is finished
 
     app__Task *next;
+
+    #if DEBUG_BUILD
+    b32 has_been_run;
+    #endif
 };
 
 struct app__ThreadWorkQueue {
@@ -122,6 +126,12 @@ static app__Task *app__wq_task_from_id(app_TaskID id)
 void app_wq_run_task(app_WorkQueue *wq, app_TaskID id)
 {
     app__Task *task = app__wq_task_from_id(id);
+
+    #if DEBUG_BUILD
+    s32 expect = 0;
+    ASSERT(atomic_compare_exchange_s32(&task->has_been_run, &expect, 1)
+          && "Ran same task twice");
+    #endif
 
     mutex_lock(task->task_finish_mutex);
     ASSERT((task->generation == id.generation) && "Stale task provided");

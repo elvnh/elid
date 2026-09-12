@@ -55,7 +55,7 @@ void              cond_var_wait(ConditionVariable cond_var, Mutex mutex);
 #    define atomic_inc_s32(ptr)           __atomic_add_fetch((ptr), 1, __ATOMIC_SEQ_CST)
 #    define atomic_dec_s32(ptr)           __atomic_sub_fetch((ptr), 1, __ATOMIC_SEQ_CST)
 #    define atomic_exchange_s32(ptr, val) __atomic_exchange_n((ptr), (val), __ATOMIC_SEQ_CST)
-#    define atomic_compare_exchange_s32(ptr, expected, desired)         \
+#    define atomic_compare_exchange_s32(ptr, expect, desired)           \
     __atomic_compare_exchange_n((ptr), (expect), (desired), false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST)
 #
 #    define atomic_load_u32(ptr)          __atomic_load_n((ptr), __ATOMIC_SEQ_CST)
@@ -65,7 +65,7 @@ void              cond_var_wait(ConditionVariable cond_var, Mutex mutex);
 #    define atomic_inc_u32(ptr)           __atomic_add_fetch((ptr), 1, __ATOMIC_SEQ_CST)
 #    define atomic_dec_u32(ptr)           __atomic_sub_fetch((ptr), 1, __ATOMIC_SEQ_CST)
 #    define atomic_exchange_u32(ptr, val) __atomic_exchange_n((ptr), (val), __ATOMIC_SEQ_CST)
-#    define atomic_compare_exchange_u32(ptr, expected, desired)         \
+#    define atomic_compare_exchange_u32(ptr, expect, desired)         \
     __atomic_compare_exchange_n((ptr), (expect), (desired), false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST)
 #
 #    define atomic_load_ptr(ptr)          __atomic_load_n((ptr), __ATOMIC_SEQ_CST)
@@ -75,8 +75,8 @@ void              cond_var_wait(ConditionVariable cond_var, Mutex mutex);
 #    define atomic_inc_ptr(ptr)           __atomic_add_fetch((ptr), 1, __ATOMIC_SEQ_CST)
 #    define atomic_dec_ptr(ptr)           __atomic_sub_fetch((ptr), 1, __ATOMIC_SEQ_CST)
 #    define atomic_exchange_ptr(ptr, val) __atomic_exchange_n((ptr), (val), __ATOMIC_SEQ_CST)
-#    define atomic_compare_exchange_ptr(ptr, expected, desired)         \
-    __atomic_compare_exchange_n((ptr), (expected), (desired), false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST)
+#    define atomic_compare_exchange_ptr(ptr, expect, desired)         \
+    __atomic_compare_exchange_n((ptr), (expect), (desired), false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST)
 #else
 #    error Atomics not defined for this compiler.
 #endif
