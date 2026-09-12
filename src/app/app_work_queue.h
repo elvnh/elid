@@ -4,7 +4,6 @@
    - Thread local queues so that any thread can start doing work, not only those
      that run the worker thread loop. This way, any thread can do work while waiting for
      a task to finish.
-   - Use scoped mutex locks
    - Logging at which source location a task was created
  */
 

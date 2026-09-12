@@ -274,7 +274,7 @@ app_WorkQueue *app_wq_create(Arena *arena, s32 thread_count)
 
     for (s32 i = 0; i < thread_count; ++i) {
         app__ThreadWorkQueue *queue = &result->thread_queues[i];
-        queue->thread = thread_create(app__wq_thread_loop, queue).value;
+        queue->thread = thread_create(app__wq_thread_loop, queue);
     }
 
     return result;
@@ -301,12 +301,12 @@ void app_wq_destroy(app_WorkQueue *wq)
     for (s32 i = 0; i < wq->thread_count; ++i) {
         app__ThreadWorkQueue *queue = &wq->thread_queues[i];
 
-        mutex_free(queue->queue_mutex);
-        cond_var_free(queue->task_available_cond_var);
+        mutex_destroy(queue->queue_mutex);
+        cond_var_destroy(queue->task_available_cond_var);
 
         for (app__Task *task = queue->first_in_complete_task_list; task; task = task->next_in_complete_task_list) {
-            mutex_free(task->task_finish_mutex);
-            cond_var_free(task->task_finish_cond_var);
+            mutex_destroy(task->task_finish_mutex);
+            cond_var_destroy(task->task_finish_cond_var);
         }
 
         arena_destroy(queue->arena);
