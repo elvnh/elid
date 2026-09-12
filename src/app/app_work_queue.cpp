@@ -62,7 +62,7 @@ static void app__wq_alloc_free_tasks(app__ThreadWorkQueue *queue)
         queue->first_free_task = task;
 
         task->next_in_complete_task_list = queue->first_in_complete_task_list;
-        queue->first_in_complete_task_list = task->next_in_complete_task_list;
+        queue->first_in_complete_task_list = task;
 
         task->task_finish_mutex = mutex_create();
         task->task_finish_cond_var = cond_var_create();
@@ -293,11 +293,16 @@ void app_wq_destroy(app_WorkQueue *wq)
 {
     atomic_store_s32(&wq->should_terminate, true);
 
+    // Join threads before destroying resources in case any of the threads are using them.
     for (s32 i = 0; i < wq->thread_count; ++i) {
         app__ThreadWorkQueue *queue = &wq->thread_queues[i];
         cond_var_broadcast(queue->task_available_cond_var);
 
         thread_join(queue->thread);
+    }
+
+    for (s32 i = 0; i < wq->thread_count; ++i) {
+        app__ThreadWorkQueue *queue = &wq->thread_queues[i];
 
         mutex_free(queue->queue_mutex);
         cond_var_free(queue->task_available_cond_var);
