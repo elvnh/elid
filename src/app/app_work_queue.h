@@ -1,9 +1,6 @@
 #pragma once
 
 /* TODO:
-   - Make sure that user doesn't provide finished task as parent. This is only checked when
-     CREATING the child task, but it should also be checked when finishing it. Otherwise, we'll
-     decrement unfinished task count of wrong parent task.
    - Clean up locks, lock in calling function rather than callee
    - Thread local queues so that any thread can start doing work, not only those
      that run the worker thread loop. This way, any thread can do work while waiting for

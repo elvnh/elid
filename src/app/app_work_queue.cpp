@@ -129,14 +129,18 @@ void app_wq_run_task(app_WorkQueue *wq, app_TaskID id)
     app__Task *task = app__wq_task_from_id(id);
 
     #if DEBUG_BUILD
-    s32 expect = 0;
-    ASSERT(atomic_compare_exchange_s32(&task->has_been_run, &expect, 1)
-          && "Ran same task twice");
-    #endif
+    {
+        s32 expect = 0;
+        ASSERT(atomic_compare_exchange_s32(&task->has_been_run, &expect, 1)
+            && "Ran same task twice");
 
-    mutex_lock(task->task_finish_mutex);
-    ASSERT((task->generation == id.generation) && "Stale task provided");
-    mutex_unlock(task->task_finish_mutex);
+        {
+            mutex_lock(task->task_finish_mutex);
+            ASSERT((task->generation == id.generation) && "Stale task provided");
+            mutex_unlock(task->task_finish_mutex);
+        }
+    }
+    #endif
 
     app__ThreadWorkQueue *queue = task->from_queue;
 
@@ -286,16 +290,24 @@ app_TaskID app_wq_create_task_impl(app_WorkQueue *wq, app_TaskFunction fn, app_T
     task->next = 0;
     task->parent = app__wq_task_from_id(parent);
 
+    #if DEBUG_BUILD
+    {
+        atomic_store_s32(&task->has_been_run, false);
+    }
+    #endif
+
     if (task->parent) {
-        atomic_inc_s32(&task->parent->unfinished_task_count);
-
         #if DEBUG_BUILD
-        mutex_lock(task->parent->task_finish_mutex);
+        {
+            mutex_lock(task->parent->task_finish_mutex);
 
-        ASSERT((task->parent->generation == parent.generation) && "Provided finished task as parent");
+            ASSERT((task->parent->generation == parent.generation) && "Provided finished task as parent");
 
-        mutex_unlock(task->parent->task_finish_mutex);
+            mutex_unlock(task->parent->task_finish_mutex);
+        }
         #endif
+
+        atomic_inc_s32(&task->parent->unfinished_task_count);
     }
 
     if (data) {
