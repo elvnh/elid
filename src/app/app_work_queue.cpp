@@ -301,7 +301,9 @@ app_TaskID app_wq_create_task_impl(app_WorkQueue *wq, app_TaskFunction fn, app_T
         {
             mutex_lock(task->parent->task_finish_mutex);
 
-            ASSERT((task->parent->generation == parent.generation) && "Provided finished task as parent");
+            ASSERT(((task->parent->generation == parent.generation)
+                    && (!atomic_load_s32(&task->parent->has_been_run)))
+                && "Provided finished task as parent");
 
             mutex_unlock(task->parent->task_finish_mutex);
         }

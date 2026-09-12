@@ -1,7 +1,6 @@
 #pragma once
 
 /* TODO:
-   - Clean up locks, lock in calling function rather than callee
    - Thread local queues so that any thread can start doing work, not only those
      that run the worker thread loop. This way, any thread can do work while waiting for
      a task to finish.
