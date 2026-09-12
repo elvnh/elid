@@ -9,10 +9,16 @@ def error(msg):
 
 
 def gather_test_cases_in_file(file_contents):
-    result = re.findall(r'^TEST_CASE\((.*)\)', file_contents, flags=re.MULTILINE)
+    regular_cases = re.findall(r'^TEST_CASE\((.*)\)', file_contents, flags=re.MULTILINE)
+    repeat_cases = re.findall(r'^TEST_CASE_REPEAT\((.*),\s*(.*)\)', file_contents, flags=re.MULTILINE)
+    repeat_cases = [(x[0], int(x[1])) for x in repeat_cases]
 
+    return regular_cases + repeat_cases
+
+
+def test_case_has_repeat_count(c):
+    result = isinstance(c, tuple)
     return result
-
 
 def gather_test_cases(files):
     result = []
@@ -20,10 +26,19 @@ def gather_test_cases(files):
     for filename in files:
         with open(filename, 'r') as f:
             cases_in_file = gather_test_cases_in_file(f.read())
+
             result += cases_in_file
 
             for c in cases_in_file:
-                if len(c) == 0:
+                name = c
+
+                if test_case_has_repeat_count(c):
+                    name = c[0]
+
+                    if c[1] <= 1:
+                        error(f'Invalid argument provided as test case repeat count: \'{c[1]}\'. Stopping.')
+
+                if len(name) == 0:
                     error('Test case name cannot be empty. Stopping.')
 
     return result
@@ -82,6 +97,7 @@ do {                                                       \\
 } while (0)
 
 #define TEST_CASE(name) static void TEST_CASE__##name(void)
+#define TEST_CASE_REPEAT(name, count) TEST_CASE(name)
 
 /* Test runner globals */
 static uint64_t g_assertions_ran;
@@ -104,8 +120,13 @@ def generate_test_runner_source(filenames, cases, output_dir):
         includes += f'#include "{relative}"\n'
 
     calls = ''
+
     for c in cases:
-        calls += f'    TEST_CASE__{c}();\n'
+        if test_case_has_repeat_count(c):
+            name, count = c
+            calls += f'    for (int i = 0; i < {count}; ++i) {{ TEST_CASE__{name}(); }}\n'
+        else:
+            calls += f'    TEST_CASE__{c}();\n'
 
     result = f"""{PREAMBLE}
 {includes}
