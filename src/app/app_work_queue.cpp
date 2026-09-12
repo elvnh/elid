@@ -24,6 +24,7 @@ struct app__ThreadWorkQueue {
     app_WorkQueue *parent_queue;
 
     Mutex queue_mutex;
+    ConditionVariable task_available_cond_var;
     app__Task *first_free_task;
 
     struct {
@@ -68,6 +69,7 @@ static app__ThreadWorkQueue *app__wq_get_random_thread_queue(app_WorkQueue *wq)
 
 static app__Task *app__wq_pop_queued_task(app__ThreadWorkQueue *queue)
 {
+    // TODO: don't lock here, lock in calling function
     mutex_lock(queue->queue_mutex);
 
     app__Task *result = queue->queued_tasks.first;
@@ -128,12 +130,10 @@ void app_wq_run_task(app_WorkQueue *wq, app_TaskID id)
     app__ThreadWorkQueue *queue = task->from_queue;
 
     mutex_lock(queue->queue_mutex);
-
-    // TODO: how do we make it so that the thread that owns this queue sees the
-    // task before any other threads?
     queue_push(&queue->queued_tasks, task);
-
     mutex_unlock(queue->queue_mutex);
+
+    cond_var_signal(queue->task_available_cond_var);
 }
 
 // TODO: app__wq_ -> app_wq__
@@ -203,18 +203,21 @@ static void *app__wq_thread_loop(void *user_data)
 {
     app__ThreadWorkQueue *queue = (app__ThreadWorkQueue *)user_data;
 
+    mutex_lock(queue->queue_mutex);
+
     while (true) {
-        // TODO: wait on condition variable
         app__Task *task = app__wq_get_next_task(queue->parent_queue, queue);
 
         if (task) {
             printf("grabbing task %p...\n", (void *)task);
             app__wq_execute_task(task);
         } else {
-            // TODO: sleep
-            // printf("no task available\n");
+            printf("Failed to get task, sleeping...\n");
+            cond_var_wait(queue->task_available_cond_var, queue->queue_mutex);
         }
     }
+
+    mutex_unlock(queue->queue_mutex);
 
     return 0;
 }
@@ -223,6 +226,7 @@ static void app__wq_init_thread_work_queue(app_WorkQueue *wq, app__ThreadWorkQue
 {
     queue->arena = arena_create(APP_WQ_THREAD_WORK_QUEUE_ARENA_SIZE);
     queue->queue_mutex = mutex_create();
+    queue->task_available_cond_var = cond_var_create();
     queue->parent_queue = wq;
 
     app__wq_alloc_free_tasks(queue);
