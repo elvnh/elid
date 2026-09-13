@@ -1,3 +1,5 @@
+#include <math.h>
+
 #define TEST_WQ_REPEAT_COUNT 10
 
 TEST_CASE_REPEAT(wq_basic, TEST_WQ_REPEAT_COUNT)
@@ -9,7 +11,7 @@ TEST_CASE_REPEAT(wq_basic, TEST_WQ_REPEAT_COUNT)
     int i = 0;
     int *i_ptr = &i;
 
-    app_TaskID task = app_wq_create_task(wq, [] (void *data) {
+    app_TaskID task = app_wq_create_task(wq, [] (app_TaskID, void *data) {
         int *ptr = *(int **)data;
         *ptr = 123;
     }, i_ptr);
@@ -33,7 +35,7 @@ TEST_CASE(wq_basic_destroy_no_wait)
     int i = 0;
     int *i_ptr = &i;
 
-    app_TaskID task = app_wq_create_task(wq, [] (void *data) {
+    app_TaskID task = app_wq_create_task(wq, [] (app_TaskID, void *data) {
         int *ptr = *(int **)data;
         *ptr = 123;
     }, i_ptr);
@@ -60,12 +62,12 @@ TEST_CASE_REPEAT(wq_child_task_wait_for_parent_with_slow_child, TEST_WQ_REPEAT_C
         s32 counter = 0;
         s32 *counter_ptr = &counter;
 
-        app_TaskID parent = app_wq_create_task(wq, [] (void *data) {
+        app_TaskID parent = app_wq_create_task(wq, [] (app_TaskID, void *data) {
             s32 *ptr = *(s32 **)data;
             atomic_inc_s32(ptr);
         }, counter_ptr);
 
-        app_TaskID child = app_wq_create_task_as_child(wq, [] (void *data) {
+        app_TaskID child = app_wq_create_task_as_child(wq, [] (app_TaskID, void *data) {
             sleep_ms(TEST_WQ_DEFAULT_WAIT_MS);
 
             s32 *ptr = *(s32 **)data;
@@ -110,12 +112,12 @@ TEST_CASE_REPEAT(wq_child_task_wait_for_slow_child, TEST_WQ_REPEAT_COUNT)
         s32 counter = 0;
         s32 *counter_ptr = &counter;
 
-        app_TaskID parent = app_wq_create_task(wq, [] (void *data) {
+        app_TaskID parent = app_wq_create_task(wq, [] (app_TaskID, void *data) {
             s32 *ptr = *(s32 **)data;
             atomic_inc_s32(ptr);
         }, counter_ptr);
 
-        app_TaskID child = app_wq_create_task_as_child(wq, [] (void *data) {
+        app_TaskID child = app_wq_create_task_as_child(wq, [] (app_TaskID, void *data) {
             sleep_ms(TEST_WQ_DEFAULT_WAIT_MS);
 
             s32 *ptr = *(s32 **)data;
@@ -158,14 +160,14 @@ TEST_CASE_REPEAT(wq_child_task_wait_for_slow_parent, TEST_WQ_REPEAT_COUNT)
         s32 counter = 0;
         s32 *counter_ptr = &counter;
 
-        app_TaskID parent = app_wq_create_task(wq, [] (void *data) {
+        app_TaskID parent = app_wq_create_task(wq, [] (app_TaskID, void *data) {
             sleep_ms(TEST_WQ_DEFAULT_WAIT_MS);
 
             s32 *ptr = *(s32 **)data;
             atomic_inc_s32(ptr);
         }, counter_ptr);
 
-        app_TaskID child = app_wq_create_task_as_child(wq, [] (void *data) {
+        app_TaskID child = app_wq_create_task_as_child(wq, [] (app_TaskID, void *data) {
             s32 *ptr = *(s32 **)data;
             atomic_inc_s32(ptr);
         }, counter_ptr, parent);
@@ -203,7 +205,7 @@ TEST_CASE_REPEAT(wq_wait_for_finished_task, TEST_WQ_REPEAT_COUNT)
     s32 counter = 0;
     s32 *counter_ptr = &counter;
 
-    app_TaskID task = app_wq_create_task(wq, [] (void *data) {
+    app_TaskID task = app_wq_create_task(wq, [] (app_TaskID, void *data) {
         sleep_ms(TEST_WQ_DEFAULT_WAIT_MS);
 
         s32 *ptr = *(s32 **)data;
@@ -236,7 +238,7 @@ TEST_CASE_REPEAT(wq_many_tasks, TEST_WQ_REPEAT_COUNT)
     app_TaskID parent = app_wq_create_task(wq, app_wq_null_function, app_wq_null_arg);
 
     for (s32 i = 0; i < n; ++i) {
-        app_TaskID task = app_wq_create_task_as_child(wq, [] (void *data) {
+        app_TaskID task = app_wq_create_task_as_child(wq, [] (app_TaskID, void *data) {
             s32 *ptr = *(s32 **)data;
             atomic_inc_s32(ptr);
         }, counter_ptr, parent);
@@ -265,3 +267,50 @@ TEST_CASE_REPEAT(wq_destroy_before_finish, TEST_WQ_REPEAT_COUNT)
     app_wq_destroy(wq);
 }
 
+struct TaskTreeHelperArgs {
+    app_WorkQueue *wq;
+    s32 depth;
+    s32 max_depth;
+    s32 *counter;
+};
+
+static void test_wq_deep_task_tree_helper(app_TaskID self, void *data)
+{
+    TaskTreeHelperArgs *args = (TaskTreeHelperArgs *)data;
+
+    if (args->depth < args->max_depth) {
+        TaskTreeHelperArgs new_args = *args;
+        ++new_args.depth;
+
+        app_TaskID left = app_wq_create_task_as_child(args->wq, test_wq_deep_task_tree_helper, new_args, self);
+        app_TaskID right = app_wq_create_task_as_child(args->wq, test_wq_deep_task_tree_helper, new_args, self);
+
+        app_wq_run_task(left);
+        app_wq_run_task(right);
+    } else {
+        atomic_inc_s32(args->counter);
+    }
+}
+
+TEST_CASE_REPEAT(wq_deep_task_tree, TEST_WQ_REPEAT_COUNT)
+{
+    Temp temp = temp_begin(test_arena);
+    app_WorkQueue *wq = app_wq_create(temp.arena, 16);
+
+    s32 counter = 0;
+
+    TaskTreeHelperArgs args = {};
+    args.wq = wq;
+    args.max_depth = 10;
+    args.counter = &counter;
+
+    app_TaskID task = app_wq_create_task(wq, test_wq_deep_task_tree_helper, args);
+
+    app_wq_run_task(task);
+    app_wq_wait_for_task(task);
+
+    // The tasks form a complete binary tree where every leaf node increases the counter once.
+    REQUIRE(counter == pow(2, args.max_depth));
+
+    app_wq_destroy(wq);
+}

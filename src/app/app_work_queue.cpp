@@ -199,9 +199,20 @@ static void app__wq_finish_task(app__Task *task)
     }
 }
 
+app_TaskID app__wq_id_from_task(app__Task *task)
+{
+    app_TaskID result = {};
+    result.id = (uintptr_t)task;
+    result.generation = task->generation;
+
+    return result;
+}
+
 static void app__wq_execute_task(app__Task *task)
 {
-    task->function(task->user_data);
+    app_TaskID id = app__wq_id_from_task(task);
+
+    task->function(id, task->user_data);
     app__wq_finish_task(task);
 }
 
@@ -339,9 +350,9 @@ app_TaskID app_wq_create_task_impl(app_WorkQueue *wq, app_TaskFunction fn, app_T
         {
             ScopedLock lock = scoped_lock(task->parent->task_finish_mutex);
 
-            ASSERT(((task->parent->generation == parent.generation)
-                    && (!atomic_load_s32(&task->parent->has_been_run)))
-                && "Provided finished task as parent");
+            ASSERT(((task->parent->generation == parent.generation))
+                && "Provided finished task as parent. Only non-started, or started"
+                " but not yet finished tasks are allowed as parents.");
         }
         #endif
 
@@ -352,14 +363,12 @@ app_TaskID app_wq_create_task_impl(app_WorkQueue *wq, app_TaskFunction fn, app_T
         memcpy(task->user_data, data, size);
     }
 
-    app_TaskID result = {};
-    result.id = (uintptr_t)task;
-    result.generation = task->generation;
+    app_TaskID result = app__wq_id_from_task(task);
 
     return result;
 }
 
 
-void app_wq_null_function(void *)
+void app_wq_null_function(app_TaskID, void *)
 {
 }
