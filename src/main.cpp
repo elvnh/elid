@@ -41,7 +41,16 @@ int main(int argc, char **argv)
         while (!gui_should_close(&gui)) {
             arena_reset(app.frame_arena);
 
+            // Dummy task that all per-frame tasks will be children of, so that we can wait for all
+            // of them at the end of the frame.
+            app_TaskID frame_task = app_wq_create_task(app.work_queue, app_wq_null_function, app_wq_null_arg);
+            app.frame_root_task = frame_task;
+
             gui_update_and_render(&gui, &app);
+
+            // TODO: should wait_for_task run the task if not already started?
+            app_wq_run_task(frame_task);
+            app_wq_wait_for_task(frame_task);
         }
     }
 

@@ -381,6 +381,13 @@ app_TaskID app_wq_create_task_impl(app_WorkQueue *wq, app_TaskFunction fn, app_T
     return result;
 }
 
+app_TaskID app_wq_push_task_impl(app_WorkQueue *wq, app_TaskFunction fn, app_TaskID parent, const void *data, usize size)
+{
+    app_TaskID id = app_wq_create_task_impl(wq, fn, parent, data, size);
+    app_wq_run_task(id);
+
+    return id;
+}
 
 void app_wq_null_function(app_TaskID, void *)
 {

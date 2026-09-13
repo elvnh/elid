@@ -59,7 +59,14 @@ static void gui__popup_open_process(gui_State *gui, app_State *app)
     const char *name = gui__popup_get_name(app->frame_arena, GUI_POPUP_OPEN_PROCESS, "Open process");
 
     if (ImGui::BeginPopupModal(name, 0, popup_flags)) {
-        s32 process_count = usize_to_s32(app->running_process_list.count);
+        s32 process_count = 0;
+
+        b32 is_ready = atomic_load_s32(&app->process_list_ready);
+
+        if (is_ready) {
+            process_count = usize_to_s32(app->running_process_list.count);
+        }
+
         b32 item_is_highlighted = false;
 
         ImVec2 listbox_size = {-FLT_MIN, -ImGui::GetFrameHeight()};
@@ -97,11 +104,13 @@ static void gui__popup_open_process(gui_State *gui, app_State *app)
 
         b32 should_close = false;
 
-        if ((ImGui::Button("Open") || has_double_clicked) && is_valid_index) {
-            memmi_ProcessInfo clicked_process = app->running_process_list.data[selected_index];
+        ImGui::BeginDisabled(!is_ready || !is_valid_index); {
+            if ((ImGui::Button("Open") || has_double_clicked) && is_valid_index) {
+                memmi_ProcessInfo clicked_process = app->running_process_list.data[selected_index];
 
-            should_close = app_action_open_process(app, clicked_process.pid);
-        }
+                should_close = app_action_open_process(app, clicked_process.pid);
+            }
+        } ImGui::EndDisabled();
 
         ImGui::SameLine();
 
