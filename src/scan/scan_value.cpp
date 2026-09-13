@@ -149,3 +149,10 @@ b32 scan_val_lt(scan_ValueType type, scan_Value a, scan_Value b)
     return result;
 }
 
+
+void scan_val_atomic_store(scan_Value *dst, scan_Value src)
+{
+    ASSERT((sizeof(scan_Value) == sizeof(u32)) && "Ensure the correct atomic operation is used");
+
+    atomic_store_u32(&dst->int32, src.int32);
+}

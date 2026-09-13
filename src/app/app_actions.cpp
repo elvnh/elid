@@ -90,22 +90,14 @@ void app_action_edit_value_at_address(app_State *app, uintptr_t address, scan_Va
 
 void app_action_update_address_table_entry_value(app_State *app, app_AddressTableEntry *entry)
 {
-    // TODO: async
-    // TODO: make it possible to have arena use stack buffer
     if (app_has_opened_process(app)) {
-        Temp temp = scratch_begin();
-        memmi_Allocator allocator = proc_memmi_allocator_from_arena(temp.arena);
+        app_UpdateAddressTableArgs arg = {};
+        arg.app = app;
+        arg.entry = entry;
 
-        usize size = scan_val_type_get_size(entry->value_type);
+        app_wq_push_task_as_child(
+            app->work_queue, app_async_update_address_table_entry_value, arg, app->frame_root_task);
 
-        memmi_ReadMemory read_mem_result = memmi_read_memory(app->open_process_handle, entry->address, size, allocator);
-
-        if (read_mem_result.status == MEMMI_OK) {
-            copy_mem(&entry->current_value, read_mem_result.memory, 1, read_mem_result.bytes_read);
-            entry->last_read_successful = true;
-        } else {
-            entry->last_read_successful = false;
-        }
     }
 }
 

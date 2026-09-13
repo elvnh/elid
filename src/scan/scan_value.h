@@ -25,3 +25,4 @@ scan_Value          scan_val_sub(scan_ValueType type, scan_Value a, scan_Value b
 b32                 scan_val_eq(scan_ValueType type, scan_Value a, scan_Value b);
 b32                 scan_val_gt(scan_ValueType type, scan_Value a, scan_Value b);
 b32                 scan_val_lt(scan_ValueType type, scan_Value a, scan_Value b);
+void                scan_val_atomic_store(scan_Value *dst, scan_Value src);
