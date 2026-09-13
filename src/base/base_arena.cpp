@@ -54,9 +54,8 @@ Arena *arena_create(usize size)
 
 void *arena_alloc_bytes(Arena *arena, usize item_count, usize item_size, usize alignment)
 {
-    ASSERT(item_count > 0);
-    ASSERT(item_size > 0);
     ASSERT(alignment > 0);
+    ASSERT(item_size > 0);
     ASSERT(is_pow2(alignment));
     ASSERT(alignment <= ARENA_HEADER_SIZE);
 
@@ -66,7 +65,7 @@ void *arena_alloc_bytes(Arena *arena, usize item_count, usize item_size, usize a
     usize byte_count = 0;
     usize size_to_zero_out = 0;
 
-    if (safe_mul_usize(item_count, item_size, &byte_count)) {
+    if ((item_count > 0) && safe_mul_usize(item_count, item_size, &byte_count)) {
         usize aligned_offset = align_pow2(current_arena->offset, alignment);
         usize next_offset = 0;
 

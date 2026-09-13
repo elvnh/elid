@@ -162,7 +162,6 @@ proc_ObjectList proc_get_loaded_objects(Arena *arena, memmi_Process proc)
     memmi_ObjectList objects = memmi_get_loaded_objects(proc, temp_allocator);
 
     proc_ObjectList result = proc_object_list_from_memmi_object_list(arena, objects);
-    ASSERT(result.status == PROC_STATUS_OK);
 
     return result;
 }

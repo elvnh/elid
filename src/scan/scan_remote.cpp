@@ -114,8 +114,6 @@ scan_Result scan_remote_memory_next(Arena *arena, memmi_Process proc, scan_Setti
     result.value_type = cmp.value_type;
     result.scan_mode = cmp.mode;
     result.process_objects = proc_get_loaded_objects(arena, proc);
-    ASSERT(result.process_objects.status == PROC_STATUS_OK);
-
 
     // For temporarily storing the memory of a region during the scan of it.
     Arena *scan_scratch_arena = thread_ctx_get()->per_scan_scratch_arena;
