@@ -1,6 +1,6 @@
 #include <math.h>
 
-#define TEST_WQ_REPEAT_COUNT 10
+#define TEST_WQ_REPEAT_COUNT 50
 
 TEST_CASE_REPEAT(wq_basic, TEST_WQ_REPEAT_COUNT)
 {

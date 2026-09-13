@@ -142,9 +142,10 @@ void app_wq_run_task(app_TaskID id)
     {
         ScopedLock lock = scoped_lock(queue->queue_mutex);
         queue_push(&queue->queued_tasks, task);
+
+        cond_var_signal(queue->task_available_cond_var);
     }
 
-    cond_var_signal(queue->task_available_cond_var);
 }
 
 // TODO: app__wq_ -> app_wq__
@@ -244,9 +245,12 @@ static void *app__wq_thread_loop(void *user_data)
             // app_wq_destroy has been called, we can be sure that then we either see the flag being
             // set, or we wake up from the condition variable broadcast, since the other thread will
             // lock the same mutex before braodcasting.
+            // We also need to check if any new tasks have arrived since the last time we
+            // checked. If we don't, we will miss the signal on the condition variable and remain
+            // asleep.
             ScopedLock lock = scoped_lock(queue->queue_mutex);
 
-            if (!atomic_load_s32(&wq->should_terminate)) {
+            if (!atomic_load_s32(&wq->should_terminate) && list_is_empty(&queue->queued_tasks)) {
                 cond_var_wait(queue->task_available_cond_var, queue->queue_mutex);
             }
         }

@@ -189,4 +189,7 @@
 #define list_next_n(list, next) ((list)->next)
 #define list_next(list) list_next_n((list), next)
 
+/* Query operations */
 #define list_count(list) (list)->list_node_count
+#define list_is_empty(list) ((list)->list_node_count == 0)
+#define queue_is_empty(q) list_is_empty((q))
