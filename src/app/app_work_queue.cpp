@@ -120,7 +120,7 @@ static app__Task *app__wq_task_from_id(app_TaskID id)
     return result;
 }
 
-void app_wq_run_task(app_WorkQueue *wq, app_TaskID id)
+void app_wq_run_task(app_TaskID id)
 {
     app__Task *task = app__wq_task_from_id(id);
 
@@ -149,7 +149,7 @@ void app_wq_run_task(app_WorkQueue *wq, app_TaskID id)
 
 // TODO: app__wq_ -> app_wq__
 
-void app_wq_wait_for_task(app_WorkQueue *wq, app_TaskID id)
+void app_wq_wait_for_task(app_TaskID id)
 {
     app__Task *task = app__wq_task_from_id(id);
 
@@ -209,36 +209,37 @@ static void *app__wq_thread_loop(void *user_data)
 {
     app__ThreadWorkQueue *queue = (app__ThreadWorkQueue *)user_data;
 
-    mutex_lock(queue->queue_mutex);
-
     app_WorkQueue *wq = queue->parent_queue;
 
     while (!atomic_load_s32(&wq->should_terminate)) {
-        app__Task *task = app__wq_pop_queued_task(queue);
+        app__Task *task = 0;
 
-        if (!task) {
-            // Try to steal from other queue. We might grab another threads queue lock while
-            // doing so, so we'll release ours to avoid order inversion.
-            mutex_unlock(queue->queue_mutex);
-            task = app__wq_try_steal_task(wq, queue);
-            mutex_lock(queue->queue_mutex);
+        {
+            // We only lock the mutex while modifying our queue, as other threads may want to steal
+            // from us while we run a task. Also, if we happen to steal from some other queue, we
+            // would otherwise hold two queue locks at the same time which is a potential order inversion.
+            ScopedLock lock = scoped_lock(queue->queue_mutex);
+            task = app__wq_pop_queued_task(queue);
         }
 
-        // If we stole a task (or tried to), we temporarily released the queue mutex above. During
-        // that time, the should_terminate flag may have been set and the condition variable
-        // broadcasted to (other threads can't do that if we hold the mutex). If we failed to steal
-        // a task, we'll go right back to waiting on the condition variable, unless we check the
-        // flag one more time.
-        if (!atomic_load_s32(&wq->should_terminate)) {
-            if (task) {
-                app__wq_execute_task(task);
-            } else {
+        if (!task) {
+            task = app__wq_try_steal_task(wq, queue);
+        }
+
+        if (task && !atomic_load_s32(&wq->should_terminate)) {
+            app__wq_execute_task(task);
+        } else {
+            // We lock the mutex before checking the should_terminate flag again, as if
+            // app_wq_destroy has been called, we can be sure that then we either see the flag being
+            // set, or we wake up from the condition variable broadcast, since the other thread will
+            // lock the same mutex before braodcasting.
+            ScopedLock lock = scoped_lock(queue->queue_mutex);
+
+            if (!atomic_load_s32(&wq->should_terminate)) {
                 cond_var_wait(queue->task_available_cond_var, queue->queue_mutex);
             }
         }
     }
-
-    mutex_unlock(queue->queue_mutex);
 
     return 0;
 }
@@ -279,9 +280,9 @@ void app_wq_destroy(app_WorkQueue *wq)
     // Join threads before destroying resources in case any of the threads are using them.
     for (s32 i = 0; i < wq->thread_count; ++i) {
         app__ThreadWorkQueue *queue = &wq->thread_queues[i];
-        // If the thread missed the should_terminate flag being set as well as the broadcast, it
-        // will wait on the condition variable and not wake up. So we'll lock the mutex before
-        // broadcasting, since then we can be sure that the thread is waiting on the condition variable.
+        // We'll lock the mutex before broadcasting, since then we can be sure that the worker
+        // thread is either waiting on the condition variable and will therefore wake up, or it has
+        // seen (or will see) the flag being set.
         {
             ScopedLock lock = scoped_lock(queue->queue_mutex);
             cond_var_broadcast(queue->task_available_cond_var);
@@ -358,3 +359,7 @@ app_TaskID app_wq_create_task_impl(app_WorkQueue *wq, app_TaskFunction fn, app_T
     return result;
 }
 
+
+void app_wq_null_task(void *)
+{
+}
