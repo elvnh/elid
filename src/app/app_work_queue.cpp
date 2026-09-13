@@ -115,7 +115,7 @@ static app__Task *app__wq_try_steal_task(app_WorkQueue *wq, app__ThreadWorkQueue
 
 static app__Task *app__wq_task_from_id(app_TaskID id)
 {
-    app__Task *result = (app__Task *)id.id;
+    app__Task *result = (app__Task *)id.data;
 
     return result;
 }
@@ -202,7 +202,7 @@ static void app__wq_finish_task(app__Task *task)
 app_TaskID app__wq_id_from_task(app__Task *task)
 {
     app_TaskID result = {};
-    result.id = (uintptr_t)task;
+    result.data = task;
     result.generation = task->generation;
 
     return result;

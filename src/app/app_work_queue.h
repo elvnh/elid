@@ -11,7 +11,7 @@ struct app__ThreadWorkQueue;
 typedef u32 app_TaskGeneration;
 
 struct app_TaskID {
-    uintptr_t id; // TODO: make into void *
+    void *data;
     app_TaskGeneration generation;
 };
 
