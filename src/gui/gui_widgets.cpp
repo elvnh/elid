@@ -37,18 +37,19 @@ void gui_scan_result_table(gui_State *gui, app_State *app)
 
         ImGui::TableHeadersRow();
 
-        if (app->result_list.total_match_count <= GUI_MAX_DISPLAYED_RESULT_COUNT) {
-            s32 match_count = usize_to_s32(app->result_list.total_match_count);
+        if ((app->result_list.total_match_count > 0)
+            && (app->result_list.total_match_count <= GUI_MAX_DISPLAYED_RESULT_COUNT)) {
+            scan_ResultView result_view = scan_result_make_view(app->frame_arena, app->result_list);
 
             ImGuiListClipper clipper = {};
-            clipper.Begin(match_count);
+            clipper.Begin(usize_to_s32(result_view.count));
 
             while (clipper.Step()) {
                 for (s32 row = clipper.DisplayStart; row < clipper.DisplayEnd; ++row) {
                     // TODO: optimize lookup of results
                     // TODO: periodically update visible entries in result by looking up current value
 
-                    scan_MatchDetails match = scan_result_at(&app->result_list, (usize)row);
+                    scan_MatchDetails match = result_view.data[row];
 
                     ImGui::TableNextRow();
 
@@ -176,7 +177,6 @@ void gui_address_table(gui_State *gui, app_State *app)
         for (app_AddressTableEntry *entry = list_head(tbl); entry; entry = list_next(entry)) {
             ImGui::TableNextRow();
 
-            // TODO: do this async
             app_action_update_address_table_entry_value(app, entry);
 
             // Address
@@ -216,7 +216,6 @@ void gui_address_table(gui_State *gui, app_State *app)
                 }
             }
         }
-
     } ImGui::EndTable();
 }
 

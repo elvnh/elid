@@ -54,6 +54,9 @@ Arena *arena_create(usize size)
 
 void *arena_alloc_bytes(Arena *arena, usize item_count, usize item_size, usize alignment)
 {
+    ASSERT(item_count > 0);
+    ASSERT(item_size > 0);
+    ASSERT(alignment > 0);
     ASSERT(is_pow2(alignment));
     ASSERT(alignment <= ARENA_HEADER_SIZE);
 
