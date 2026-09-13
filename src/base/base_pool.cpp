@@ -1,12 +1,44 @@
 #include "base_pool.h"
 
+// TODO: rename
 struct PoolNode {
     PoolNode *next;
+    PoolNodeGeneration generation;
 };
+
+static usize pool__node_header_size(usize node_alignment)
+{
+    usize result = align_pow2(sizeof(PoolNode), node_alignment);
+
+    return result;
+}
+
+static void *pool__node_user_ptr_from_header(Pool *pool, PoolNode *node)
+{
+    void *result = ptr_byte_offset(node, pool__node_header_size(pool->node_alignment));
+
+    return result;
+}
+
+static PoolNode *pool__header_from_user_ptr(Pool *pool, void *ptr)
+{
+    ssize header_size = (ssize)pool__node_header_size(pool->node_alignment);
+    PoolNode *result = (PoolNode *)ptr_byte_offset(ptr, -header_size);
+
+    return result;
+}
 
 static PoolNode *pool__get_first_node_address(Pool *pool)
 {
     PoolNode *result = (PoolNode *)ptr_byte_offset(pool, POOL_HEADER_SIZE);
+
+    return result;
+}
+
+static usize pool__get_usable_node_size(Pool *pool)
+{
+    usize result =
+        pool->node_size - pool__node_header_size(pool->node_alignment);
 
     return result;
 }
@@ -24,7 +56,9 @@ Pool *pool_create_untyped(Arena *optional_arena, usize node_size, usize node_cou
     Arena *arena = optional_arena;
 
     node_alignment = MAX(node_alignment, alignof(PoolNode));
-    node_size = MAX(node_size, sizeof(PoolNode));
+
+    usize header_size = pool__node_header_size(node_alignment);
+    node_size = header_size + node_size;
     node_size = align_pow2(node_size, node_alignment);
 
     usize byte_count = 0;
@@ -61,7 +95,7 @@ void *pool_alloc_untyped(Pool *pool)
         current_pool = current_pool->next;
     }
 
-    usize size_to_zero_out = pool->current_pool->node_size;
+    usize size_to_zero_out = 0;
 
     if (!current_pool) {
         Pool *new_pool = pool_create_untyped(
@@ -73,20 +107,25 @@ void *pool_alloc_untyped(Pool *pool)
         stack_push_nh_no_count(pool, new_pool, next, next);
         current_pool = new_pool;
 
-        // We just allocated a new pool which starts zeroed out, except for the pointers
-        // in the node headers, so we just need to memset the node headers to zero.
-        size_to_zero_out = sizeof(PoolNode);
+        // We just allocated a new pool which starts zeroed out, no need to zero anything.
+    } else {
+        // We only want to zero out the area of the node user by the user, not the header.
+        size_to_zero_out = pool__get_usable_node_size(current_pool);
+
     }
 
-    result = current_pool->first_free_node;
+    PoolNode *node = current_pool->first_free_node;
+    result = pool__node_user_ptr_from_header(current_pool, node);
 
-    UNPOISON(result, current_pool->node_size);
+    UNPOISON(result, pool__get_usable_node_size(current_pool));
 
     stack_pop_nh_no_count(current_pool, next, first_free_node);
 
     pool->current_pool = current_pool;
 
-    zero_mem(result, size_to_zero_out);
+    if (size_to_zero_out > 0) {
+        zero_mem(result, size_to_zero_out);
+    }
 
     return result;
 }
@@ -94,8 +133,11 @@ void *pool_alloc_untyped(Pool *pool)
 void pool_free(Pool *pool, void *ptr)
 {
     // TODO: check that allocation actually comes from this pool
-    PoolNode *node = (PoolNode *)ptr;
+    PoolNode *node = pool__header_from_user_ptr(pool, ptr);
     stack_push_nh_no_count(pool, node, next, first_free_node);
+
+    // Generation is bumped each time the node is recycled.
+    ++node->generation;
 
     POISON(node, pool->node_size);
 
@@ -170,6 +212,15 @@ usize pool_get_total_node_count(Pool *pool)
     for (Pool *p = pool; p; p = p->next) {
         result += p->node_capacity;
     }
+
+    return result;
+}
+
+PoolNodeGeneration pool_node_generation(Pool *pool, void *ptr)
+{
+    PoolNode *node = pool__header_from_user_ptr(pool, ptr);
+
+    PoolNodeGeneration result = node->generation;
 
     return result;
 }

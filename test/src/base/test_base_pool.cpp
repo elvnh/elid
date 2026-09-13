@@ -368,3 +368,62 @@ TEST_CASE(pool_zeroed_after_growing_and_reset)
 
     arena_destroy(arena);
 }
+
+TEST_CASE(pool_node_generations)
+{
+    Arena *arena = arena_create(1024);
+
+    static const usize n = 4;
+    static const usize generation_count = 4;
+
+    Pool *pool = pool_create(arena, int, n);
+
+    int *ptrs[n];
+
+    for (usize gen = 0; gen < generation_count; ++gen) {
+        for (size_t i = 0; i < n; ++i) {
+            int *ptr = pool_alloc(pool, int);
+            ptrs[i] = ptr;
+
+            REQUIRE(pool_node_generation(pool, ptr) == gen);
+        }
+
+        for (size_t i = 0; i < n; ++i) {
+            pool_free(pool, ptrs[i]);
+        }
+    }
+
+    arena_destroy(arena);
+}
+
+TEST_CASE(pool_node_generations_after_reset)
+{
+    Arena *arena = arena_create(1024);
+
+    static const usize n = 4;
+    static const usize generation_count = 4;
+
+    Pool *pool = pool_create(arena, int, n);
+
+    int *ptrs[n];
+
+    for (usize gen = 0; gen < generation_count; ++gen) {
+        for (size_t i = 0; i < n; ++i) {
+            int *ptr = pool_alloc(pool, int);
+            ptrs[i] = ptr;
+        }
+
+        for (size_t i = 0; i < n; ++i) {
+            pool_free(pool, ptrs[i]);
+        }
+    }
+
+    pool_reset(pool);
+
+    for (s32 i = 0; i < (s32)n; ++i) {
+        int *ptr = pool_alloc(pool, int);
+        REQUIRE(pool_node_generation(pool, ptr) == generation_count);
+    }
+
+    arena_destroy(arena);
+}
