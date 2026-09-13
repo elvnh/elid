@@ -1,14 +1,21 @@
 #pragma once
 
 /* Threads */
+typedef void *(*ThreadEntryPoint)(void *user_data);
+
+struct ThreadInitializationArgs {
+    ThreadEntryPoint entry_point;
+    void *user_data;
+};
 struct Thread {
     u64 data;
+    ThreadInitializationArgs *init_args;
 };
-
-typedef void *(*ThreadEntryPoint)(void *user_data);
 
 Thread thread_create(ThreadEntryPoint entry_point, void *user_data);
 b32    thread_join(Thread thread);
+
+void  *thread_initialization(void *data);
 
 /* Semaphores */
 struct Semaphore {
@@ -93,6 +100,16 @@ void              cond_var_wait(ConditionVariable cond_var, Mutex mutex);
 #    define atomic_dec_ptr(ptr)           __atomic_sub_fetch((ptr), 1, __ATOMIC_SEQ_CST)
 #    define atomic_exchange_ptr(ptr, val) __atomic_exchange_n((ptr), (val), __ATOMIC_SEQ_CST)
 #    define atomic_compare_exchange_ptr(ptr, expect, desired)         \
+    __atomic_compare_exchange_n((ptr), (expect), (desired), false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST)
+#
+#    define atomic_load_usize(ptr)          __atomic_load_n((ptr), __ATOMIC_SEQ_CST)
+#    define atomic_store_usize(ptr, val)    __atomic_store_n((ptr), (val), __ATOMIC_SEQ_CST)
+#    define atomic_add_usize(ptr, val)      __atomic_add_fetch((ptr), (val), __ATOMIC_SEQ_CST)
+#    define atomic_sub_usize(ptr, val)      __atomic_sub_fetch((ptr), (val), __ATOMIC_SEQ_CST)
+#    define atomic_inc_usize(ptr)           __atomic_add_fetch((ptr), 1, __ATOMIC_SEQ_CST)
+#    define atomic_dec_usize(ptr)           __atomic_sub_fetch((ptr), 1, __ATOMIC_SEQ_CST)
+#    define atomic_exchange_usize(ptr, val) __atomic_exchange_n((ptr), (val), __ATOMIC_SEQ_CST)
+#    define atomic_compare_exchange_usize(ptr, expect, desired)         \
     __atomic_compare_exchange_n((ptr), (expect), (desired), false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST)
 #else
 #    error Atomics not defined for this compiler.

@@ -24,7 +24,6 @@ void free_memory(void *ptr, usize size)
 usize get_system_page_size(void)
 {
     // TODO: cache system info
-    // TODO: if this call fails, abort program
     long size = sysconf(_SC_PAGESIZE);
     ASSERT_ALWAYS(size != -1);
 
@@ -36,10 +35,19 @@ usize get_system_page_size(void)
 Thread thread_create(ThreadEntryPoint entry_point, void *user_data)
 {
     pthread_t thread = 0;
-    int create_result = pthread_create(&thread, 0, entry_point, user_data);
+
+    // Before passing control to the entry point, run a function that initializes
+    // thread local variables.
+    ThreadInitializationArgs *init_args =
+        (ThreadInitializationArgs *)allocate_memory(sizeof(ThreadInitializationArgs));
+    init_args->entry_point = entry_point;
+    init_args->user_data = user_data;
+
+    int create_result = pthread_create(&thread, 0, thread_initialization, init_args);
     ASSERT_ALWAYS(create_result == 0);
 
-    Thread result = {(u64)thread};
+    // We hold on to initialization arguments since we need to free them later.
+    Thread result = {(u64)thread, init_args};
 
     return result;
 }
@@ -51,6 +59,8 @@ b32 thread_join(Thread thread)
     ASSERT(errno == 0);
 
     b32 result = join_result == 0;
+
+    free_memory(thread.init_args, sizeof(*thread.init_args));
 
     return result;
 }
