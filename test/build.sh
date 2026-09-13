@@ -9,7 +9,7 @@ CXXFLAGS="
     -I../deps/memmi/include
     -I../deps/memmi/include/memmi
     -Werror
-    -fsanitize=address,undefined
+    -fsanitize=thread
     -std=c++11
     -Wall
     -Wextra

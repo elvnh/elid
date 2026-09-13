@@ -360,6 +360,6 @@ app_TaskID app_wq_create_task_impl(app_WorkQueue *wq, app_TaskFunction fn, app_T
 }
 
 
-void app_wq_null_task(void *)
+void app_wq_null_function(void *)
 {
 }

@@ -25,7 +25,7 @@ struct Mutex {
     u64 data;
 };
 
-Mutex mutex_create();
+Mutex mutex_create(void);
 void  mutex_destroy(Mutex mutex);
 void  mutex_lock(Mutex mutex);
 void  mutex_unlock(Mutex mutex);
@@ -34,7 +34,7 @@ void  mutex_unlock(Mutex mutex);
 struct ScopedLock {
     Mutex mutex;
 
-    ~ScopedLock()
+    ~ScopedLock(void)
     {
         ASSERT(mutex.data);
 
@@ -57,7 +57,7 @@ struct ConditionVariable {
     u64 data;
 };
 
-ConditionVariable cond_var_create();
+ConditionVariable cond_var_create(void);
 void              cond_var_destroy(ConditionVariable cond_var);
 void              cond_var_signal(ConditionVariable cond_var);
 void              cond_var_broadcast(ConditionVariable cond_var);
