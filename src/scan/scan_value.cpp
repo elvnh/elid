@@ -156,3 +156,17 @@ void scan_val_atomic_store(scan_Value *dst, scan_Value src)
 
     atomic_store_u32(&dst->int32, src.int32);
 }
+
+scan_Value scan_val_atomic_load(scan_Value *src)
+{
+    scan_Value result = {};
+    result.int32 = atomic_load_u32(&src->int32);
+
+    return result;
+}
+
+void scan_val_atomic_move(scan_Value *dst, scan_Value *src)
+{
+    scan_Value value = scan_val_atomic_load(src);
+    scan_val_atomic_store(dst, value);
+}

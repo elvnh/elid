@@ -8,3 +8,6 @@ struct scan_Settings {
 
 scan_Result scan_remote_memory_first(Arena *arena, memmi_Process proc, scan_Settings settings, scan_Comparison cmp);
 scan_Result scan_remote_memory_next(Arena *arena, memmi_Process proc, scan_Settings settings, scan_Comparison cmp, scan_Result prev_results);
+
+// TODO: move elsewhere
+scan_Value_Maybe  scan_remote_read_single_value(memmi_Process proc, scan_ValueType value_type, uintptr_t address);

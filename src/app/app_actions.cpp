@@ -97,7 +97,6 @@ void app_action_update_address_table_entry_value(app_State *app, app_AddressTabl
 
         app_wq_push_task_as_child(
             app->work_queue, app_async_update_address_table_entry_value, arg, app->frame_root_task);
-
     }
 }
 
@@ -105,4 +104,13 @@ void app_action_push_address_table_entry(app_State *app, app_AddressTableEntry e
 {
     // TODO: update immediately so that value is visible
     app_addr_table_push(&app->address_table, entry);
+}
+
+void app_action_update_result_table_entry(app_State *app, scan_MatchDetails match)
+{
+    app_UpdateResultTableArgs args = {};
+    args.app = app;
+    args.match_details = match;
+
+    app_wq_push_task_as_child(app->work_queue, app_async_update_result_table_entry, args, app->frame_root_task);
 }

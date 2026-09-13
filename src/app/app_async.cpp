@@ -19,24 +19,42 @@ void app_async_update_address_table_entry_value(app_TaskID, void *data)
     app_AddressTableEntry *entry = args->entry;
     app_State *app = args->app;
 
-    Temp temp = scratch_begin();
-    memmi_Allocator allocator = proc_memmi_allocator_from_arena(temp.arena);
+    scan_Value_Maybe value_opt = scan_remote_read_single_value(app->open_process_handle, entry->value_type, entry->address);
 
-    // It's fine to read these members as long as we do it atomically, as even if the entry gets
-    // deleted the memory will still be valid since the nodes are recycled.
-    scan_ValueType value_type = atomic_load_s32(&entry->value_type);
-    uintptr_t address = atomic_load_usize(&entry->address);
-
-    usize size = scan_val_type_get_size(value_type);
-    memmi_ReadMemory read_mem_result = memmi_read_memory(app->open_process_handle, address, size, allocator);
-
-    if (read_mem_result.status == MEMMI_OK) {
-        scan_Value value = {};
-        copy_mem(&value, read_mem_result.memory, 1, read_mem_result.bytes_read);
-
-        scan_val_atomic_store(&entry->current_value, value);
+    if (value_opt.ok) {
+        scan_val_atomic_store(&entry->current_value, value_opt.value);
         atomic_store_s32(&entry->last_read_successful, true);
     } else {
         atomic_store_s32(&entry->last_read_successful, false);
+    }
+}
+
+void app_async_update_result_table_entry(app_TaskID, void *data)
+{
+    app_UpdateResultTableArgs *args = (app_UpdateResultTableArgs *)data;
+
+    scan_MatchDetails details = args->match_details;
+
+    uintptr_t address = scan_address_from_match_details(details);
+    scan_Value_Maybe value_opt = scan_remote_read_single_value(args->app->open_process_handle, args->value_type, address);
+
+    // TODO: display null value if failed to read
+    // TODO: don't do this every frame
+
+    if (value_opt.ok) {
+        scan_Value new_curr_value = value_opt.value;
+        scan_Value prev_curr_value = scan_val_atomic_load(&details.match->value);
+
+        b32 value_has_changed = !scan_val_eq(args->value_type, prev_curr_value, new_curr_value);
+
+        if (value_has_changed) {
+            scan_val_atomic_store(&details.history->previous_value, prev_curr_value);
+            scan_val_atomic_move(&details.match->value, &value_opt.value);
+
+            printf("%p: %u -> %u\n",
+                (void *)address,
+                atomic_load_u32(&details.history->previous_value.int32),
+                atomic_load_u32(&details.match->value.int32));
+        }
     }
 }

@@ -46,20 +46,28 @@ void gui_scan_result_table(gui_State *gui, app_State *app)
 
             while (clipper.Step()) {
                 for (s32 row = clipper.DisplayStart; row < clipper.DisplayEnd; ++row) {
-                    // TODO: optimize lookup of results
                     // TODO: periodically update visible entries in result by looking up current value
 
                     scan_MatchDetails match = result_view.data[row];
+
+                    // TODO: animate when a value changes
+                    app_action_update_result_table_entry(app, match);
 
                     ImGui::TableNextRow();
 
                     b32 is_row_selected = gui->result_table.selected_row_index == row;
                     b32 match_is_at_static_offset = match.containing_object.ok;
 
+                    // These values are loaded atomically as other threads may update them.
+                    scan_Value curr_value = scan_val_atomic_load(&match.match->value);
+                    scan_Value prev_value = scan_val_atomic_load(&match.history->previous_value);
+
                     char *addr_str = gui_cstr_from_match_address(
                         app->frame_arena, match, app->result_list.process_objects);
-                    char *value_str = gui_cstr_from_match_value(
-                        app->frame_arena, match.match->value, app->result_list.value_type);
+                    char *curr_value_str = gui_cstr_from_match_value(
+                        app->frame_arena, curr_value, app->result_list.value_type);
+                    char *prev_value_str = gui_cstr_from_match_value(
+                        app->frame_arena, prev_value, app->result_list.value_type);
 
                     // TODO: is this PushID necessary?
                     ImGui::PushID(row); {
@@ -81,16 +89,13 @@ void gui_scan_result_table(gui_State *gui, app_State *app)
 
                         // Currrent value
                         ImGui::TableSetColumnIndex(1); {
-                            if (ImGui::Selectable(value_str, is_row_selected, selectable_flags)) {
+                            if (ImGui::Selectable(curr_value_str, is_row_selected, selectable_flags)) {
                                 gui->result_table.selected_row_index = row;
                             }
                         }
 
                         // Previous value
                         ImGui::TableSetColumnIndex(2); {
-                            char *prev_value_str = gui_cstr_from_match_value(
-                                app->frame_arena, match.history->previous_value, app->result_list.value_type);
-
                             if (ImGui::Selectable(prev_value_str, is_row_selected, selectable_flags)) {
                                 gui->result_table.selected_row_index = row;
                             }
@@ -124,7 +129,7 @@ void gui_scan_result_table(gui_State *gui, app_State *app)
                                 gui->edit_value_popup.edited_address = address;
 
                                 strncpy(gui->edit_value_popup.value_textbox,
-                                    value_str,
+                                    curr_value_str,
                                     array_capacity(gui->edit_value_popup.value_textbox));
 
                                 gui->edit_value_popup.value_type = app->result_list.value_type;

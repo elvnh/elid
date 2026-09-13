@@ -160,3 +160,21 @@ scan_Result scan_remote_memory_next(Arena *arena, memmi_Process proc, scan_Setti
 
     return result;
 }
+
+scan_Value_Maybe scan_remote_read_single_value(memmi_Process proc, scan_ValueType value_type, uintptr_t address)
+{
+    scan_Value_Maybe result = {};
+
+    Temp temp = scratch_begin();
+    memmi_Allocator allocator = proc_memmi_allocator_from_arena(temp.arena);
+
+    usize size = scan_val_type_get_size(value_type);
+    memmi_ReadMemory read_mem_result = memmi_read_memory(proc, address, size, allocator);
+
+    if (read_mem_result.status == MEMMI_OK) {
+        result.ok = true;
+        copy_mem(&result.value, read_mem_result.memory, 1, read_mem_result.bytes_read);
+    }
+
+    return result;
+}
