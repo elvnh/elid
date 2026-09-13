@@ -10,14 +10,11 @@ struct app__Task {
     app_TaskFunction function;
     app__Task *parent;
     app__ThreadWorkQueue *from_queue;
-    s32 unfinished_task_count;
 
-    Mutex task_finish_mutex;
-    ConditionVariable task_finish_cond_var;
-    app_TaskGeneration generation; // Increased when a task is finished
+    s32 unfinished_task_count; // Atomic, number of unfinished tasks including child tasks
+    app_TaskGeneration generation; // Atomic, increased when a task is finished
 
-    app__Task *next; // Either next free task or next queued task
-    app__Task *next_in_complete_task_list;
+    app__Task *next; // Either next free task or next enqueued task
 
     #if DEBUG_BUILD
     b32 has_been_run;
@@ -30,8 +27,7 @@ struct app__ThreadWorkQueue {
     app_WorkQueue *parent_queue;
 
     Mutex queue_mutex;
-    ConditionVariable task_available_cond_var;
-    app__Task *first_in_complete_task_list;
+    ConditionVariable task_available_or_finished_cond_var;
     app__Task *first_free_task;
 
     struct {
@@ -60,12 +56,6 @@ static void app__wq_alloc_free_tasks(app__ThreadWorkQueue *queue)
         app__Task *task = &free_tasks[i];
         task->next = queue->first_free_task;
         queue->first_free_task = task;
-
-        task->next_in_complete_task_list = queue->first_in_complete_task_list;
-        queue->first_in_complete_task_list = task;
-
-        task->task_finish_mutex = mutex_create();
-        task->task_finish_cond_var = cond_var_create();
     }
 }
 
@@ -131,8 +121,7 @@ void app_wq_run_task(app_TaskID id)
             && "Ran same task twice");
 
         {
-            ScopedLock lock = scoped_lock(task->task_finish_mutex);
-            ASSERT((task->generation == id.generation) && "Stale task provided");
+            ASSERT((atomic_load_s32(&task->generation) == id.generation) && "Stale task provided");
         }
     }
     #endif
@@ -143,61 +132,31 @@ void app_wq_run_task(app_TaskID id)
         ScopedLock lock = scoped_lock(queue->queue_mutex);
         queue_push(&queue->queued_tasks, task);
 
-        cond_var_signal(queue->task_available_cond_var);
+        cond_var_signal(queue->task_available_or_finished_cond_var);
     }
 
 }
 
 // TODO: app__wq_ -> app_wq__
-
-void app_wq_wait_for_task(app_TaskID id)
+static app__Task *app__wq_try_get_task(app__ThreadWorkQueue *queue)
 {
-    app__Task *task = app__wq_task_from_id(id);
+    app__Task *result = 0;
 
-    ScopedLock lock = scoped_lock(task->task_finish_mutex);
+    app_WorkQueue *wq = queue->parent_queue;
 
-    // We only need to wait if this ID has the same generation as the task. If
-    // it doesn't, the task has already finished and we don't need to wait.
-    while (task->generation == id.generation) {
-        cond_var_wait(task->task_finish_cond_var, task->task_finish_mutex);
-    }
-}
-
-static void app__wq_finish_task(app__Task *task)
-{
-    s32 new_unfinished_count = atomic_dec_s32(&task->unfinished_task_count);
-    ASSERT(new_unfinished_count >= 0);
-
-    if (new_unfinished_count == 0) {
-        // printf("unfinished count reached 0, finishing task...\n");
-
-        {
-            ScopedLock lock = scoped_lock(task->task_finish_mutex);
-            ++task->generation;
-        }
-
-        // Signal to any threads waiting for the task to finish.
-        cond_var_broadcast(task->task_finish_cond_var);
-
-        if (task->parent) {
-            // printf("recursively finishing parent task...\n");
-            app__wq_finish_task(task->parent);
-        }
-
-        app__ThreadWorkQueue *queue = task->from_queue;
+    {
+        // We only lock the mutex while modifying our queue, as other threads may want to steal
+        // from us while we run a task. Also, if we happen to steal from some other queue, we
+        // would otherwise hold two queue locks at the same time which is a potential order inversion.
         ScopedLock lock = scoped_lock(queue->queue_mutex);
-
-        #if DEBUG_BUILD
-        for (app__Task *t = list_head(&queue->queued_tasks); t; t = list_next(t)) {
-            if (t == task) {
-                ASSERT(0 && "Task exists as a task in flight and a queued task at the same time");
-            }
-        }
-        #endif
-
-        task->next = queue->first_free_task;
-        queue->first_free_task = task;
+        result = app__wq_pop_queued_task(queue);
     }
+
+    if (!result) {
+        result = app__wq_try_steal_task(wq, queue);
+    }
+
+    return result;
 }
 
 app_TaskID app__wq_id_from_task(app__Task *task)
@@ -209,12 +168,81 @@ app_TaskID app__wq_id_from_task(app__Task *task)
     return result;
 }
 
+static void app__wq_finish_task(app__Task *task)
+{
+    app__ThreadWorkQueue *queue = task->from_queue;
+
+    s32 new_unfinished_count = atomic_dec_s32(&task->unfinished_task_count);
+    ASSERT(new_unfinished_count >= 0);
+
+    if (new_unfinished_count == 0) {
+        // printf("unfinished count reached 0, finishing task...\n");
+        if (task->parent) {
+            // printf("recursively finishing parent task...\n");
+            app__wq_finish_task(task->parent);
+        }
+
+        {
+            ScopedLock lock = scoped_lock(queue->queue_mutex);
+            atomic_inc_s32(&task->generation);
+
+            // Signal to any threads waiting for the task to finish. This will also wake up any threads
+            // waiting for work to do, but as threads in app_wq_wait_for_task will check for work while
+            // waiting for a specific task to finish, this is necessary.
+            cond_var_broadcast(queue->task_available_or_finished_cond_var);
+
+
+            #if DEBUG_BUILD // TODO: remove
+            for (app__Task *t = list_head(&queue->queued_tasks); t; t = list_next(t)) {
+                if (t == task) {
+                    ASSERT(0 && "Task exists as a task in flight and a queued task at the same time");
+                }
+            }
+            #endif
+
+            task->next = queue->first_free_task;
+            queue->first_free_task = task;
+        }
+    }
+}
+
 static void app__wq_execute_task(app__Task *task)
 {
     app_TaskID id = app__wq_id_from_task(task);
 
     task->function(id, task->user_data);
     app__wq_finish_task(task);
+}
+
+static b32 app__wq_task_is_finished(app_TaskID id, app__Task *task)
+{
+    b32 result = atomic_load_s32(&task->generation) != id.generation;
+
+    return result;
+}
+
+void app_wq_wait_for_task(app_TaskID id)
+{
+    app__Task *task = app__wq_task_from_id(id);
+    app__ThreadWorkQueue *queue = task->from_queue;
+
+    while (!app__wq_task_is_finished(id, task)) {
+        app__Task *task_to_do_while_waiting = app__wq_try_get_task(queue);
+
+        if (task_to_do_while_waiting && !app__wq_task_is_finished(id, task)) {
+            app__wq_execute_task(task_to_do_while_waiting);
+        } else {
+            // We wait on the queue global cond var as we're both interested in new jobs arriving
+            // and the task finishing. We also check the generation again before going to sleep,
+            // since it may have changed since last check. It won't change after acquiring lock
+            // though, as the lock is always acquired before increasing it.
+            ScopedLock lock = scoped_lock(queue->queue_mutex);
+
+            if (!app__wq_task_is_finished(id, task)) {
+                cond_var_wait(queue->task_available_or_finished_cond_var, queue->queue_mutex);
+            }
+        }
+    }
 }
 
 static void *app__wq_thread_loop(void *user_data)
@@ -224,19 +252,7 @@ static void *app__wq_thread_loop(void *user_data)
     app_WorkQueue *wq = queue->parent_queue;
 
     while (!atomic_load_s32(&wq->should_terminate)) {
-        app__Task *task = 0;
-
-        {
-            // We only lock the mutex while modifying our queue, as other threads may want to steal
-            // from us while we run a task. Also, if we happen to steal from some other queue, we
-            // would otherwise hold two queue locks at the same time which is a potential order inversion.
-            ScopedLock lock = scoped_lock(queue->queue_mutex);
-            task = app__wq_pop_queued_task(queue);
-        }
-
-        if (!task) {
-            task = app__wq_try_steal_task(wq, queue);
-        }
+        app__Task *task = app__wq_try_get_task(queue);
 
         if (task && !atomic_load_s32(&wq->should_terminate)) {
             app__wq_execute_task(task);
@@ -251,7 +267,7 @@ static void *app__wq_thread_loop(void *user_data)
             ScopedLock lock = scoped_lock(queue->queue_mutex);
 
             if (!atomic_load_s32(&wq->should_terminate) && list_is_empty(&queue->queued_tasks)) {
-                cond_var_wait(queue->task_available_cond_var, queue->queue_mutex);
+                cond_var_wait(queue->task_available_or_finished_cond_var, queue->queue_mutex);
             }
         }
     }
@@ -263,7 +279,7 @@ static void app__wq_init_thread_work_queue(app_WorkQueue *wq, app__ThreadWorkQue
 {
     queue->arena = arena_create(APP_WQ_THREAD_WORK_QUEUE_ARENA_SIZE);
     queue->queue_mutex = mutex_create();
-    queue->task_available_cond_var = cond_var_create();
+    queue->task_available_or_finished_cond_var = cond_var_create();
     queue->parent_queue = wq;
 
     app__wq_alloc_free_tasks(queue);
@@ -300,7 +316,7 @@ void app_wq_destroy(app_WorkQueue *wq)
         // seen (or will see) the flag being set.
         {
             ScopedLock lock = scoped_lock(queue->queue_mutex);
-            cond_var_broadcast(queue->task_available_cond_var);
+            cond_var_broadcast(queue->task_available_or_finished_cond_var);
         }
 
         thread_join(queue->thread);
@@ -310,12 +326,7 @@ void app_wq_destroy(app_WorkQueue *wq)
         app__ThreadWorkQueue *queue = &wq->thread_queues[i];
 
         mutex_destroy(queue->queue_mutex);
-        cond_var_destroy(queue->task_available_cond_var);
-
-        for (app__Task *task = queue->first_in_complete_task_list; task; task = task->next_in_complete_task_list) {
-            mutex_destroy(task->task_finish_mutex);
-            cond_var_destroy(task->task_finish_cond_var);
-        }
+        cond_var_destroy(queue->task_available_or_finished_cond_var);
 
         arena_destroy(queue->arena);
     }
@@ -352,9 +363,7 @@ app_TaskID app_wq_create_task_impl(app_WorkQueue *wq, app_TaskFunction fn, app_T
     if (task->parent) {
         #if DEBUG_BUILD
         {
-            ScopedLock lock = scoped_lock(task->parent->task_finish_mutex);
-
-            ASSERT(((task->parent->generation == parent.generation))
+            ASSERT((atomic_load_s32(&task->parent->generation) == parent.generation)
                 && "Provided finished task as parent. Only non-started, or started"
                 " but not yet finished tasks are allowed as parents.");
         }
