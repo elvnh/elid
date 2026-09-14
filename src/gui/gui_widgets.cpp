@@ -173,6 +173,27 @@ static void gui__address_table_context_menu(app_State *app, gui_State *gui, app_
             gui_popup_open(gui, GUI_POPUP_ADD_ADDRESS);
         }
 
+        if (ImGui::Selectable("Edit this value...")) {
+            gui->edit_value_popup.edited_address = entry->address;
+
+            const char *curr_value_str = 0;
+
+            if (atomic_load_s32(&entry->last_read_successful)) {
+                scan_Value current_value = scan_val_atomic_load(&entry->current_value);
+
+                curr_value_str = gui_cstr_from_match_value(
+                    app->frame_arena, current_value, entry->value_type);
+            } else {
+                curr_value_str = "";
+            }
+
+            strncpy(gui->edit_value_popup.value_textbox,
+                curr_value_str,
+                array_capacity(gui->edit_value_popup.value_textbox));
+
+            gui_popup_open(gui, GUI_POPUP_EDIT_VALUE);
+        }
+
         if (ImGui::Selectable("Delete")) {
             app_action_remove_address_table_entry(app, entry);
         }
