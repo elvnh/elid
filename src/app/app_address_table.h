@@ -23,3 +23,4 @@ void   app_addr_table_push(app_AddressTable *tbl, app_AddressTableEntry entry);
 void   app_addr_table_remove(app_AddressTable *tbl, app_AddressTableEntry *entry);
 void   app_addr_table_change(app_AddressTable *tbl, app_AddressTableEntry *entry, app_AddressTableEntry new_entry);
 usize  app_addr_table_count(app_AddressTable *tbl);
+scan_Value_Maybe app_addr_table_try_get_entry_value(app_AddressTableEntry *entry);

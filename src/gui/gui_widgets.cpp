@@ -166,6 +166,7 @@ static void gui__address_table_context_menu(app_State *app, gui_State *gui, app_
             gui->edit_address_table_entry_popup.selected_value_type = entry->value_type;
             gui->edit_address_table_entry_popup.edited_entry = entry;
 
+            // TODO: helper for setting up address table popup state
             char *address_str = str_format_cstr(app->frame_arena, "%" PRIxPTR, entry->address);
             usize textbox_length = array_capacity(gui->edit_address_table_entry_popup.address_textbox);
             strncpy(gui->edit_address_table_entry_popup.address_textbox, address_str, textbox_length);
@@ -176,15 +177,15 @@ static void gui__address_table_context_menu(app_State *app, gui_State *gui, app_
         if (ImGui::Selectable("Edit this value...")) {
             gui->edit_value_popup.edited_address = entry->address;
 
-            const char *curr_value_str = 0;
+            char *curr_value_str = 0;
 
-            if (atomic_load_s32(&entry->last_read_successful)) {
-                scan_Value current_value = scan_val_atomic_load(&entry->current_value);
+            scan_Value_Maybe value_opt = app_addr_table_try_get_entry_value(entry);
 
+            if (value_opt.ok) {
                 curr_value_str = gui_cstr_from_match_value(
-                    app->frame_arena, current_value, entry->value_type);
+                    app->frame_arena, value_opt.value, entry->value_type);
             } else {
-                curr_value_str = "";
+                curr_value_str = str_clone_cstr(app->frame_arena, "");
             }
 
             strncpy(gui->edit_value_popup.value_textbox,
@@ -272,9 +273,11 @@ void gui_address_table(gui_State *gui, app_State *app)
             ImGui::TableSetColumnIndex(2); {
                 char *value_selectable_str = 0;
 
-                if (entry->last_read_successful) {
+                scan_Value_Maybe value_opt = app_addr_table_try_get_entry_value(entry);
+
+                if (value_opt.ok) {
                     value_selectable_str = gui_cstr_from_match_value(
-                        app->frame_arena, entry->current_value, entry->value_type);
+                        app->frame_arena, value_opt.value, entry->value_type);
                 } else {
                     value_selectable_str = str_clone_cstr(app->frame_arena, "???");
                 }

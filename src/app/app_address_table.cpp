@@ -46,3 +46,14 @@ usize app_addr_table_count(app_AddressTable *tbl)
 
     return result;
 }
+
+scan_Value_Maybe app_addr_table_try_get_entry_value(app_AddressTableEntry *entry)
+{
+    scan_Value_Maybe result = {};
+
+    if (atomic_load_s32(&entry->last_read_successful)) {
+        result = SOME(scan_val_atomic_load(&entry->current_value));
+    }
+
+    return result;
+}
