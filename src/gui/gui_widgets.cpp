@@ -154,6 +154,23 @@ void gui_scan_result_table(gui_State *gui, app_State *app)
     } ImGui::EndTable();
 }
 
+static void gui__address_table_context_menu()
+{
+    if (ImGui::BeginPopupContextItem()) {
+        // This is done because the caller has pushed a style that causes
+        // selectables to not be highlighted.
+        // TODO: Handle this in a better way.
+        gui_pop_no_selectable_highlight();
+
+        if (ImGui::Selectable("Delete")) {
+        }
+
+        gui_push_no_selectable_highlight();
+
+        ImGui::EndPopup();
+    }
+}
+
 void gui_address_table(gui_State *gui, app_State *app)
 {
     s32 table_flags = ImGuiTableFlags_Resizable
@@ -165,6 +182,8 @@ void gui_address_table(gui_State *gui, app_State *app)
     const char *table_columns[] = {"Address", "Type", "Value", "Decription"};
 
     s32 column_count = array_capacity(table_columns);
+    s32 selectable_flags = ImGuiSelectableFlags_AllowDoubleClick;
+    b32 double_click = ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left);
 
     if (ImGui::Button("Add address")) {
         gui_popup_open(gui, GUI_POPUP_ADD_ADDRESS);
@@ -186,25 +205,33 @@ void gui_address_table(gui_State *gui, app_State *app)
 
             app_action_update_address_table_entry_value(app, entry);
 
+            // Turn off highlight on hover and click.
+            gui_push_no_selectable_highlight();
+
             // Address
             ImGui::TableSetColumnIndex(0); {
                 char *addr_str = gui_cstr_from_address(app->frame_arena, entry->address);
-                char *addr_id = str_format_cstr(app->frame_arena, "%s##%p", addr_str, (void *)entry);
+                char *addr_id = str_format_cstr(app->frame_arena, "%s##addr-%p", addr_str, (void *)entry);
 
-                if (ImGui::Selectable(addr_id, false, 0)) {
-
+                if (ImGui::Selectable(addr_id, false, selectable_flags) && double_click) {
+                    printf("address\n");
                 }
+
+                // TODO: Make it so that we don't need to call this after every selectable
+                gui__address_table_context_menu();
             }
 
             // Type
             ImGui::TableSetColumnIndex(1); {
                 char *type_selectable_str = gui_cstr_from_value_type(app->frame_arena, entry->value_type);
                 char *type_selectable_id = str_format_cstr(
-                    app->frame_arena, "%s##%p", type_selectable_str, (void *)entry);
+                    app->frame_arena, "%s##type-%p", type_selectable_str, (void *)entry);
 
-                if (ImGui::Selectable(type_selectable_id, false, 0)) {
-
+                if (ImGui::Selectable(type_selectable_id, false, selectable_flags) && double_click) {
+                    printf("type\n");
                 }
+
+                gui__address_table_context_menu();
             }
 
             // Value
@@ -212,22 +239,36 @@ void gui_address_table(gui_State *gui, app_State *app)
                 char *value_selectable_str = 0;
 
                 if (entry->last_read_successful) {
-                    value_selectable_str = gui_cstr_from_match_value(app->frame_arena, entry->current_value, entry->value_type);
+                    value_selectable_str = gui_cstr_from_match_value(
+                        app->frame_arena, entry->current_value, entry->value_type);
                 } else {
                     value_selectable_str = str_clone_cstr(app->frame_arena, "???");
                 }
 
-                char *value_selectable_id = str_format_cstr(app->frame_arena, "%s##%p", value_selectable_str, (void *)entry);
+                char *value_selectable_id = str_format_cstr(
+                    app->frame_arena, "%s##value-%p", value_selectable_str, (void *)entry);
 
-                if (ImGui::Selectable(value_selectable_id, false, 0)) {
-
+                if (ImGui::Selectable(value_selectable_id, false, selectable_flags) && double_click) {
+                    printf("value\n");
                 }
+
+                gui__address_table_context_menu();
             }
 
-            // Value
+            // Description
             ImGui::TableSetColumnIndex(3); {
+                char *description_selectable_str = str_format_cstr(app->frame_arena, "<description>");
+                char *description_selectable_id = str_format_cstr(
+                    app->frame_arena, "%s##desc-%p", description_selectable_str, (void *)entry);
 
+                if (ImGui::Selectable(description_selectable_id, false, selectable_flags) && double_click) {
+                    printf("description\n");
+                }
+
+                gui__address_table_context_menu();
             }
+
+            gui_pop_no_selectable_highlight();
         }
     } ImGui::EndTable();
 }

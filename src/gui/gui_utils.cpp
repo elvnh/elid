@@ -255,3 +255,15 @@ scan_ValueType gui_value_type_dropdown(app_State *app, const char *title, scan_V
 
     return result;
 }
+
+void gui_push_no_selectable_highlight(void)
+{
+    ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0, 0, 0, 0));
+    ImGui::PushStyleColor(ImGuiCol_HeaderActive,  ImVec4(0, 0, 0, 0));
+}
+
+void gui_pop_no_selectable_highlight(void)
+{
+    ImGui::PopStyleColor();
+    ImGui::PopStyleColor();
+}
