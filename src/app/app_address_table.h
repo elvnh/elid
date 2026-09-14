@@ -8,6 +8,7 @@ struct app_AddressTableEntry {
     b32 last_read_successful;
 
     app_AddressTableEntry *next;
+    app_AddressTableEntry *prev;
 };
 
 struct app_AddressTable {
@@ -19,4 +20,5 @@ struct app_AddressTable {
 
 b32    app_addr_table_init(Arena *arena, app_AddressTable *tbl);
 void   app_addr_table_push(app_AddressTable *tbl, app_AddressTableEntry entry);
+void   app_addr_table_remove(app_AddressTable *tbl, app_AddressTableEntry *entry);
 usize  app_addr_table_count(app_AddressTable *tbl);

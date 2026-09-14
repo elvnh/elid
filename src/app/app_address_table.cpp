@@ -22,8 +22,13 @@ void app_addr_table_push(app_AddressTable *tbl, app_AddressTableEntry entry)
     if (ALWAYS(node)) {
         *node = entry;
 
-        sll_push_back(tbl, node);
+        dll_push_back(tbl, node);
     }
+}
+
+void app_addr_table_remove(app_AddressTable *tbl, app_AddressTableEntry *entry)
+{
+    dll_remove(tbl, entry);
 }
 
 usize app_addr_table_count(app_AddressTable *tbl)
@@ -32,4 +37,3 @@ usize app_addr_table_count(app_AddressTable *tbl)
 
     return result;
 }
-

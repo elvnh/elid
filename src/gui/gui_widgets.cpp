@@ -154,7 +154,7 @@ void gui_scan_result_table(gui_State *gui, app_State *app)
     } ImGui::EndTable();
 }
 
-static void gui__address_table_context_menu()
+static void gui__address_table_context_menu(app_State *app, app_AddressTableEntry *entry)
 {
     if (ImGui::BeginPopupContextItem()) {
         // This is done because the caller has pushed a style that causes
@@ -163,6 +163,7 @@ static void gui__address_table_context_menu()
         gui_pop_no_selectable_highlight();
 
         if (ImGui::Selectable("Delete")) {
+            app_addr_table_remove(&app->address_table, entry);
         }
 
         gui_push_no_selectable_highlight();
@@ -218,7 +219,7 @@ void gui_address_table(gui_State *gui, app_State *app)
                 }
 
                 // TODO: Make it so that we don't need to call this after every selectable
-                gui__address_table_context_menu();
+                gui__address_table_context_menu(app, entry);
             }
 
             // Type
@@ -231,7 +232,7 @@ void gui_address_table(gui_State *gui, app_State *app)
                     printf("type\n");
                 }
 
-                gui__address_table_context_menu();
+                gui__address_table_context_menu(app, entry);
             }
 
             // Value
@@ -252,7 +253,7 @@ void gui_address_table(gui_State *gui, app_State *app)
                     printf("value\n");
                 }
 
-                gui__address_table_context_menu();
+                gui__address_table_context_menu(app, entry);
             }
 
             // Description
@@ -265,7 +266,7 @@ void gui_address_table(gui_State *gui, app_State *app)
                     printf("description\n");
                 }
 
-                gui__address_table_context_menu();
+                gui__address_table_context_menu(app, entry);
             }
 
             gui_pop_no_selectable_highlight();
