@@ -9,8 +9,7 @@ void gui_open_process_button(gui_State *gui, app_State *app)
     if (ImGui::Button("Open process")) {
         app_action_get_running_processes(app);
 
-        gui->process_list_popup.selected_index = -1;
-        gui_popup_open(gui, GUI_POPUP_OPEN_PROCESS);
+        gui_popup_running_processes(gui);
     }
 }
 
@@ -126,16 +125,8 @@ void gui_scan_result_table(gui_State *gui, app_State *app)
 
                             if (ImGui::Selectable("Edit this value...")) {
                                 uintptr_t address = scan_address_from_match_details(match);
-
-                                gui->edit_value_popup.edited_address = address;
-
-                                strncpy(gui->edit_value_popup.value_textbox,
-                                    curr_value_str,
-                                    array_capacity(gui->edit_value_popup.value_textbox));
-
-                                gui->edit_value_popup.value_type = app->result_list.value_type;
-
-                                gui_popup_open(gui, GUI_POPUP_EDIT_VALUE);
+                                gui_popup_edit_value(
+                                    app, gui, app->result_list.value_type, address, SOME(curr_value));
                             }
 
                             if (ImGui::Selectable("Copy this address")) {
@@ -163,36 +154,13 @@ static void gui__address_table_context_menu(app_State *app, gui_State *gui, app_
         gui_pop_no_selectable_highlight();
 
         if (ImGui::Selectable("Edit")) {
-            gui->edit_address_table_entry_popup.selected_value_type = entry->value_type;
-            gui->edit_address_table_entry_popup.edited_entry = entry;
-
-            // TODO: helper for setting up address table popup state
-            char *address_str = str_format_cstr(app->frame_arena, "%" PRIxPTR, entry->address);
-            usize textbox_length = array_capacity(gui->edit_address_table_entry_popup.address_textbox);
-            strncpy(gui->edit_address_table_entry_popup.address_textbox, address_str, textbox_length);
-
-            gui_popup_open(gui, GUI_POPUP_ADD_ADDRESS);
+            gui_popup_edit_address_table_entry(app, gui, entry);
         }
 
         if (ImGui::Selectable("Edit this value...")) {
-            gui->edit_value_popup.edited_address = entry->address;
-
-            char *curr_value_str = 0;
-
             scan_Value_Maybe value_opt = app_addr_table_try_get_entry_value(entry);
 
-            if (value_opt.ok) {
-                curr_value_str = gui_cstr_from_match_value(
-                    app->frame_arena, value_opt.value, entry->value_type);
-            } else {
-                curr_value_str = str_clone_cstr(app->frame_arena, "");
-            }
-
-            strncpy(gui->edit_value_popup.value_textbox,
-                curr_value_str,
-                array_capacity(gui->edit_value_popup.value_textbox));
-
-            gui_popup_open(gui, GUI_POPUP_EDIT_VALUE);
+            gui_popup_edit_value(app, gui, entry->value_type, entry->address, value_opt);
         }
 
         if (ImGui::Selectable("Delete")) {
@@ -220,8 +188,7 @@ void gui_address_table(gui_State *gui, app_State *app)
     b32 double_click = ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left);
 
     if (ImGui::Button("Add address")) {
-        zero_mem(&gui->edit_address_table_entry_popup, sizeof(gui->edit_address_table_entry_popup));
-        gui_popup_open(gui, GUI_POPUP_ADD_ADDRESS);
+        gui_popup_edit_address_table_entry(app, gui, 0);
     }
 
     if (ImGui::BeginTable("##address_table", column_count, table_flags, {})) {

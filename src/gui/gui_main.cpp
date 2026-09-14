@@ -63,34 +63,13 @@ b32 gui_should_close(gui_State *gui)
     return result;
 }
 
-static void gui__open_error_popup(gui_State *gui, app_Error error)
-{
-    BEGIN_EXHAUSTIVE_SWITCH;
-    switch (error.kind) {
-        case APP_ERROR_PROCESS_DIED_BEFORE_OR_DURING_SCAN: {
-            gui_popup_open(gui, GUI_POPUP_ERROR_PROC_DIED_DURING_SCAN);
-        } break;
-
-        case APP_ERROR_INSUFFICIENT_PERMS_FOR_SCAN: {
-            gui_popup_open(gui, GUI_POPUP_ERROR_INSUFFICIENT_PERMS_FOR_SCAN);
-        } break;
-
-        case APP_ERROR_WRITE_FAILED: {
-            gui_popup_open(gui, GUI_POPUP_ERROR_WRITE_FAILED);
-        } break;
-
-        INVALID_DEFAULT_CASE;
-    }
-    END_EXHAUSTIVE_SWITCH;
-}
-
 static void gui__main_window(gui_State *gui, app_State *app)
 {
     gui__begin_root_window(gui); {
         // TODO: make it so that stacked popups work
         for (usize i = 0; i < array_count(&app->error_list); ++i) {
             app_Error error = array_at(&app->error_list, i);
-            gui__open_error_popup(gui, error);
+            gui_popup_error(gui, error);
         }
 
         array_clear(&app->error_list);

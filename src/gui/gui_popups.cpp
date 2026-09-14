@@ -26,12 +26,54 @@ void gui__popup_initialize(gui_State *gui, gui_Popup popup)
     }
 }
 
-void gui_popup_open(gui_State *gui, gui_Popup popup)
+void gui__popup_open(gui_State *gui, gui_Popup popup)
 {
     ASSERT(popup != GUI_POPUP_COUNT);
 
     gui->popup_states[popup] = true;
     gui__popup_initialize(gui, popup);
+}
+
+void gui_popup_running_processes(gui_State *gui)
+{
+    gui->process_list_popup.selected_index = -1;
+    gui__popup_open(gui, GUI_POPUP_OPEN_PROCESS);
+}
+
+void gui_popup_edit_value(app_State *app, gui_State *gui, scan_ValueType type, uintptr_t address, scan_Value_Maybe curr_value)
+{
+    gui->edit_value_popup.edited_address = address;
+
+    const char *value_str = 0;
+
+    if (curr_value.ok) {
+        value_str = gui_cstr_from_match_value(
+            app->frame_arena, curr_value.value, type);
+    } else {
+        value_str = "";
+    }
+
+    strncpy(gui->edit_value_popup.value_textbox,
+        value_str,
+        array_capacity(gui->edit_value_popup.value_textbox));
+
+    gui__popup_open(gui, GUI_POPUP_EDIT_VALUE);
+}
+
+void gui_popup_edit_address_table_entry(app_State *app, gui_State *gui, app_AddressTableEntry *optional_entry)
+{
+    if (optional_entry) {
+        gui->edit_address_table_entry_popup.selected_value_type = optional_entry->value_type;
+        gui->edit_address_table_entry_popup.edited_entry = optional_entry;
+
+        char *address_str = str_format_cstr(app->frame_arena, "%" PRIxPTR, optional_entry->address);
+        usize textbox_length = array_capacity(gui->edit_address_table_entry_popup.address_textbox);
+        strncpy(gui->edit_address_table_entry_popup.address_textbox, address_str, textbox_length);
+    } else {
+        zero_mem(&gui->edit_address_table_entry_popup, sizeof(gui->edit_address_table_entry_popup));
+    }
+
+    gui__popup_open(gui, GUI_POPUP_ADD_ADDRESS);
 }
 
 void gui_popup_close(gui_State *gui, gui_Popup popup)
@@ -301,4 +343,25 @@ void gui_popup_display_active_popups(gui_State *gui, app_State *app)
     gui__generic_error_popup(app->frame_arena, gui, GUI_POPUP_ERROR_WRITE_FAILED,
         "Failed to write to address.");
 
+}
+
+void gui_popup_error(gui_State *gui, app_Error error)
+{
+    BEGIN_EXHAUSTIVE_SWITCH;
+    switch (error.kind) {
+        case APP_ERROR_PROCESS_DIED_BEFORE_OR_DURING_SCAN: {
+            gui__popup_open(gui, GUI_POPUP_ERROR_PROC_DIED_DURING_SCAN);
+        } break;
+
+        case APP_ERROR_INSUFFICIENT_PERMS_FOR_SCAN: {
+            gui__popup_open(gui, GUI_POPUP_ERROR_INSUFFICIENT_PERMS_FOR_SCAN);
+        } break;
+
+        case APP_ERROR_WRITE_FAILED: {
+            gui__popup_open(gui, GUI_POPUP_ERROR_WRITE_FAILED);
+        } break;
+
+        INVALID_DEFAULT_CASE;
+    }
+    END_EXHAUSTIVE_SWITCH;
 }
