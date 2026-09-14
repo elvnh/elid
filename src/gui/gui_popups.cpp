@@ -19,10 +19,6 @@ char *gui__popup_get_name(Arena *arena, gui_Popup popup, const char *title)
 void gui__popup_initialize(gui_State *gui, gui_Popup popup)
 {
     switch (popup) {
-        case GUI_POPUP_ADD_ADDRESS: {
-            zero_mem(&gui->add_address_popup, sizeof(gui->add_address_popup));
-        } break;
-
         INVALID_CASE(GUI_POPUP_COUNT);
 
         default: {
@@ -207,7 +203,7 @@ static void gui__popup_edit_value(gui_State *gui, app_State *app)
     }
 }
 
-static void gui__popup_add_address(gui_State *gui, app_State *app)
+static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
 {
     // TODO: this preamble is repeated a lot
     ImVec2 center = ImGui::GetMainViewport()->GetCenter();
@@ -228,22 +224,22 @@ static void gui__popup_add_address(gui_State *gui, app_State *app)
 
         ImGui::InputText(
             "##address",
-            gui->add_address_popup.address_textbox,
-            array_capacity(gui->add_address_popup.address_textbox)
+            gui->edit_address_table_entry_popup.address_textbox,
+            array_capacity(gui->edit_address_table_entry_popup.address_textbox)
         );
 
         ImGui::Separator();
 
         f32 combo_box_width = 200;
 
-        scan_ValueType current_value_type = gui->add_address_popup.selected_value_type;
-        gui->add_address_popup.selected_value_type =
+        scan_ValueType current_value_type = gui->edit_address_table_entry_popup.selected_value_type;
+        gui->edit_address_table_entry_popup.selected_value_type =
             gui_value_type_dropdown(app, "Value type:", current_value_type, combo_box_width);
 
         b32 should_close = false;
 
         u32 base = 16;
-        usize_Maybe address = gui_try_parse_address(gui->add_address_popup.address_textbox, base);
+        usize_Maybe address = gui_try_parse_address(gui->edit_address_table_entry_popup.address_textbox, base);
 
         ImGui::BeginDisabled(!address.ok); {
             if (ImGui::Button("OK")) {
@@ -251,9 +247,17 @@ static void gui__popup_add_address(gui_State *gui, app_State *app)
 
                 app_AddressTableEntry entry = {};
                 entry.address = address.value;
-                entry.value_type = gui->add_address_popup.selected_value_type;
+                entry.value_type = gui->edit_address_table_entry_popup.selected_value_type;
 
-                app_action_push_address_table_entry(app, entry);
+                app_AddressTableEntry *edited_entry = gui->edit_address_table_entry_popup.edited_entry;
+
+                if (edited_entry) {
+                    app_action_edit_address_table_entry(app, edited_entry, entry);
+                } else {
+                    app_action_push_address_table_entry(app, entry);
+                }
+
+
             }
         } ImGui::EndDisabled();
 
@@ -288,7 +292,7 @@ void gui_popup_display_active_popups(gui_State *gui, app_State *app)
 
     gui__popup_open_process(gui, app);
     gui__popup_edit_value(gui, app);
-    gui__popup_add_address(gui, app);
+    gui__popup_edit_address_table_entry(gui, app);
 
     gui__generic_error_popup(app->frame_arena, gui, GUI_POPUP_ERROR_INSUFFICIENT_PERMS_FOR_SCAN,
         "Insufficient permissions to perform scan.");

@@ -48,7 +48,8 @@ struct gui_State {
     struct {
         char address_textbox[256];
         scan_ValueType selected_value_type;
-    } add_address_popup;
+        app_AddressTableEntry *edited_entry;
+    } edit_address_table_entry_popup;
 };
 
 b32 gui_init(gui_State *gui);

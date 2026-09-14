@@ -31,6 +31,15 @@ void app_addr_table_remove(app_AddressTable *tbl, app_AddressTableEntry *entry)
     dll_remove(tbl, entry);
 }
 
+void app_addr_table_change(app_AddressTable *tbl, app_AddressTableEntry *entry, app_AddressTableEntry new_entry)
+{
+    (void)tbl;
+
+    // We only change some of these members since others will be updated atomically by other threads.
+    entry->address = new_entry.address;
+    entry->value_type = new_entry.value_type;
+}
+
 usize app_addr_table_count(app_AddressTable *tbl)
 {
     usize result = tbl->list_node_count;

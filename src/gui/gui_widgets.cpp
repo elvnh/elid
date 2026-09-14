@@ -154,7 +154,7 @@ void gui_scan_result_table(gui_State *gui, app_State *app)
     } ImGui::EndTable();
 }
 
-static void gui__address_table_context_menu(app_State *app, app_AddressTableEntry *entry)
+static void gui__address_table_context_menu(app_State *app, gui_State *gui, app_AddressTableEntry *entry)
 {
     if (ImGui::BeginPopupContextItem()) {
         // This is done because the caller has pushed a style that causes
@@ -162,8 +162,19 @@ static void gui__address_table_context_menu(app_State *app, app_AddressTableEntr
         // TODO: Handle this in a better way.
         gui_pop_no_selectable_highlight();
 
+        if (ImGui::Selectable("Edit")) {
+            gui->edit_address_table_entry_popup.selected_value_type = entry->value_type;
+            gui->edit_address_table_entry_popup.edited_entry = entry;
+
+            char *address_str = str_format_cstr(app->frame_arena, "%" PRIxPTR, entry->address);
+            usize textbox_length = array_capacity(gui->edit_address_table_entry_popup.address_textbox);
+            strncpy(gui->edit_address_table_entry_popup.address_textbox, address_str, textbox_length);
+
+            gui_popup_open(gui, GUI_POPUP_ADD_ADDRESS);
+        }
+
         if (ImGui::Selectable("Delete")) {
-            app_addr_table_remove(&app->address_table, entry);
+            app_action_remove_address_table_entry(app, entry);
         }
 
         gui_push_no_selectable_highlight();
@@ -187,6 +198,7 @@ void gui_address_table(gui_State *gui, app_State *app)
     b32 double_click = ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left);
 
     if (ImGui::Button("Add address")) {
+        zero_mem(&gui->edit_address_table_entry_popup, sizeof(gui->edit_address_table_entry_popup));
         gui_popup_open(gui, GUI_POPUP_ADD_ADDRESS);
     }
 
@@ -219,7 +231,7 @@ void gui_address_table(gui_State *gui, app_State *app)
                 }
 
                 // TODO: Make it so that we don't need to call this after every selectable
-                gui__address_table_context_menu(app, entry);
+                gui__address_table_context_menu(app, gui, entry);
             }
 
             // Type
@@ -232,7 +244,7 @@ void gui_address_table(gui_State *gui, app_State *app)
                     printf("type\n");
                 }
 
-                gui__address_table_context_menu(app, entry);
+                gui__address_table_context_menu(app, gui, entry);
             }
 
             // Value
@@ -253,7 +265,7 @@ void gui_address_table(gui_State *gui, app_State *app)
                     printf("value\n");
                 }
 
-                gui__address_table_context_menu(app, entry);
+                gui__address_table_context_menu(app, gui, entry);
             }
 
             // Description
@@ -266,7 +278,7 @@ void gui_address_table(gui_State *gui, app_State *app)
                     printf("description\n");
                 }
 
-                gui__address_table_context_menu(app, entry);
+                gui__address_table_context_menu(app, gui, entry);
             }
 
             gui_pop_no_selectable_highlight();

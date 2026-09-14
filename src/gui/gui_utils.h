@@ -9,6 +9,7 @@ scan_Comparison_Maybe  gui_try_parse_scan_input(const char *input, scan_ValueTyp
 usize_Maybe            gui_try_parse_address(const char *input, u32 base);
 char                  *gui_cstr_from_address(Arena *arena, uintptr_t address);
 char                  *gui_cstr_from_match_address(Arena *arena, scan_MatchDetails match_details, proc_ObjectList objects);
+// TODO: rename
 char                  *gui_cstr_from_match_value(Arena *arena, scan_Value value, scan_ValueType value_type);
 char                  *gui_cstr_from_value_type(Arena *arena, scan_ValueType type);
 scan_Settings          gui_get_scan_settings(gui_State *gui);

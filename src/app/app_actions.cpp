@@ -119,3 +119,13 @@ void app_action_update_result_table_entry(app_State *app, scan_MatchDetails matc
 
     app_wq_push_task_as_child(app->work_queue, app_async_update_result_table_entry, args, app->frame_root_task);
 }
+
+void app_action_edit_address_table_entry(app_State *app, app_AddressTableEntry *entry, app_AddressTableEntry new_entry)
+{
+    app_addr_table_change(&app->address_table, entry, new_entry);
+}
+
+void app_action_remove_address_table_entry(app_State *app, app_AddressTableEntry *entry)
+{
+    app_addr_table_remove(&app->address_table, entry);
+}
