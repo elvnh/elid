@@ -1,5 +1,5 @@
 #define RESULT_TABLE_WIDTH_FRACTION (ImGui::GetContentRegionAvail().x * 0.4f)
-#define RESULT_TABLE_HEIGHT_FRACTION (ImGui::GetContentRegionAvail().y * 0.8f)
+#define RESULT_TABLE_HEIGHT_FRACTION (ImGui::GetContentRegionAvail().y * 0.7f)
 #define RESULT_TABLE_SIZE_FRACTION {RESULT_TABLE_WIDTH_FRACTION, RESULT_TABLE_HEIGHT_FRACTION}
 
 static void gui__begin_frame(gui_State *gui)

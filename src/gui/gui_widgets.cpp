@@ -19,7 +19,8 @@ void gui_scan_result_table(gui_State *gui, app_State *app)
     s32 table_flags = ImGuiTableFlags_Resizable
         | ImGuiTableFlags_BordersV
         | ImGuiTableFlags_Borders
-        | ImGuiTableFlags_ScrollY;
+        | ImGuiTableFlags_ScrollY
+        | ImGuiTableFlags_SizingStretchSame;
 
     s32 selectable_flags = ImGuiSelectableFlags_SpanAllColumns;
 
@@ -158,9 +159,10 @@ void gui_address_table(gui_State *gui, app_State *app)
     s32 table_flags = ImGuiTableFlags_Resizable
         | ImGuiTableFlags_BordersV
         | ImGuiTableFlags_Borders
-        | ImGuiTableFlags_ScrollY;
+        | ImGuiTableFlags_ScrollY
+        | ImGuiTableFlags_SizingStretchSame;
 
-    const char *table_columns[] = {"Address", "Type", "Value"};
+    const char *table_columns[] = {"Address", "Type", "Value", "Decription"};
 
     s32 column_count = array_capacity(table_columns);
 
@@ -197,7 +199,8 @@ void gui_address_table(gui_State *gui, app_State *app)
             // Type
             ImGui::TableSetColumnIndex(1); {
                 char *type_selectable_str = gui_cstr_from_value_type(app->frame_arena, entry->value_type);
-                char *type_selectable_id = str_format_cstr(app->frame_arena, "%s##%p", type_selectable_str, (void *)entry);
+                char *type_selectable_id = str_format_cstr(
+                    app->frame_arena, "%s##%p", type_selectable_str, (void *)entry);
 
                 if (ImGui::Selectable(type_selectable_id, false, 0)) {
 
@@ -219,6 +222,11 @@ void gui_address_table(gui_State *gui, app_State *app)
                 if (ImGui::Selectable(value_selectable_id, false, 0)) {
 
                 }
+            }
+
+            // Value
+            ImGui::TableSetColumnIndex(3); {
+
             }
         }
     } ImGui::EndTable();
