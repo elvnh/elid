@@ -17,10 +17,10 @@ union scan_Value {
     f32 float32;
 };
 
-typedef struct {
+struct scan_TypedValue {
     scan_ValueType type;
     scan_Value value;
-} scan_TypedValue;
+};
 
 DEFINE_MAYBE_TYPE(scan_Value);
 
