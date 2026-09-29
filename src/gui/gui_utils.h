@@ -17,4 +17,4 @@ void                   gui_push_no_selectable_highlight(void);
 void                   gui_pop_no_selectable_highlight(void);
 
 // TODO: move this elsewhere
-scan_ValueType gui_value_type_dropdown(app_State *app, const char *title, scan_ValueType current_type, f32 width);
+scan_ValueType gui_value_type_dropdown(gui_State *gui, const char *title, scan_ValueType current_type, f32 width);

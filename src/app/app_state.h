@@ -8,7 +8,6 @@ enum app_ScannerState {
 struct app_State {
     // TODO: pack members into anonymous structs, similar to gui_State
     Arena *permanent_arena; // For allocations that live for the entire program.
-    Arena *frame_arena; // TODO: move to gui?
     Arena *process_list_arena;
     Arena *scan_result_arena;
     Arena *previous_scan_result_arena;

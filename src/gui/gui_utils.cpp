@@ -223,7 +223,7 @@ scan_Settings gui_get_scan_settings(gui_State *gui)
     return result;
 }
 
-scan_ValueType gui_value_type_dropdown(app_State *app, const char *title, scan_ValueType current_type, f32 width)
+scan_ValueType gui_value_type_dropdown(gui_State *gui, const char *title, scan_ValueType current_type, f32 width)
 {
     scan_ValueType result = current_type;
 
@@ -234,7 +234,7 @@ scan_ValueType gui_value_type_dropdown(app_State *app, const char *title, scan_V
 
     s32 combo_flags = ImGuiComboFlags_HeightLargest;
     scan_ValueTypeList available_types = scan_val_type_get_list();
-    char *value_type_preview = gui_cstr_from_value_type(app->frame_arena, current_type);
+    char *value_type_preview = gui_cstr_from_value_type(gui->frame_arena, current_type);
 
     ImGui::SetNextItemWidth(width);
 
@@ -243,7 +243,7 @@ scan_ValueType gui_value_type_dropdown(app_State *app, const char *title, scan_V
             scan_ValueType type = available_types.data[i];
             b32 is_type_selected = current_type == type;
 
-            char *type_spelling = gui_cstr_from_value_type(app->frame_arena, type);
+            char *type_spelling = gui_cstr_from_value_type(gui->frame_arena, type);
 
             if (ImGui::Selectable(type_spelling, is_type_selected)) {
                 result = type;

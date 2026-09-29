@@ -16,6 +16,7 @@ char *gui__popup_get_name(Arena *arena, gui_Popup popup, const char *title)
     return result;
 }
 
+// TODO: remove
 void gui__popup_initialize(gui_State *gui, gui_Popup popup)
 {
     switch (popup) {
@@ -40,7 +41,7 @@ void gui_popup_running_processes(gui_State *gui)
     gui__popup_open(gui, GUI_POPUP_OPEN_PROCESS);
 }
 
-void gui_popup_edit_value(app_State *app, gui_State *gui, scan_ValueType type, uintptr_t address, scan_Value_Maybe curr_value)
+void gui_popup_edit_value(gui_State *gui, scan_ValueType type, uintptr_t address, scan_Value_Maybe curr_value)
 {
     gui->edit_value_popup.edited_address = address;
 
@@ -48,7 +49,7 @@ void gui_popup_edit_value(app_State *app, gui_State *gui, scan_ValueType type, u
 
     if (curr_value.ok) {
         value_str = gui_cstr_from_match_value(
-            app->frame_arena, curr_value.value, type);
+            gui->frame_arena, curr_value.value, type);
     } else {
         value_str = "";
     }
@@ -60,13 +61,13 @@ void gui_popup_edit_value(app_State *app, gui_State *gui, scan_ValueType type, u
     gui__popup_open(gui, GUI_POPUP_EDIT_VALUE);
 }
 
-void gui_popup_edit_address_table_entry(app_State *app, gui_State *gui, app_AddressTableEntry *optional_entry)
+void gui_popup_edit_address_table_entry(gui_State *gui, app_AddressTableEntry *optional_entry)
 {
     if (optional_entry) {
         gui->edit_address_table_entry_popup.selected_value_type = optional_entry->value_type;
         gui->edit_address_table_entry_popup.edited_entry = optional_entry;
 
-        char *address_str = str_format_cstr(app->frame_arena, "%" PRIxPTR, optional_entry->address);
+        char *address_str = str_format_cstr(gui->frame_arena, "%" PRIxPTR, optional_entry->address);
         usize textbox_length = array_capacity(gui->edit_address_table_entry_popup.address_textbox);
         strncpy(gui->edit_address_table_entry_popup.address_textbox, address_str, textbox_length);
     } else {
@@ -94,7 +95,7 @@ static void gui__popup_open_process(gui_State *gui, app_State *app)
 
     s32 popup_flags = ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar;
 
-    const char *name = gui__popup_get_name(app->frame_arena, GUI_POPUP_OPEN_PROCESS, "Open process");
+    const char *name = gui__popup_get_name(gui->frame_arena, GUI_POPUP_OPEN_PROCESS, "Open process");
 
     if (ImGui::BeginPopupModal(name, 0, popup_flags)) {
         s32 process_count = 0;
@@ -113,7 +114,7 @@ static void gui__popup_open_process(gui_State *gui, app_State *app)
             for (s32 i = 0; i < process_count; ++i) {
                 memmi_ProcessInfo proc = app->running_process_list.data[i];
                 String proc_name = {(u8 *)proc.name.data, proc.name.count};
-                char *proc_name_nt = str_to_cstr(app->frame_arena, proc_name);
+                char *proc_name_nt = str_to_cstr(gui->frame_arena, proc_name);
 
                 ASSERT(proc_name.count > 0);
 
@@ -164,7 +165,7 @@ static void gui__popup_open_process(gui_State *gui, app_State *app)
     }
 }
 
-static void gui__generic_error_popup(Arena *arena, gui_State *gui, gui_Popup popup, const char *text)
+static void gui__generic_error_popup(gui_State *gui, gui_Popup popup, const char *text)
 {
     ImVec2 center = ImGui::GetMainViewport()->GetCenter();
     ImVec2 root_window_size = ImGui::GetContentRegionAvail();
@@ -174,7 +175,7 @@ static void gui__generic_error_popup(Arena *arena, gui_State *gui, gui_Popup pop
 
     s32 popup_flags = ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_AlwaysAutoResize;
 
-    const char *popup_name = gui__popup_get_name(arena, popup, "Error");
+    const char *popup_name = gui__popup_get_name(gui->frame_arena, popup, "Error");
 
     if (ImGui::BeginPopupModal(popup_name, 0, popup_flags)) {
         ImGui::TextUnformatted(text);
@@ -198,8 +199,8 @@ static void gui__popup_edit_value(gui_State *gui, app_State *app)
 
     s32 popup_flags = ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_AlwaysAutoResize;
 
-    const char *title = str_format_cstr(app->frame_arena, "Edit value at %" PRIxPTR, gui->edit_value_popup.edited_address);
-    const char *popup_name = gui__popup_get_name(app->frame_arena, GUI_POPUP_EDIT_VALUE, title);
+    const char *title = str_format_cstr(gui->frame_arena, "Edit value at %" PRIxPTR, gui->edit_value_popup.edited_address);
+    const char *popup_name = gui__popup_get_name(gui->frame_arena, GUI_POPUP_EDIT_VALUE, title);
 
     if (ImGui::BeginPopupModal(popup_name, 0, popup_flags)) {
         ImGui::SetNextItemWidth(-FLT_MIN);
@@ -257,7 +258,7 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
     s32 popup_flags = ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_AlwaysAutoResize;
 
     const char *title = "Add address";
-    const char *popup_name = gui__popup_get_name(app->frame_arena, GUI_POPUP_ADD_ADDRESS, title);
+    const char *popup_name = gui__popup_get_name(gui->frame_arena, GUI_POPUP_ADD_ADDRESS, title);
 
     if (ImGui::BeginPopupModal(popup_name, 0, popup_flags)) {
         ImGui::TextUnformatted("Address:");
@@ -276,7 +277,7 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
 
         scan_ValueType current_value_type = gui->edit_address_table_entry_popup.selected_value_type;
         gui->edit_address_table_entry_popup.selected_value_type =
-            gui_value_type_dropdown(app, "Value type:", current_value_type, combo_box_width);
+            gui_value_type_dropdown(gui, "Value type:", current_value_type, combo_box_width);
 
         b32 should_close = false;
 
@@ -321,7 +322,7 @@ void gui_popup_display_active_popups(gui_State *gui, app_State *app)
 {
     for (gui_Popup popup = {}; popup < GUI_POPUP_COUNT; inc_enum(&popup)) {
         if (gui->popup_states[popup]) {
-            const char *name = gui__popup_get_name(app->frame_arena, popup, 0);
+            const char *name = gui__popup_get_name(gui->frame_arena, popup, 0);
 
             ImGui::OpenPopup(name);
 
@@ -336,11 +337,11 @@ void gui_popup_display_active_popups(gui_State *gui, app_State *app)
     gui__popup_edit_value(gui, app);
     gui__popup_edit_address_table_entry(gui, app);
 
-    gui__generic_error_popup(app->frame_arena, gui, GUI_POPUP_ERROR_INSUFFICIENT_PERMS_FOR_SCAN,
+    gui__generic_error_popup(gui, GUI_POPUP_ERROR_INSUFFICIENT_PERMS_FOR_SCAN,
         "Insufficient permissions to perform scan.");
-    gui__generic_error_popup(app->frame_arena, gui, GUI_POPUP_ERROR_PROC_DIED_DURING_SCAN,
+    gui__generic_error_popup(gui, GUI_POPUP_ERROR_PROC_DIED_DURING_SCAN,
         "Process died during scan.");
-    gui__generic_error_popup(app->frame_arena, gui, GUI_POPUP_ERROR_WRITE_FAILED,
+    gui__generic_error_popup(gui, GUI_POPUP_ERROR_WRITE_FAILED,
         "Failed to write to address.");
 
 }

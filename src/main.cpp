@@ -39,7 +39,7 @@ int main(int argc, char **argv)
 
         // TODO: move this functionality into app_run
         while (!gui_should_close(&gui)) {
-            arena_reset(app.frame_arena);
+            arena_reset(gui.frame_arena);
 
             // Dummy task that all per-frame tasks will be children of, so that we can wait for all
             // of them at the end of the frame.

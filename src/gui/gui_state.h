@@ -18,6 +18,8 @@ enum gui_Popup {
 // TODO: because of all the textboxes, this struct is getting quite big, might be a good idea to
 // allocate on heap
 struct gui_State {
+    Arena *frame_arena;
+
     GLFWwindow *window;
 
     struct {

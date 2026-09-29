@@ -1,19 +1,17 @@
 #include "app_state.h"
 
-#define APP_PERMANENT_ARENA_SIZE MB(32)
-#define FRAME_ARENA_SIZE         MB(8)
-#define PROCESS_LIST_ARENA_SIZE  MB(4)
-#define SCAN_RESULT_ARENA_SIZE   sizeof(scan_Match) * THOUSAND(100)
+#define APP_PERMANENT_ARENA_SIZE     MB(32)
+#define APP_PROCESS_LIST_ARENA_SIZE  MB(4)
+#define APP_SCAN_RESULT_ARENA_SIZE   sizeof(scan_Match) * THOUSAND(100)
 
 b32 app_init(app_State *app)
 {
     b32 result = false;
 
     app->permanent_arena = arena_create(APP_PERMANENT_ARENA_SIZE);
-    app->frame_arena = arena_create(FRAME_ARENA_SIZE);
-    app->process_list_arena = arena_create(PROCESS_LIST_ARENA_SIZE);
-    app->scan_result_arena = arena_create(SCAN_RESULT_ARENA_SIZE);
-    app->previous_scan_result_arena = arena_create(SCAN_RESULT_ARENA_SIZE);
+    app->process_list_arena = arena_create(APP_PROCESS_LIST_ARENA_SIZE);
+    app->scan_result_arena = arena_create(APP_SCAN_RESULT_ARENA_SIZE);
+    app->previous_scan_result_arena = arena_create(APP_SCAN_RESULT_ARENA_SIZE);
 
     // TODO: check number of cores on system
     s32 thread_count = 16;
@@ -25,7 +23,6 @@ b32 app_init(app_State *app)
     ASSERT(thread_context);
 
     result = (app->permanent_arena != 0)
-        && (app->frame_arena != 0)
         && (app->process_list_arena != 0)
         && (app->scan_result_arena != 0)
         && (app->previous_scan_result_arena != 0)

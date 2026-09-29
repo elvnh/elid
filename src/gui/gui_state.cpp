@@ -1,5 +1,8 @@
 #include "gui_state.h"
 
+#define GUI_FRAME_ARENA_SIZE MB(8)
+
+
 b32 gui_init(gui_State *gui)
 {
     b32 result = false;
@@ -40,6 +43,11 @@ b32 gui_init(gui_State *gui)
 
             result = true;
         }
+    }
+
+    if (result) {
+        gui->frame_arena = arena_create(GUI_FRAME_ARENA_SIZE);
+        result = (gui->frame_arena != 0);
     }
 
     return result;

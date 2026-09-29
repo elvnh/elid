@@ -39,7 +39,7 @@ void gui_scan_result_table(gui_State *gui, app_State *app)
 
         if ((app->result_list.total_match_count > 0)
             && (app->result_list.total_match_count <= GUI_MAX_DISPLAYED_RESULT_COUNT)) {
-            scan_ResultView result_view = scan_result_make_view(app->frame_arena, app->result_list);
+            scan_ResultView result_view = scan_result_make_view(gui->frame_arena, app->result_list);
 
             ImGuiListClipper clipper = {};
             clipper.Begin(usize_to_s32(result_view.count));
@@ -63,11 +63,11 @@ void gui_scan_result_table(gui_State *gui, app_State *app)
                     scan_Value prev_value = scan_val_atomic_load(&match.history->previous_value);
 
                     char *addr_str = gui_cstr_from_match_address(
-                        app->frame_arena, match, app->result_list.process_objects);
+                        gui->frame_arena, match, app->result_list.process_objects);
                     char *curr_value_str = gui_cstr_from_match_value(
-                        app->frame_arena, curr_value, app->result_list.value_type);
+                        gui->frame_arena, curr_value, app->result_list.value_type);
                     char *prev_value_str = gui_cstr_from_match_value(
-                        app->frame_arena, prev_value, app->result_list.value_type);
+                        gui->frame_arena, prev_value, app->result_list.value_type);
 
                     // TODO: is this PushID necessary?
                     ImGui::PushID(row); {
@@ -104,7 +104,7 @@ void gui_scan_result_table(gui_State *gui, app_State *app)
                         // First value
                         ImGui::TableSetColumnIndex(3); {
                             char *first_value_str = gui_cstr_from_match_value(
-                                app->frame_arena, match.history->first_value, app->result_list.value_type);
+                                gui->frame_arena, match.history->first_value, app->result_list.value_type);
 
                             if (ImGui::Selectable(first_value_str, is_row_selected, selectable_flags)) {
                                 gui->result_table.selected_row_index = row;
@@ -126,13 +126,13 @@ void gui_scan_result_table(gui_State *gui, app_State *app)
                             if (ImGui::Selectable("Edit this value...")) {
                                 uintptr_t address = scan_address_from_match_details(match);
                                 gui_popup_edit_value(
-                                    app, gui, app->result_list.value_type, address, SOME(curr_value));
+                                    gui, app->result_list.value_type, address, SOME(curr_value));
                             }
 
                             if (ImGui::Selectable("Copy this address")) {
                                 uintptr_t address = scan_address_from_match_details(match);
 
-                                char *address_str = str_format_cstr(app->frame_arena, "%" PRIxPTR, address);
+                                char *address_str = str_format_cstr(gui->frame_arena, "%" PRIxPTR, address);
                                 ImGui::SetClipboardText(address_str);
                             }
 
@@ -154,13 +154,13 @@ static void gui__address_table_context_menu(app_State *app, gui_State *gui, app_
         gui_pop_no_selectable_highlight();
 
         if (ImGui::Selectable("Edit")) {
-            gui_popup_edit_address_table_entry(app, gui, entry);
+            gui_popup_edit_address_table_entry(gui, entry);
         }
 
         if (ImGui::Selectable("Edit this value...")) {
             scan_Value_Maybe value_opt = app_addr_table_try_get_entry_value(entry);
 
-            gui_popup_edit_value(app, gui, entry->value_type, entry->address, value_opt);
+            gui_popup_edit_value(gui, entry->value_type, entry->address, value_opt);
         }
 
         if (ImGui::Selectable("Delete")) {
@@ -188,7 +188,7 @@ void gui_address_table(gui_State *gui, app_State *app)
     b32 double_click = ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left);
 
     if (ImGui::Button("Add address")) {
-        gui_popup_edit_address_table_entry(app, gui, 0);
+        gui_popup_edit_address_table_entry(gui, 0);
     }
 
     if (ImGui::BeginTable("##address_table", column_count, table_flags, {})) {
@@ -212,8 +212,8 @@ void gui_address_table(gui_State *gui, app_State *app)
 
             // Address
             ImGui::TableSetColumnIndex(0); {
-                char *addr_str = gui_cstr_from_address(app->frame_arena, entry->address);
-                char *addr_id = str_format_cstr(app->frame_arena, "%s##addr-%p", addr_str, (void *)entry);
+                char *addr_str = gui_cstr_from_address(gui->frame_arena, entry->address);
+                char *addr_id = str_format_cstr(gui->frame_arena, "%s##addr-%p", addr_str, (void *)entry);
 
                 if (ImGui::Selectable(addr_id, false, selectable_flags) && double_click) {
                     printf("address\n");
@@ -225,9 +225,9 @@ void gui_address_table(gui_State *gui, app_State *app)
 
             // Type
             ImGui::TableSetColumnIndex(1); {
-                char *type_selectable_str = gui_cstr_from_value_type(app->frame_arena, entry->value_type);
+                char *type_selectable_str = gui_cstr_from_value_type(gui->frame_arena, entry->value_type);
                 char *type_selectable_id = str_format_cstr(
-                    app->frame_arena, "%s##type-%p", type_selectable_str, (void *)entry);
+                    gui->frame_arena, "%s##type-%p", type_selectable_str, (void *)entry);
 
                 if (ImGui::Selectable(type_selectable_id, false, selectable_flags) && double_click) {
                     printf("type\n");
@@ -244,13 +244,13 @@ void gui_address_table(gui_State *gui, app_State *app)
 
                 if (value_opt.ok) {
                     value_selectable_str = gui_cstr_from_match_value(
-                        app->frame_arena, value_opt.value, entry->value_type);
+                        gui->frame_arena, value_opt.value, entry->value_type);
                 } else {
-                    value_selectable_str = str_clone_cstr(app->frame_arena, "???");
+                    value_selectable_str = str_clone_cstr(gui->frame_arena, "???");
                 }
 
                 char *value_selectable_id = str_format_cstr(
-                    app->frame_arena, "%s##value-%p", value_selectable_str, (void *)entry);
+                    gui->frame_arena, "%s##value-%p", value_selectable_str, (void *)entry);
 
                 if (ImGui::Selectable(value_selectable_id, false, selectable_flags) && double_click) {
                     printf("value\n");
@@ -261,9 +261,9 @@ void gui_address_table(gui_State *gui, app_State *app)
 
             // Description
             ImGui::TableSetColumnIndex(3); {
-                char *description_selectable_str = str_format_cstr(app->frame_arena, "<description>");
+                char *description_selectable_str = str_format_cstr(gui->frame_arena, "<description>");
                 char *description_selectable_id = str_format_cstr(
-                    app->frame_arena, "%s##desc-%p", description_selectable_str, (void *)entry);
+                    gui->frame_arena, "%s##desc-%p", description_selectable_str, (void *)entry);
 
                 if (ImGui::Selectable(description_selectable_id, false, selectable_flags) && double_click) {
                     printf("description\n");
@@ -386,7 +386,7 @@ void gui_scan_parameters(gui_State *gui, app_State *app)
         scan_ValueType selected_type = gui->scan_parameters.selected_value_type;
 
         gui->scan_parameters.selected_value_type = gui_value_type_dropdown(
-            app, "Value type: ", selected_type, combo_box_width);
+            gui, "Value type: ", selected_type, combo_box_width);
     } ImGui::EndChild();
 
     // Scan settings (fast scan, pause while scanning, etc.)
