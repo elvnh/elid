@@ -161,6 +161,8 @@ DEFINE_MAYBE_TYPE(usize);
 #    error TYPEOF() not defined for this compiler
 #endif
 
+#define ALIGNOF_VALUE(v) (alignof(TYPEOF(v)))
+
 /* Arrays */
 // TODO: make lowercase
 // TODO: rename to array size/capacity
