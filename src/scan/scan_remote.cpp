@@ -38,7 +38,6 @@ scan_Result scan_remote_memory_first(Arena *arena, memmi_Process proc, scan_Sett
 
     // For temporarily storing the memory of a region during the scan of it.
     Arena *scan_scratch_arena = thread_ctx_get()->per_scan_scratch_arena;
-    memmi_Allocator scan_scratch_allocator = proc_memmi_allocator_from_arena(scan_scratch_arena);
 
     // For allocations that need to live for entire lifetime of function.
     Temp temp = scratch_begin();
@@ -65,8 +64,11 @@ scan_Result scan_remote_memory_first(Arena *arena, memmi_Process proc, scan_Sett
                 // scan of that region.
                 arena_reset(scan_scratch_arena);
 
+                // TODO: don't zero out allocation
+                char *region_memory = arena_alloc_array(scan_scratch_arena, char, region.size);
+
                 memmi_ReadMemory read_mem_result = memmi_read_memory(
-                    proc, region.base_address, region.size, scan_scratch_allocator);
+                    proc, region_memory, region.base_address, region.size);
 
                 if (read_mem_result.status != MEMMI_OK) {
                     set_flag(&result.errors, proc_status_from_memmi_status(read_mem_result.status));
@@ -82,7 +84,7 @@ scan_Result scan_remote_memory_first(Arena *arena, memmi_Process proc, scan_Sett
                     // Make sure we compensate if the region provided is not aligned
                     // by aligning forwards the first step.
                     scan_MatchList *matches =
-                        scan_local_memory_first(arena, read_mem_result.memory,
+                        scan_local_memory_first(arena, region_memory,
                             read_mem_result.bytes_read, region.base_address,
                             cmp, settings.required_alignment);
 
@@ -117,7 +119,6 @@ scan_Result scan_remote_memory_next(Arena *arena, memmi_Process proc, scan_Setti
 
     // For temporarily storing the memory of a region during the scan of it.
     Arena *scan_scratch_arena = thread_ctx_get()->per_scan_scratch_arena;
-    memmi_Allocator scan_scratch_allocator = proc_memmi_allocator_from_arena(scan_scratch_arena);
 
     b32 at_least_one_read_succeeded = false;
 
@@ -126,9 +127,10 @@ scan_Result scan_remote_memory_next(Arena *arena, memmi_Process proc, scan_Setti
         // that region.
         arena_reset(scan_scratch_arena);
 
+        char *region_memory = arena_alloc_array(scan_scratch_arena, char, match_list->region_size);
+
         memmi_ReadMemory read_mem_result =
-            memmi_read_memory(proc, match_list->region_base_address,
-                match_list->region_size, scan_scratch_allocator);
+            memmi_read_memory(proc, region_memory, match_list->region_base_address, match_list->region_size);
 
         if (read_mem_result.status != MEMMI_OK) {
             set_flag(&result.errors, proc_status_from_memmi_status(read_mem_result.status));
@@ -137,11 +139,8 @@ scan_Result scan_remote_memory_next(Arena *arena, memmi_Process proc, scan_Setti
                 break;
             }
         } else {
-            void *region_mem = read_mem_result.memory;
-            usize bytes_read = read_mem_result.bytes_read;
-
-            scan_MatchList *matches = scan_local_memory_next(arena, region_mem,
-                bytes_read, cmp, match_list->head);
+            scan_MatchList *matches = scan_local_memory_next(arena, region_memory,
+                read_mem_result.bytes_read, cmp, match_list->head);
             ASSERT(matches);
 
             scan__push_region_matches(arena, &result, matches, match_list->region_base_address,
@@ -163,16 +162,10 @@ scan_Value_Maybe scan_remote_read_single_value(memmi_Process proc, scan_ValueTyp
 {
     scan_Value_Maybe result = {};
 
-    Temp temp = scratch_begin();
-    memmi_Allocator allocator = proc_memmi_allocator_from_arena(temp.arena);
-
     usize size = scan_val_type_get_size(value_type);
-    memmi_ReadMemory read_mem_result = memmi_read_memory(proc, address, size, allocator);
 
-    if (read_mem_result.status == MEMMI_OK) {
-        result.ok = true;
-        copy_mem(&result.value, read_mem_result.memory, 1, read_mem_result.bytes_read);
-    }
+    memmi_ReadMemory read_mem_result = memmi_read_memory(proc, &result.value, address, size);
+    result.ok = (read_mem_result.status == MEMMI_OK);
 
     return result;
 }

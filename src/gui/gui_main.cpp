@@ -80,7 +80,7 @@ static void gui__main_window(gui_State *gui, app_State *app)
             ImGui::TextUnformatted("Open process: none");
         } else {
             memmi_PID open_pid = app->open_process_handle.pid;
-            char *open_pid_text = str_format_cstr(app->frame_arena, "Open process: %" PRId64, open_pid.value);
+            char *open_pid_text = str_format_cstr(app->frame_arena, "Open process: %" PRId64, open_pid);
             ImGui::TextUnformatted(open_pid_text);
         }
 

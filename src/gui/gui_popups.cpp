@@ -117,7 +117,7 @@ static void gui__popup_open_process(gui_State *gui, app_State *app)
 
                 ASSERT(proc_name.count > 0);
 
-                ImGui::PushID(s64_to_s32(proc.pid.value));
+                ImGui::PushID(s64_to_s32(proc.pid));
 
                 b32 is_selected = gui->process_list_popup.selected_index == i;
 

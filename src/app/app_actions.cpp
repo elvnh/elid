@@ -12,7 +12,7 @@ b32 app_action_open_process(app_State *app, memmi_PID pid)
 
     app_action_close_opened_process(app);
 
-    memmi_OpenProcess open_process_result = memmi_open_process(pid);
+    memmi_OpenProcess open_process_result = memmi_open_process(pid, memmi_default_allocator());
 
     if (open_process_result.status == MEMMI_OK) {
         app->open_process_handle = open_process_result.process;
@@ -25,7 +25,7 @@ b32 app_action_open_process(app_State *app, memmi_PID pid)
 
 void app_action_close_opened_process(app_State *app)
 {
-    memmi_close_process(app->open_process_handle);
+    memmi_close_process(app->open_process_handle, memmi_default_allocator());
     app->open_process_handle = {};
 }
 
