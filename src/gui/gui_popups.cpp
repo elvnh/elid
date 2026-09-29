@@ -16,23 +16,11 @@ char *gui__popup_get_name(Arena *arena, gui_Popup popup, const char *title)
     return result;
 }
 
-// TODO: remove
-void gui__popup_initialize(gui_State *gui, gui_Popup popup)
-{
-    switch (popup) {
-        INVALID_CASE(GUI_POPUP_COUNT);
-
-        default: {
-        } break;
-    }
-}
-
 void gui__popup_open(gui_State *gui, gui_Popup popup)
 {
     ASSERT(popup != GUI_POPUP_COUNT);
 
     gui->popup_states[popup] = true;
-    gui__popup_initialize(gui, popup);
 }
 
 void gui_popup_running_processes(gui_State *gui)
