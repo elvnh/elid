@@ -62,7 +62,7 @@ scan_Comparison_Maybe gui_try_parse_scan_input(const char *input, scan_ValueType
 
         switch (mode) {
             case SCAN_MODE_EXACT: {
-                result = SOME(scan_cmp_make_exact(type, value));
+                result = SOME(scan_cmp_make_exact({type, value}));
             } break;
 
             case SCAN_MODE_UNKNOWN: {
@@ -70,11 +70,11 @@ scan_Comparison_Maybe gui_try_parse_scan_input(const char *input, scan_ValueType
             } break;
 
             case SCAN_MODE_GREATER_THAN: {
-                result = SOME(scan_cmp_make_greater_than(type, value));
+                result = SOME(scan_cmp_make_greater_than({type, value}));
             } break;
 
             case SCAN_MODE_LESS_THAN: {
-                result = SOME(scan_cmp_make_less_than(type, value));
+                result = SOME(scan_cmp_make_less_than({type, value}));
             } break;
 
             case SCAN_MODE_INCREASED: {
@@ -82,7 +82,7 @@ scan_Comparison_Maybe gui_try_parse_scan_input(const char *input, scan_ValueType
             } break;
 
             case SCAN_MODE_INCREASED_BY: {
-                result = SOME(scan_cmp_make_increased_by(type, value));
+                result = SOME(scan_cmp_make_increased_by({type, value}));
             } break;
 
             case SCAN_MODE_DECREASED: {
@@ -90,7 +90,7 @@ scan_Comparison_Maybe gui_try_parse_scan_input(const char *input, scan_ValueType
             } break;
 
             case SCAN_MODE_DECREASED_BY: {
-                result = SOME(scan_cmp_make_decreased_by(type, value));
+                result = SOME(scan_cmp_make_decreased_by({type, value}));
             } break;
 
             case SCAN_MODE_CHANGED: {
@@ -98,7 +98,7 @@ scan_Comparison_Maybe gui_try_parse_scan_input(const char *input, scan_ValueType
             } break;
 
             case SCAN_MODE_CHANGED_BY: {
-                result = SOME(scan_cmp_make_changed_by(type, value));
+                result = SOME(scan_cmp_make_changed_by({type, value}));
             } break;
 
             case SCAN_MODE_UNCHANGED: {
