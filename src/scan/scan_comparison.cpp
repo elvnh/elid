@@ -115,12 +115,12 @@ b32 scan_cmp_match_with_previous(scan_Value current_value, scan_Comparison cmp, 
     return result;
 }
 
-scan_Comparison scan_cmp_make_exact(scan_ValueType type, scan_Value exact_value)
+scan_Comparison scan_cmp_make_exact(scan_TypedValue exact_value)
 {
     scan_Comparison params = {};
     params.mode = SCAN_MODE_EXACT;
-    params.value_type = type;
-    params.args[0] = exact_value;
+    params.value_type = exact_value.type;
+    params.args[0] = exact_value.value;
 
     return params;
 }
@@ -135,22 +135,22 @@ scan_Comparison scan_cmp_make_unknown(scan_ValueType type)
     return params;
 }
 
-scan_Comparison scan_cmp_make_greater_than(scan_ValueType type, scan_Value cmp_value)
+scan_Comparison scan_cmp_make_greater_than(scan_TypedValue cmp_value)
 {
     scan_Comparison params = {};
     params.mode = SCAN_MODE_GREATER_THAN;
-    params.value_type = type;
-    params.args[0] = cmp_value;
+    params.value_type = cmp_value.type;
+    params.args[0] = cmp_value.value;
 
     return params;
 }
 
-scan_Comparison scan_cmp_make_less_than(scan_ValueType type, scan_Value cmp_value)
+scan_Comparison scan_cmp_make_less_than(scan_TypedValue cmp_value)
 {
     scan_Comparison params = {};
     params.mode = SCAN_MODE_LESS_THAN;
-    params.value_type = type;
-    params.args[0] = cmp_value;
+    params.value_type = cmp_value.type;
+    params.args[0] = cmp_value.value;
 
     return params;
 }
@@ -164,12 +164,12 @@ scan_Comparison scan_cmp_make_changed(scan_ValueType type)
     return params;
 }
 
-scan_Comparison scan_cmp_make_changed_by(scan_ValueType type, scan_Value change)
+scan_Comparison scan_cmp_make_changed_by(scan_TypedValue change)
 {
     scan_Comparison params = {};
     params.mode = SCAN_MODE_CHANGED_BY;
-    params.value_type = type;
-    params.args[0] = change;
+    params.value_type = change.type;
+    params.args[0] = change.value;
 
     return params;
 }
@@ -183,12 +183,12 @@ scan_Comparison scan_cmp_make_increased(scan_ValueType type)
     return params;
 }
 
-scan_Comparison scan_cmp_make_increased_by(scan_ValueType type, scan_Value increase)
+scan_Comparison scan_cmp_make_increased_by(scan_TypedValue increase)
 {
     scan_Comparison params = {};
     params.mode = SCAN_MODE_INCREASED_BY;
-    params.value_type = type;
-    params.args[0] = increase;
+    params.value_type = increase.type;
+    params.args[0] = increase.value;
 
     return params;
 }
@@ -202,12 +202,12 @@ scan_Comparison scan_cmp_make_decreased(scan_ValueType type)
     return params;
 }
 
-scan_Comparison scan_cmp_make_decreased_by(scan_ValueType type, scan_Value decrease)
+scan_Comparison scan_cmp_make_decreased_by(scan_TypedValue decrease)
 {
     scan_Comparison params = {};
     params.mode = SCAN_MODE_DECREASED_BY;
-    params.value_type = type;
-    params.args[0] = decrease;
+    params.value_type = decrease.type;
+    params.args[0] = decrease.value;
 
     return params;
 }

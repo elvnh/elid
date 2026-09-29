@@ -35,10 +35,11 @@ scan_ValueTypeList scan_val_type_get_list()
     return result;
 }
 
-scan_Value scan_val_make_int32(u32 value)
+scan_TypedValue scan_val_make_int32(u32 value)
 {
-    scan_Value result = {};
-    result.int32 = value;
+    scan_TypedValue result = {};
+    result.type = SCAN_VALUE_TYPE_INT32;
+    result.value.int32 = value;
 
     return result;
 }
