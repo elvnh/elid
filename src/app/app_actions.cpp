@@ -129,3 +129,53 @@ void app_action_remove_address_table_entry(app_State *app, app_AddressTableEntry
 {
     app_addr_table_remove(&app->address_table, entry);
 }
+
+b32 app_action_attach_to_opened_process(app_State *app)
+{
+    ASSERT(!memmi_process_is_null(app->open_process_handle));
+
+    memmi_Status attach_result = memmi_attach_to_process(app->open_process_handle);
+
+    if (attach_result != MEMMI_OK) {
+        TODO("");
+    } else {
+        app->is_attached = true;
+    }
+
+    b32 result = app->is_attached;
+
+    return result;
+}
+
+void app_action_detach_from_opened_process(app_State *app)
+{
+    ASSERT(!memmi_process_is_null(app->open_process_handle));
+
+    memmi_detach_from_process(app->open_process_handle);
+}
+
+void app_action_begin_watch(app_State *app, uintptr_t address, app_WatchCondition cond, u32 length)
+{
+    ASSERT(!memmi_process_is_null(app->open_process_handle));
+
+    // NOTE: For now, we'll always use breakpoint index 0
+    b32 ok = true;
+
+    if (!app->is_attached) {
+        ok = app_action_attach_to_opened_process(app);
+    }
+
+    if (ok) {
+        app->watch_context = app_watch_begin(app, address, cond, length, 0);
+
+        if (!app->watch_context) {
+            TODO("report error");
+        }
+    }
+}
+
+void app_action_end_watch(app_State *app)
+{
+    app_watch_destroy(app->watch_context);
+    app->watch_context = 0;
+}

@@ -17,6 +17,7 @@ struct app_State {
 
     app_ScannerState scanner_state;
     memmi_Process open_process_handle;
+    b32 is_attached;
 
     memmi_ProcessList running_process_list;
     b32 process_list_ready;
@@ -26,6 +27,9 @@ struct app_State {
     app_AddressTable address_table;
 
     app_ErrorList error_list;
+
+    struct app_Watch *watch_context;
+
 };
 
 b32  app_init(app_State *app);
