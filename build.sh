@@ -55,7 +55,7 @@ mkdir -p ${BUILD_DIR};
 
 if [ ! -f ${DEAR_IMGUI_OBJ} ]; then
     echo "[compiling Dear Imgui...]"
-    ${CXX} src/dear-imgui/dear_imgui.cpp ${LIBS} -Ideps/imgui -Ideps/imgui/backends -c -o ${DEAR_IMGUI_OBJ}
+    ${CXX} deps/imgui/imgui_all.cpp ${LIBS} -Ideps/imgui -Ideps/imgui/backends -c -o ${DEAR_IMGUI_OBJ}
 fi
 
 # TODO: use memmi build script
