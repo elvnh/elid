@@ -81,7 +81,7 @@ void app_watch_poll_events(app_Watch *watch)
     watch->thread_context.event_queue.last = 0;
     watch->thread_context.event_queue.list_node_count = 0;
 
-    for (app_WatchEvent *e = head_event; e; e = list_next(head_event)) {
+    for (app_WatchEvent *e = head_event; e; e = list_next(e)) {
         app_WatchInstruction *instr = arena_alloc_struct(watch->arena, app_WatchInstruction);
         // TODO: initialize
         // TODO: check if this instruction has been triggered already
