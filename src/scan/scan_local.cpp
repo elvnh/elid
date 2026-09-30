@@ -48,15 +48,13 @@ scan_MatchList *scan_local_memory_first(Arena *arena, void *mem, usize mem_size,
     ASSERT(!scan_mode_is_comparative(cmp.mode));
     ASSERT(is_pow2(alignment)); // TODO: don't require pow2 alignment
 
+    ASSERT_ALWAYS(is_aligned(base_address, alignment));
+
     scan_MatchList *result = scan__alloc_match_list(arena);
 
     usize type_size = scan_val_type_get_size(cmp.value_type);
 
-    // If the base address is misaligned, we'll align it and start scanning at
-    // an aligned address.
-    uintptr_t aligned_base_address = align_pow2(base_address, alignment);
-    usize offset = aligned_base_address - base_address;
-    ASSERT(offset == 0 && "Should never happen as memory regions should always be aligned");
+    usize offset = 0;
 
     while ((offset + type_size) <= mem_size) {
         void *local_address = ptr_byte_offset(mem, offset);
