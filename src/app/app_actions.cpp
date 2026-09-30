@@ -168,7 +168,7 @@ void app_action_begin_watch(app_State *app, uintptr_t address, app_WatchConditio
     if (ok) {
         app->watch = app_watch_begin(app->work_queue, app->open_process_handle, address, cond, length, 0);
 
-        if (!app->watch.ok) {
+        if (app->watch.status != PROC_STATUS_OK) {
             TODO("report error");
         }
     }
@@ -177,5 +177,5 @@ void app_action_begin_watch(app_State *app, uintptr_t address, app_WatchConditio
 void app_action_end_watch(app_State *app)
 {
     app_watch_destroy(&app->watch);
-    app->watch.ok = false;
+    app->watch.status = PROC_STATUS_OTHER_ERROR;
 }

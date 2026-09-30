@@ -43,8 +43,9 @@ app_Watch app_watch_begin(app_WorkQueue *wq, memmi_Process proc, uintptr_t addre
     memmi_Status breakpoint_result = memmi_set_hardware_breakpoint(
         proc, address, memmi_cond, index, (memmi_BreakpointLength)size);
 
-    if (breakpoint_result == MEMMI_OK) {
-        result.ok = true;
+    if (breakpoint_result != MEMMI_OK) {
+        result.status = proc_status_from_memmi_status(breakpoint_result);
+    } else {
         result.arena = arena_create(APP_WATCH_ARENA_SIZE);
         result.thread_context.process = proc;
         result.thread_context.event_queue.mutex = mutex_create();

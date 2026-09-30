@@ -33,7 +33,7 @@ struct app_WatchInstruction {
 };
 
 struct app_Watch {
-    b32 ok;
+    proc_Status status;
     Arena *arena;
     app_WatchThreadContext thread_context;
     app_TaskID task;
