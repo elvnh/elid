@@ -166,7 +166,7 @@ void app_action_begin_watch(app_State *app, uintptr_t address, app_WatchConditio
     }
 
     if (ok) {
-        app->watch_context = app_watch_begin(app, address, cond, length, 0);
+        app->watch_context = app_watch_begin(app->work_queue, app->open_process_handle, address, cond, length, 0);
 
         if (!app->watch_context) {
             TODO("report error");

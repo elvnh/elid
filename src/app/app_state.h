@@ -28,7 +28,7 @@ struct app_State {
 
     app_ErrorList error_list;
 
-    struct app_Watch *watch_context;
+    app_Watch *watch_context;
 
 };
 

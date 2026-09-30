@@ -8,7 +8,7 @@ void app_watch__loop(app_TaskID, void *user_data)
     app_Watch *watch = (app_Watch *)user_data;
 
     while (!atomic_load_s32(&watch->should_terminate)) {
-        memmi_Process proc = watch->app->open_process_handle;
+        memmi_Process proc = watch->process;
         memmi_DebugEvent event = memmi_wait_for_debug_event(proc, MEMMI_CONTINUE_UNHANDLED, APP_WATCH_TIMEOUT_MS);
 
         if (event.status != MEMMI_OK) {
@@ -25,8 +25,7 @@ void app_watch__loop(app_TaskID, void *user_data)
     }
 }
 
-app_Watch *app_watch_begin(app_State *app, uintptr_t address, app_WatchCondition cond,
-    u32 size, u32 index)
+app_Watch *app_watch_begin(app_WorkQueue *wq, memmi_Process proc, uintptr_t address, app_WatchCondition cond, u32 size, u32 index)
 {
     // NOTE: must be attached when attempting this
     app_Watch *result = 0;
@@ -40,15 +39,15 @@ app_Watch *app_watch_begin(app_State *app, uintptr_t address, app_WatchCondition
         memmi_cond = MEMMI_BREAKPOINT_READ_WRITE;
     }
 
-    memmi_Status breakpoint_result = memmi_set_hardware_breakpoint(app->open_process_handle,
-        address, memmi_cond, index, (memmi_BreakpointLength)size);
+    memmi_Status breakpoint_result = memmi_set_hardware_breakpoint(
+        proc, address, memmi_cond, index, (memmi_BreakpointLength)size);
 
     if (breakpoint_result == MEMMI_OK) {
         result = (app_Watch *)calloc(1, sizeof(app_Watch));
+        result->process = proc;
         result->list_mutex = mutex_create();
         result->event_arena = arena_create(APP_WATCH_EVENT_ARENA_SIZE);
-        result->app = app;
-        result->task = app_wq_push_task(app->work_queue, app_watch__loop, result);
+        result->task = app_wq_push_task(wq, app_watch__loop, result);
     }
 
     return result;
@@ -66,13 +65,13 @@ void app_watch_destroy(app_Watch *watch)
     free(watch);
 }
 
-app_WatchEvent *app_pop_event(app_Watch *watch)
+app_WatchEvent *app_watch_pop_event(app_Watch *watch)
 {
     // TODO: use a lockless queue instead
     ScopedLock lock = scoped_lock(watch->list_mutex);
 
-    app_WatchEvent *result = watch->event_list.first;
-    queue_pop(&watch->event_list);
+    app_WatchEvent *result = watch->event_queue.first;
+    queue_pop(&watch->event_queue);
 
     return result;
 }
