@@ -10,16 +10,24 @@ void app_watch__loop(app_TaskID, void *user_data)
 
     while (!atomic_load_s32(&watch->should_terminate)) {
         memmi_Process proc = watch->process;
-        memmi_DebugEvent event = memmi_wait_for_debug_event(proc, MEMMI_CONTINUE_UNHANDLED, APP_WATCH_TIMEOUT_MS);
+        memmi_DebugEvent debug_event = memmi_wait_for_debug_event(proc, MEMMI_CONTINUE_UNHANDLED, APP_WATCH_TIMEOUT_MS);
 
-        if (event.status != MEMMI_OK) {
+        if (debug_event.status != MEMMI_OK) {
             ASSERT(0);
         } else {
-            if (event.kind == MEMMI_DEBUG_EVENT_BREAKPOINT) {
-                b32 breakpoint_is_ours = event.as.breakpoint.breakpoint_index == watch->breakpoint_index;
+            if (debug_event.kind == MEMMI_DEBUG_EVENT_BREAKPOINT) {
+                b32 breakpoint_is_ours = debug_event.as.breakpoint.breakpoint_index == watch->breakpoint_index;
 
                 if (breakpoint_is_ours) {
-                    printf("breakpoint %zu\n", event.as.breakpoint.ip_register);
+                    // TODO: use lockless queue
+                    ScopedLock lock = scoped_lock(watch->event_queue.mutex);
+
+                    app_WatchEvent *event = pool_alloc(watch->event_queue.pool, app_WatchEvent);
+                    event->instruction_pointer_after_execution = debug_event.as.breakpoint.ip_register;
+
+                    queue_push(&watch->event_queue, event);
+
+                    printf("event\n");
                 }
             }
         }
@@ -46,6 +54,8 @@ app_Watch app_watch_begin(app_WorkQueue *wq, memmi_Process proc, uintptr_t addre
     if (breakpoint_result != MEMMI_OK) {
         result.status = proc_status_from_memmi_status(breakpoint_result);
     } else {
+        result.is_active = true;
+        result.status = PROC_STATUS_OK;
         result.arena = arena_create(APP_WATCH_ARENA_SIZE);
         result.thread_context.process = proc;
         result.thread_context.event_queue.mutex = mutex_create();
@@ -71,24 +81,78 @@ void app_watch_destroy(app_Watch *watch)
     *watch = {};
 }
 
-void app_watch_poll_events(app_Watch *watch)
+app_WatchInstruction app_watch_find_instruction_preceding_address(proc_MemoryRegionContentsList regions, uintptr_t address)
 {
-    ScopedLock lock = scoped_lock(watch->thread_context.event_queue.mutex);
+    // TODO: pass in memory region after it's been found instead
+    app_WatchInstruction result = {};
 
-    app_WatchEvent *head_event = watch->thread_context.event_queue.first;
+    proc_MemoryRegionContents *containing_region = 0;
 
-    // TODO: list_clear macro
-    watch->thread_context.event_queue.first = 0;
-    watch->thread_context.event_queue.last = 0;
-    watch->thread_context.event_queue.list_node_count = 0;
+    for (usize i = 0; i < regions.count; ++i) {
+        proc_MemoryRegionContents *region = &regions.data[i];
+        uintptr_t region_begin = region->metadata.address;
+        uintptr_t region_end   = region_begin + region->metadata.size;
 
-    for (app_WatchEvent *e = head_event; e; e = list_next(e)) {
-        app_WatchInstruction *instr = arena_alloc_struct(watch->arena, app_WatchInstruction);
-        // TODO: initialize
-        // TODO: check if this instruction has been triggered already
-
-        dll_push_back(&watch->triggered_instruction_list, instr);
+        if ((region_begin <= address) && (address <= region_end)) {
+            containing_region = region;
+            break;
+        }
     }
 
-    pool_reset(watch->thread_context.event_queue.pool);
+    if (ALWAYS(containing_region)) {
+        TODO("Decode and find instruction");
+    }
+
+    return result;
+}
+
+proc_Status app_watch_poll_events(app_Watch *watch)
+{
+    proc_Status result = {};
+
+    Temp temp = scratch_begin();
+
+    proc_MemoryRegionList executable_regions = proc_get_memory_regions_with_permissions(
+        temp.arena, watch->thread_context.process, PROC_PERMISSION_EXECUTE);
+
+    if (executable_regions.status != PROC_STATUS_OK) {
+        result = executable_regions.status;
+    } else {
+        proc_MemoryRegionContentsList executable_regions_contents =
+            proc_get_contents_of_memory_regions(temp.arena, executable_regions);
+
+        // TODO: don't hold the lock for this long
+        ScopedLock lock = scoped_lock(watch->thread_context.event_queue.mutex);
+
+        app_WatchEvent *head_event = watch->thread_context.event_queue.first;
+
+        // TODO: list_clear macro
+        watch->thread_context.event_queue.first = 0;
+        watch->thread_context.event_queue.last = 0;
+        watch->thread_context.event_queue.list_node_count = 0;
+
+        for (app_WatchEvent *e = head_event; e; e = list_next(e)) {
+            uintptr_t event_address = e->instruction_pointer_after_execution;
+
+            // Find out if this instruction has been triggered already.
+            app_WatchInstruction *instr = 0;
+            for (instr = list_head(&watch->triggered_instruction_list); instr; instr = list_next(instr)) {
+                if ((instr->start_address + instr->opcode_size) == event_address) {
+                    break;
+                }
+            }
+
+            if (instr) {
+                ++instr->trigger_count;
+            } else {
+                // This instruction hasn't been triggered yet, allocate a new one.
+                instr = arena_alloc_struct(watch->arena, app_WatchInstruction);
+                *instr = app_watch_find_instruction_preceding_address(executable_regions_contents, event_address);
+            }
+        }
+
+        pool_reset(watch->thread_context.event_queue.pool);
+    }
+
+    return result;
 }

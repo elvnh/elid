@@ -1,7 +1,7 @@
 #pragma once
 
 struct app_WatchEvent {
-    uintptr_t rip_register;
+    uintptr_t instruction_pointer_after_execution;
 
     app_WatchEvent *next;
     app_WatchEvent *prev;
@@ -24,15 +24,16 @@ struct app_WatchThreadContext {
 }; 
 
 struct app_WatchInstruction {
-    uintptr_t address;
-
-    // TODO: opcode, mnemonic etc.
+    uintptr_t start_address;
+    u32 opcode_size;
+    u32 trigger_count;
 
     app_WatchInstruction *next;
     app_WatchInstruction *prev;
 };
 
 struct app_Watch {
+    b32 is_active;
     proc_Status status;
     Arena *arena;
     app_WatchThreadContext thread_context;
@@ -52,4 +53,3 @@ typedef enum {
 
 app_Watch app_watch_begin(app_WorkQueue *wq, memmi_Process proc, uintptr_t address, app_WatchCondition cond, u32 size, u32 index);
 void      app_watch_destroy(app_Watch *watch);
-void      app_watch_poll_events(app_Watch *watch);

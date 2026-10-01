@@ -39,7 +39,18 @@ struct proc_MemoryRegionList {
     usize count;
 };
 
+struct proc_MemoryRegionContents {
+    proc_MemoryRegion metadata;
+    void *data;
+};
+
+struct proc_MemoryRegionContentsList {
+    proc_MemoryRegionContents *data;
+    usize count;
+};
+
 DEFINE_MAYBE_TYPE(proc_Object);
+DEFINE_MAYBE_TYPE(proc_MemoryRegion);
 
 proc_Status     proc_status_from_memmi_status(memmi_Status status);
 
@@ -53,3 +64,4 @@ proc_ObjectList       proc_object_list_from_memmi_object_list(Arena *arena, memm
 b32                   proc_object_has_unique_filename(proc_Object object, proc_ObjectList objects);
 proc_ObjectList       proc_get_loaded_objects(Arena *arena, memmi_Process proc);
 proc_MemoryRegionList proc_get_memory_regions_with_permissions(Arena *arena, memmi_Process proc, proc_RegionPermission perms);
+proc_MemoryRegionContentsList proc_get_contents_of_memory_regions(Arena *arena, proc_MemoryRegionList regions);

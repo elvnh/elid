@@ -176,6 +176,8 @@ void app_action_begin_watch(app_State *app, uintptr_t address, app_WatchConditio
 
 void app_action_end_watch(app_State *app)
 {
+    ASSERT(app->watch.is_active);
+
     app_watch_destroy(&app->watch);
     app->watch.status = PROC_STATUS_OTHER_ERROR;
 }
