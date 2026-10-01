@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
+CC=gcc
 CXX=g++
+
 CXXFLAGS="-Werror
     -fsanitize=address,undefined
     -Ideps
@@ -37,6 +39,7 @@ CXXFLAGS="-Werror
     -Wno-error=unused-variable
     -Wno-error=unused-but-set-variable
 "
+
 CXXFLAGS_DEBUG="-DDEBUG_BUILD=1 -DPOISON_MEMORY=1"
 CXXFLAGS="${CXXFLAGS} ${CXXFLAGS_DEBUG}"
 
@@ -49,6 +52,7 @@ MEMMI_SRCS="deps/memmi/src/memmi.c"
 EXE="${BUILD_DIR}/elid"
 
 DEAR_IMGUI_OBJ="${BUILD_DIR}/dear-imgui.o"
+ZYDIS_OBJ="${BUILD_DIR}/Zydis.o"
 
 cd $(dirname $0)
 mkdir -p ${BUILD_DIR};
@@ -58,6 +62,8 @@ if [ ! -f ${DEAR_IMGUI_OBJ} ]; then
     ${CXX} deps/imgui/imgui_all.cpp ${LIBS} -Ideps/imgui -Ideps/imgui/backends -c -o ${DEAR_IMGUI_OBJ}
 fi
 
-# TODO: use memmi build script
+# Compile Zydis in C mode as it is not valid for C++ mode
+${CC} deps/Zydis/Zydis.c -c -o ${ZYDIS_OBJ} -Ideps/Zydis
 
-${CXX} ${CXXFLAGS} ${SRCS} -DMEMMI_DEBUG=1 ${MEMMI_SRCS} ${DEAR_IMGUI_OBJ} ${LIBS} -o ${EXE}
+# TODO: use memmi build script
+${CXX} ${CXXFLAGS} ${SRCS} -DMEMMI_DEBUG=1 ${MEMMI_SRCS} ${DEAR_IMGUI_OBJ} ${ZYDIS_OBJ} ${LIBS} -o ${EXE}

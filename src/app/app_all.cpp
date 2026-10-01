@@ -1,4 +1,5 @@
 #include <memmi/memmi.h>
+#include <Zydis/Zydis.h>
 
 #include <stdlib.h>
 
