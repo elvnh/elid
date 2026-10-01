@@ -236,3 +236,26 @@ proc_MemoryRegionList proc_get_memory_regions_with_permissions(Arena *arena, mem
 
     return result;
 }
+
+proc_MemoryRegionContentsList proc_get_contents_of_memory_regions(Arena *arena, memmi_Process proc, proc_MemoryRegionList regions)
+{
+    ASSERT(regions.status == PROC_STATUS_OK);
+
+    proc_MemoryRegionContentsList result = {};
+    result.data = arena_alloc_array(arena, proc_MemoryRegionContents, regions.count);
+
+    for (usize i = 0; i < regions.count; ++i) {
+        proc_MemoryRegionContents region_contents = {};
+        region_contents.metadata = regions.data[i];
+        region_contents.contents = (void *)arena_alloc_array(arena, char, region_contents.metadata.size);
+
+        memmi_ReadMemory read_mem_result = memmi_read_memory(
+            proc, region_contents.contents, region_contents.metadata.address, region_contents.metadata.size);
+
+        if (ALWAYS(read_mem_result.status == MEMMI_OK)) {
+            result.data[result.count++] = region_contents;
+        }
+    }
+
+    return result;
+}

@@ -1,6 +1,7 @@
 #pragma once
 
-// This file defines helpers for interacting with the memmi library.
+// This file defines functions and types for interacting with other processes.
+// TODO: wrap all memmi functions and types
 
 enum proc_Status {
     PROC_STATUS_OK                       = 0,
@@ -41,7 +42,7 @@ struct proc_MemoryRegionList {
 
 struct proc_MemoryRegionContents {
     proc_MemoryRegion metadata;
-    void *data;
+    void *contents;
 };
 
 struct proc_MemoryRegionContentsList {

@@ -24,9 +24,10 @@ struct app_WatchThreadContext {
 }; 
 
 struct app_WatchInstruction {
-    uintptr_t start_address;
-    u32 opcode_size;
-    u32 trigger_count;
+    uintptr_t             start_address;
+    u32                   opcode_size;
+    u32    				  trigger_count;
+    String 				  mnemonic;
 
     app_WatchInstruction *next;
     app_WatchInstruction *prev;
