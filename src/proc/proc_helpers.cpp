@@ -156,8 +156,8 @@ b32 proc_object_has_unique_filename(proc_Object object, proc_ObjectList objects)
 
 proc_ObjectList proc_get_loaded_objects(Arena *arena, memmi_Process proc)
 {
-    Temp temp = scratch_begin();
-    memmi_Allocator temp_allocator = proc_memmi_allocator_from_arena(temp.arena);
+    ScratchArena scratch = scratch_begin();
+    memmi_Allocator temp_allocator = proc_memmi_allocator_from_arena(scratch.arena);
 
     memmi_ObjectList objects = memmi_get_loaded_objects(proc, temp_allocator);
 
@@ -208,8 +208,8 @@ proc_MemoryRegionList proc_get_memory_regions_with_permissions(Arena *arena, mem
 {
     proc_MemoryRegionList result = {};
 
-    Temp temp = scratch_begin();
-    memmi_Allocator temp_allocator = proc_memmi_allocator_from_arena(temp.arena);
+    ScratchArena scratch = scratch_begin();
+    memmi_Allocator temp_allocator = proc_memmi_allocator_from_arena(scratch.arena);
 
     memmi_MemoryRegions regions = memmi_get_process_memory_regions(proc, temp_allocator);
 

@@ -7,14 +7,13 @@
 #define THREAD_SCAN_SCRATCH_ARENA_SIZE MB(32)
 
 struct ThreadContext {
-    // For function-local allocations. Should usually be used with scratch_begin().
-    Arena *scratch_arena;
+    Arena *first_scratch_arena;
+
     // For reading memory to scan and then discard.
     Arena *per_scan_scratch_arena;
+
+    b32 initialized;
 };
 
-// TODO: make sure to call this when creating a new thread
 ThreadContext  *thread_ctx_init(void);
 ThreadContext  *thread_ctx_get(void);
-Temp            scratch_begin(void);
-void            scratch_end(Temp *temp);

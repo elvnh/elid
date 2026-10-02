@@ -184,25 +184,3 @@ usize arena_get_memory_usage(Arena *arena)
 
     return result;
 }
-
-Temp temp_begin(Arena *arena)
-{
-    Temp result = {};
-    result.arena = arena;
-    result.start_offset = arena_get_memory_usage(arena);
-
-    return result;
-}
-
-void temp_end(Temp *temp)
-{
-    arena_pop_to(temp->arena, temp->start_offset);
-
-    temp->arena = 0;
-    temp->start_offset = 0;
-}
-
-Temp::~Temp()
-{
-    temp_end(this);
-}

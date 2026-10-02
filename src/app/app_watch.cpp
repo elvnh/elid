@@ -149,17 +149,17 @@ proc_Status app_watch_poll_events(app_Watch *watch)
 {
     proc_Status result = {};
 
-    Temp temp = scratch_begin();
+    ScratchArena scratch = scratch_begin();
 
     proc_MemoryRegionList executable_regions = proc_get_memory_regions_with_permissions(
-        temp.arena, watch->process, PROC_PERMISSION_EXECUTE);
+        scratch.arena, watch->process, PROC_PERMISSION_EXECUTE);
 
     if (executable_regions.status != PROC_STATUS_OK) {
         result = executable_regions.status;
     } else {
         // TODO: read in the contents of the memory regions on demand instead
         proc_MemoryRegionContentsList executable_regions_contents =
-            proc_get_contents_of_memory_regions(temp.arena, watch->process, executable_regions);
+            proc_get_contents_of_memory_regions(scratch.arena, watch->process, executable_regions);
 
         // TODO: don't hold the lock for this long
         ScopedLock lock = scoped_lock(watch->event_queue.mutex);
