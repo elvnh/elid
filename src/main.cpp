@@ -37,14 +37,26 @@ int main(int argc, char **argv)
             }
         }
 
+        u64 address = 0;
+
+        if (!stn_parse_u64(argv[2], strlen(argv[2]), &address, 10)) {
+            ASSERT(0);
+        }
+
+        app_action_begin_watch(&app, address, APP_WATCH_COND_WRITE, 4);
+
         // TODO: move this functionality into app_run
         while (!gui_should_close(&gui)) {
+            // TODO: move into gui_update_and_render
             arena_reset(gui.frame_arena);
 
             // Dummy task that all per-frame tasks will be children of, so that we can wait for all
             // of them at the end of the frame.
             app_TaskID frame_task = app_wq_create_task(app.work_queue, app_wq_null_function, app_wq_null_arg);
             app.frame_root_task = frame_task;
+
+            // TODO: app_update
+            app_action_poll_watch_events(&app);
 
             gui_update_and_render(&gui, &app);
 

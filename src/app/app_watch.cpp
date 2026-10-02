@@ -149,7 +149,7 @@ proc_Status app_watch_poll_events(app_Watch *watch)
 {
     proc_Status result = {};
 
-        Temp temp = scratch_begin();
+    Temp temp = scratch_begin();
 
     proc_MemoryRegionList executable_regions = proc_get_memory_regions_with_permissions(
         temp.arena, watch->process, PROC_PERMISSION_EXECUTE);
