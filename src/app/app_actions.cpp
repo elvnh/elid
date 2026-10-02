@@ -130,54 +130,25 @@ void app_action_remove_address_table_entry(app_State *app, app_AddressTableEntry
     app_addr_table_remove(&app->address_table, entry);
 }
 
-b32 app_action_attach_to_opened_process(app_State *app)
-{
-    ASSERT(!memmi_process_is_null(app->open_process_handle));
-
-    memmi_Status attach_result = memmi_attach_to_process(app->open_process_handle);
-
-    if (attach_result != MEMMI_OK) {
-        TODO("");
-    } else {
-        app->is_attached = true;
-    }
-
-    b32 result = app->is_attached;
-
-    return result;
-}
-
-void app_action_detach_from_opened_process(app_State *app)
-{
-    ASSERT(!memmi_process_is_null(app->open_process_handle));
-
-    memmi_detach_from_process(app->open_process_handle);
-}
-
 void app_action_begin_watch(app_State *app, uintptr_t address, app_WatchCondition cond, u32 length)
 {
     ASSERT(!memmi_process_is_null(app->open_process_handle));
+    ASSERT(!app->watch);
 
-    // NOTE: For now, we'll always use breakpoint index 0
-    b32 ok = true;
+    app->watch = pool_alloc(app->watch_pool, app_Watch);
 
-    if (!app->is_attached) {
-        ok = app_action_attach_to_opened_process(app);
-    }
+    // NOTE: for now, we always use breakpoint index 0
+    app_watch_init(app->watch, app->open_process_handle, address, 0, cond, length);
 
-    if (ok) {
-        app->watch = app_watch_begin(app->work_queue, app->open_process_handle, address, cond, length, 0);
-
-        if (app->watch.status != PROC_STATUS_OK) {
-            TODO("report error");
-        }
-    }
+    app->watch->task = app_wq_push_task_as_child(
+        app->work_queue, app_async_watch_address, app->watch, app->frame_root_task);
 }
 
 void app_action_end_watch(app_State *app)
 {
-    ASSERT(app->watch.is_active);
+    if (ALWAYS(app->watch)) {
+        app_watch_destroy(app->watch_pool, app->watch);
 
-    app_watch_destroy(&app->watch);
-    app->watch.status = PROC_STATUS_OTHER_ERROR;
+        app->watch = 0;
+    }
 }

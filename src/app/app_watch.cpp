@@ -4,13 +4,12 @@
 #define APP_WATCH_ARENA_SIZE       MB(1)
 #define APP_WATCH_EVENT_POOL_SIZE  128
 
-void app_watch__loop(app_TaskID, void *user_data)
+void app_watch__loop(app_Watch *watch)
 {
-    app_WatchThreadContext *watch = (app_WatchThreadContext *)user_data;
-
     while (!atomic_load_s32(&watch->should_terminate)) {
         memmi_Process proc = watch->process;
-        memmi_DebugEvent debug_event = memmi_wait_for_debug_event(proc, MEMMI_CONTINUE_UNHANDLED, APP_WATCH_TIMEOUT_MS);
+        memmi_DebugEvent debug_event = memmi_wait_for_debug_event(
+            proc, MEMMI_CONTINUE_UNHANDLED, APP_WATCH_TIMEOUT_MS);
 
         if (debug_event.status != MEMMI_OK) {
             ASSERT(0);
@@ -34,51 +33,51 @@ void app_watch__loop(app_TaskID, void *user_data)
     }
 }
 
-app_Watch app_watch_begin(app_WorkQueue *wq, memmi_Process proc, uintptr_t address, app_WatchCondition cond, u32 size, u32 index)
+void app_watch_run(app_Watch *watch)
 {
-    // NOTE: must be attached when attempting this
-    app_Watch result = {};
-
     memmi_BreakpointCondition memmi_cond = {};
 
-    if (cond == APP_WATCH_COND_WRITE) {
+    if (watch->breakpoint_condition == APP_WATCH_COND_WRITE) {
         memmi_cond = MEMMI_BREAKPOINT_WRITE;
-    } else {
-        ASSERT(cond == APP_WATCH_COND_READ_WRITE);
+    } else if (watch->breakpoint_condition == APP_WATCH_COND_READ_WRITE) {
         memmi_cond = MEMMI_BREAKPOINT_READ_WRITE;
     }
 
+    // NOTE: we attach on this thread rather than the main thread since on Linux, attaching from a
+    // thread only makes that one thread the tracer, rather than the entire process. Since we'll
+    // later perform tracer-exclusive actions such as setting breakpoints and waiting for debug
+    // events, that thread has to be the tracer.
+    memmi_Status attach_result = memmi_attach_to_process(watch->process);
+
     memmi_Status breakpoint_result = memmi_set_hardware_breakpoint(
-        proc, address, memmi_cond, index, (memmi_BreakpointLength)size);
+        watch->process,
+        watch->breakpoint_address,
+        memmi_cond,
+        watch->breakpoint_index,
+        (memmi_BreakpointLength)watch->breakpoint_length);
 
-    if (breakpoint_result != MEMMI_OK) {
-        result.status = proc_status_from_memmi_status(breakpoint_result);
+    if (attach_result != MEMMI_OK) {
+        TODO("communicate error to attach");
+    } else if (breakpoint_result != MEMMI_OK) {
+        TODO("communicate error to set breakpoint");
     } else {
-        result.is_active = true;
-        result.status = PROC_STATUS_OK;
-        result.arena = arena_create(APP_WATCH_ARENA_SIZE);
-        result.thread_context.process = proc;
-        result.thread_context.event_queue.mutex = mutex_create();
-        result.thread_context.event_queue.pool = pool_create(result.arena, app_WatchEvent, APP_WATCH_EVENT_POOL_SIZE);
+        app_watch__loop(watch);
 
-        app_WatchThreadContext *watch_thread_arg = &result.thread_context;
-        result.task = app_wq_push_task(wq, app_watch__loop, watch_thread_arg);
+        memmi_detach_from_process(watch->process);
     }
-
-    return result;
 }
 
-void app_watch_destroy(app_Watch *watch)
+void app_watch_destroy(Pool *pool, app_Watch *watch)
 {
-    atomic_store_s32(&watch->thread_context.should_terminate, true);
+    atomic_store_s32(&watch->should_terminate, true);
 
     app_wq_wait_for_task(watch->task);
 
-    mutex_destroy(watch->thread_context.event_queue.mutex);
+    mutex_destroy(watch->event_queue.mutex);
 
     arena_destroy(watch->arena);
 
-    *watch = {};
+    pool_free(pool, watch);
 }
 
 app_WatchInstruction app_watch_find_instruction_preceding_address(
@@ -129,6 +128,7 @@ app_WatchInstruction app_watch_find_instruction_preceding_address(
             if (opcode_end_address == address) {
                 found_instruction = true;
             } else {
+                // TODO: no need to track these separately
                 offset += zydis_instruction.info.length;
                 instruction_address += zydis_instruction.info.length;
             }
@@ -150,27 +150,26 @@ proc_Status app_watch_poll_events(app_Watch *watch)
     proc_Status result = {};
 
         Temp temp = scratch_begin();
-    memmi_Process process = watch->thread_context.process;
 
     proc_MemoryRegionList executable_regions = proc_get_memory_regions_with_permissions(
-        temp.arena, watch->thread_context.process, PROC_PERMISSION_EXECUTE);
+        temp.arena, watch->process, PROC_PERMISSION_EXECUTE);
 
     if (executable_regions.status != PROC_STATUS_OK) {
         result = executable_regions.status;
     } else {
         // TODO: read in the contents of the memory regions on demand instead
         proc_MemoryRegionContentsList executable_regions_contents =
-            proc_get_contents_of_memory_regions(temp.arena, process, executable_regions);
+            proc_get_contents_of_memory_regions(temp.arena, watch->process, executable_regions);
 
         // TODO: don't hold the lock for this long
-        ScopedLock lock = scoped_lock(watch->thread_context.event_queue.mutex);
+        ScopedLock lock = scoped_lock(watch->event_queue.mutex);
 
-        app_WatchEvent *head_event = watch->thread_context.event_queue.first;
+        app_WatchEvent *head_event = watch->event_queue.first;
 
         // TODO: list_clear macro
-        watch->thread_context.event_queue.first = 0;
-        watch->thread_context.event_queue.last = 0;
-        watch->thread_context.event_queue.list_node_count = 0;
+        watch->event_queue.first = 0;
+        watch->event_queue.last = 0;
+        watch->event_queue.list_node_count = 0;
 
         for (app_WatchEvent *e = head_event; e; e = list_next(e)) {
             uintptr_t event_address = e->instruction_pointer_after_execution;
@@ -188,12 +187,27 @@ proc_Status app_watch_poll_events(app_Watch *watch)
             } else {
                 // This instruction hasn't been triggered yet, allocate a new one.
                 instr = arena_alloc_struct(watch->arena, app_WatchInstruction);
-                *instr = app_watch_find_instruction_preceding_address(watch, executable_regions_contents, event_address);
+                *instr = app_watch_find_instruction_preceding_address(
+                    watch, executable_regions_contents, event_address);
             }
         }
 
-        pool_reset(watch->thread_context.event_queue.pool);
+        pool_reset(watch->event_queue.pool);
     }
 
     return result;
+}
+
+void app_watch_init(app_Watch *watch, memmi_Process proc, uintptr_t address,
+    u32 breakpoint_index, app_WatchCondition cond, u32 breakpoint_length)
+{
+    *watch = {};
+    watch->arena = arena_create(APP_WATCH_ARENA_SIZE);
+    watch->process = proc;
+    watch->event_queue.mutex = mutex_create();
+    watch->event_queue.pool = pool_create(watch->arena, app_WatchEvent, APP_WATCH_EVENT_POOL_SIZE);
+    watch->breakpoint_address = address;
+    watch->breakpoint_index = breakpoint_index;
+    watch->breakpoint_condition = cond;
+    watch->breakpoint_length = breakpoint_length;
 }
