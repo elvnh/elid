@@ -155,8 +155,8 @@ void app_action_end_watch(app_State *app)
 
 void app_action_poll_watch_events(app_State *app)
 {
-    ASSERT(app->watch);
-
-    proc_Status poll_result = app_watch_poll_events(app->watch);
-    ASSERT(poll_result == PROC_STATUS_OK);
+    if (app->watch) {
+        proc_Status poll_result = app_watch_poll_events(app->watch);
+        ASSERT(poll_result == PROC_STATUS_OK);
+    }
 }

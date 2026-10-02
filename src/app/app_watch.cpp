@@ -151,8 +151,10 @@ proc_Status app_watch_poll_events(app_Watch *watch)
 
     ScratchArena scratch = scratch_begin();
 
+    proc_RegionPermission permissions = (proc_RegionPermission)((s32)PROC_PERMISSION_EXECUTE | (s32)PROC_PERMISSION_READ);
+
     proc_MemoryRegionList executable_regions = proc_get_memory_regions_with_permissions(
-        scratch.arena, watch->process, PROC_PERMISSION_EXECUTE);
+        scratch.arena, watch->process, permissions);
 
     if (executable_regions.status != PROC_STATUS_OK) {
         result = executable_regions.status;
