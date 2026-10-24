@@ -53,3 +53,21 @@ String      str_alloc_cstr(Arena *arena, const char *cstr); // TODO: isn't this 
 String      str_format(Arena *arena, const char *fmt, ...) FORMAT_ATTRIBUTE(2, 3);
 char       *str_format_cstr(Arena *arena, const char *fmt, ...) FORMAT_ATTRIBUTE(2, 3);
 String      str_format_v(Arena *arena, const char *fmt, va_list args);
+
+/* Chars */
+u8  char_to_upper(u8 ch);
+b32 char_is_upper(u8 ch);
+b32 char_is_lower(u8 ch);
+b32 char_is_alpha(u8 ch);
+
+/* String searching */
+struct StringSearch {
+    b32 match;
+    usize index;
+};
+
+enum StringSearchFlags {
+    STR_SEARCH_CASE_INSENSITIVE = (1u << 0u),
+};
+
+StringSearch str_search(String str, String pattern, StringSearchFlags flags);

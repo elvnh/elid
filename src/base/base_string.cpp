@@ -376,3 +376,82 @@ String str_format_v(Arena *arena, const char *fmt, va_list args)
 
     return result;
 }
+
+/* Chars */
+u8 char_to_upper(u8 ch)
+{
+    // ASSERT(char_is_alpha(ch));
+
+    u8 result = ch;
+
+    if (char_is_lower(ch)) {
+        result -= ('a' - 'A');
+    }
+
+    return result;
+}
+
+b32 char_is_upper(u8 ch)
+{
+    b32 result = (ch >= 'A') && (ch <= 'Z');
+
+    return result;
+}
+
+b32 char_is_lower(u8 ch)
+{
+    b32 result = (ch >= 'a') && (ch <= 'z');
+
+    return result;
+}
+
+b32 char_is_alpha(u8 ch)
+{
+    b32 result = char_is_upper(ch) || char_is_lower(ch);
+
+    return result;
+}
+
+/* String searching */
+b32 str_search__cmp(u8 a, u8 b, StringSearchFlags flags)
+{
+    if (flags & STR_SEARCH_CASE_INSENSITIVE) {
+        a = char_to_upper(a);
+        b = char_to_upper(b);
+    }
+
+    b32 result = a == b;
+
+    return result;
+}
+
+StringSearch str_search(String str, String pattern, StringSearchFlags flags)
+{
+    ASSERT(str.data);
+    ASSERT(pattern.data);
+
+    StringSearch result = {};
+
+    if (pattern.count <= str.count) {
+        for (usize i = 0; i <= str.count - pattern.count; ++i) {
+            b32 match = true;
+
+            for (usize j = 0; (j < pattern.count) && match; ++j) {
+                u8 char_a = str.data[i + j];
+                u8 char_b = pattern.data[j];
+
+                if (!str_search__cmp(char_a, char_b, flags)) {
+                    match = false;
+                }
+            }
+
+            if (match) {
+                result.match = true;
+                result.index = i;
+                break;
+            }
+        }
+    }
+
+    return result;
+}

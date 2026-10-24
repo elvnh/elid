@@ -382,3 +382,113 @@ TEST_CASE(str_format)
     REQUIRE(s.count == 4);
 }
 
+TEST_CASE(char_to_upper)
+{
+    REQUIRE(char_to_upper('a') == 'A');
+    REQUIRE(char_to_upper('b') == 'B');
+    REQUIRE(char_to_upper('z') == 'Z');
+    REQUIRE(char_to_upper('A') == 'A');
+    REQUIRE(char_to_upper('B') == 'B');
+    REQUIRE(char_to_upper('Z') == 'Z');
+    REQUIRE(char_to_upper('?') == '?');
+    REQUIRE(char_to_upper('.') == '.');
+}
+
+TEST_CASE(str_search_one_char_case_sensitive)
+{
+    StringSearch search = {};
+
+    search = str_search(str_lit("abc"), str_lit("a"), {});
+    REQUIRE(search.match);
+    REQUIRE(search.index == 0);
+
+    search = str_search(str_lit("abc"), str_lit("b"), {});
+    REQUIRE(search.match);
+    REQUIRE(search.index == 1);
+
+    search = str_search(str_lit("abc"), str_lit("c"), {});
+    REQUIRE(search.match);
+    REQUIRE(search.index == 2);
+
+    search = str_search(str_lit("abc"), str_lit("d"), {});
+    REQUIRE(!search.match);
+}
+
+TEST_CASE(str_search_one_char_case_insensitive)
+{
+    StringSearch search = {};
+
+    search = str_search(str_lit("abc"), str_lit("a"), STR_SEARCH_CASE_INSENSITIVE);
+    REQUIRE(search.match);
+    REQUIRE(search.index == 0);
+
+    search = str_search(str_lit("abc"), str_lit("A"), STR_SEARCH_CASE_INSENSITIVE);
+    REQUIRE(search.match);
+    REQUIRE(search.index == 0);
+
+    search = str_search(str_lit("abc"), str_lit("c"), STR_SEARCH_CASE_INSENSITIVE);
+    REQUIRE(search.match);
+    REQUIRE(search.index == 2);
+
+    search = str_search(str_lit("abc"), str_lit("C"), STR_SEARCH_CASE_INSENSITIVE);
+    REQUIRE(search.match);
+    REQUIRE(search.index == 2);
+}
+
+TEST_CASE(str_search_multi_char_char_case_sensitive)
+{
+    StringSearch search = {};
+
+    search = str_search(str_lit("abcde"), str_lit("abc"), {});
+    REQUIRE(search.match);
+    REQUIRE(search.index == 0);
+
+    search = str_search(str_lit("abcde"), str_lit("bcd"), {});
+    REQUIRE(search.match);
+    REQUIRE(search.index == 1);
+
+    search = str_search(str_lit("abcde"), str_lit("cde"), {});
+    REQUIRE(search.match);
+    REQUIRE(search.index == 2);
+}
+
+TEST_CASE(str_search_multi_char_char_case_insensitive)
+{
+    StringSearch search = {};
+
+    search = str_search(str_lit("abcde"), str_lit("ABC"), STR_SEARCH_CASE_INSENSITIVE);
+    REQUIRE(search.match);
+    REQUIRE(search.index == 0);
+
+    search = str_search(str_lit("abcde"), str_lit("Bcd"), STR_SEARCH_CASE_INSENSITIVE);
+    REQUIRE(search.match);
+    REQUIRE(search.index == 1);
+
+    search = str_search(str_lit("abcde"), str_lit("CdE"), STR_SEARCH_CASE_INSENSITIVE);
+    REQUIRE(search.match);
+    REQUIRE(search.index == 2);
+}
+
+TEST_CASE(str_search_too_long_pattern)
+{
+    StringSearch search = {};
+
+    search = str_search(str_lit("abc"), str_lit("abcd"), {});
+    REQUIRE(!search.match);
+
+    search = str_search(str_lit(""), str_lit("a"), {});
+    REQUIRE(!search.match);
+}
+
+TEST_CASE(str_search_empty_pattern)
+{
+    StringSearch search = {};
+
+    search = str_search(str_lit("abc"), str_lit(""), {});
+    REQUIRE(search.match);
+    REQUIRE(search.index == 0);
+
+    search = str_search(str_lit(""), str_lit(""), {});
+    REQUIRE(search.match);
+    REQUIRE(search.index == 0);
+}
