@@ -200,7 +200,6 @@ proc_Status app_watch_poll_events(app_Watch *watch)
                 *instr = app_watch_find_instruction_preceding_address(
                     watch, executable_regions_contents, event_address);
                 instr->trigger_count = 1;
-                instr->registers_after_execution = e->registers_after_execution;
 
                 ASSERT(instr->start_address);
                 ASSERT(instr->mnemonic.data);
@@ -208,6 +207,9 @@ proc_Status app_watch_poll_events(app_Watch *watch)
 
                 sll_push_back(&watch->triggered_instruction_list, instr);
             }
+
+            // The registers are updated each time the instruction is hit.
+            instr->registers_after_execution = e->registers_after_execution;
         }
 
         pool_reset(watch->event_queue.pool);
