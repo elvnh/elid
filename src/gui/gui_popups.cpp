@@ -107,8 +107,10 @@ static void gui__popup_open_process(gui_State *gui, app_State *app)
         }
 
         // TODO: show number of processes
+        // TODO: remove selected entry if process list changes
 
         b32 item_is_highlighted = false;
+        u32 new_filtered_process_count = 0;
 
         ImVec2 listbox_size = {-FLT_MIN, -ImGui::GetFrameHeight()};
 
@@ -125,6 +127,8 @@ static void gui__popup_open_process(gui_State *gui, app_State *app)
                 StringSearch search_result = str_search(proc_name, textbox_contents, STR_SEARCH_CASE_INSENSITIVE);
 
                 if (search_result.match) {
+                    ++new_filtered_process_count;
+
                     ImGui::PushID(s64_to_s32(proc.pid));
 
                     b32 is_selected = gui->process_list_popup.selected_index == i;
@@ -143,6 +147,14 @@ static void gui__popup_open_process(gui_State *gui, app_State *app)
 
             ImGui::EndListBox();
         }
+
+        if ((new_filtered_process_count != gui->process_list_popup.previous_filtered_process_count) &&
+            (gui->process_list_popup.previous_filtered_process_count != 0)) {
+            // We don't want the selected item to persist when changing search text, reset it.
+            gui->process_list_popup.selected_index = -1;
+        }
+
+        gui->process_list_popup.previous_filtered_process_count = new_filtered_process_count;
 
         // TODO: can selected index be a local variable?
         s32 selected_index = gui->process_list_popup.selected_index;

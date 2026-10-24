@@ -42,6 +42,7 @@ struct gui_State {
     struct {
         s32 selected_index;
         char search_textbox[256];
+        u32 previous_filtered_process_count;
     } process_list_popup;
 
     struct {
