@@ -1,7 +1,8 @@
 #pragma once
 
 struct app_WatchEvent {
-    uintptr_t instruction_pointer_after_execution;
+    uintptr_t instruction_pointer_after_execution; // TODO: remove
+    proc_Registers registers_after_execution;
 
     app_WatchEvent *next;
     app_WatchEvent *prev;
@@ -12,6 +13,7 @@ struct app_WatchInstruction {
     u32                   opcode_size;
     u32    				  trigger_count;
     String 				  mnemonic;
+    proc_Registers        registers_after_execution;
 
     app_WatchInstruction *next;
     app_WatchInstruction *prev;

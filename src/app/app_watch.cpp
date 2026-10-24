@@ -28,6 +28,7 @@ void app_watch__loop(app_Watch *watch)
 
                     app_WatchEvent *event = pool_alloc(watch->event_queue.pool, app_WatchEvent);
                     event->instruction_pointer_after_execution = debug_event.as.breakpoint.ip_register;
+                    event->registers_after_execution = proc_get_thread_registers(debug_event.id_of_affected_thread);
 
                     queue_push(&watch->event_queue, event);
                 }
@@ -199,6 +200,7 @@ proc_Status app_watch_poll_events(app_Watch *watch)
                 *instr = app_watch_find_instruction_preceding_address(
                     watch, executable_regions_contents, event_address);
                 instr->trigger_count = 1;
+                instr->registers_after_execution = e->registers_after_execution;
 
                 ASSERT(instr->start_address);
                 ASSERT(instr->mnemonic.data);
