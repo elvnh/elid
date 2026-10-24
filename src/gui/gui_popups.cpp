@@ -398,14 +398,34 @@ void gui__popup_address_watch(gui_State *gui)
                 } ImGui::EndTable();
             } ImGui::EndChild();
 
-            ImVec2 textbox_size = {-FLT_MIN, -ImGui::GetFrameHeight()};
+            ImGui::BeginChild("##child_instr_regs", {-FLT_MIN, -FLT_MIN}, ImGuiChildFlags_Borders); {
+                app_WatchInstruction *selected_instr = gui->address_watch_popup.selected_instruction;
+                b32 registers_are_valid = selected_instr
+                    && ALWAYS(selected_instr->registers_after_execution.status == PROC_STATUS_OK);
 
-            char *registers_text = str_format_cstr(
-                gui->frame_arena,
-                "regs: x"
-            );
+                for (proc_Register reg = {}; reg < PROC_REG_COUNT; inc_enum(&reg)) {
+                    // TODO: if debuggee is 32 bits, display 32 bit names
+                    char *reg_name_str = proc_register_to_cstr(gui->frame_arena, reg);
 
-            ImGui::TextUnformatted(registers_text);
+                    char *reg_val_str = 0;
+                    if (registers_are_valid) {
+                        proc_RegisterValue reg_val = selected_instr->registers_after_execution.values[reg];
+                        reg_val_str = proc_register_value_to_cstr(gui->frame_arena, reg_val);
+                    } else {
+                        reg_val_str = str_clone_cstr(gui->frame_arena, "???");
+                    }
+
+
+                    char *reg_name_with_colon = str_format_cstr(gui->frame_arena, "%s:", reg_name_str);
+                    char *registers_text = str_format_cstr(gui->frame_arena, "%-7s %-32s", reg_name_with_colon, reg_val_str);
+
+                    ImGui::TextUnformatted(registers_text);
+
+                    if (((s32)reg % 2) == 0) {
+                        ImGui::SameLine();
+                    }
+                }
+            } ImGui::EndChild();
 
             ImGui::Separator();
 
