@@ -53,7 +53,8 @@ struct app_Watch {
     } triggered_instruction_list;
 };
 
-void app_watch_init(app_Watch *watch, memmi_Process proc, uintptr_t address,
-    u32 breakpoint_index, app_WatchCondition cond, u32 breakpoint_length);
-void app_watch_run(app_Watch *watch);
-void app_watch_destroy(app_Watch *watch);
+void        app_watch_init(app_Watch *watch, memmi_Process proc, uintptr_t address,
+                           u32 breakpoint_index, app_WatchCondition cond, u32 breakpoint_length);
+void        app_watch_run(app_Watch *watch);
+proc_Status app_watch_poll_events(app_Watch *watch);
+void        app_watch_destroy(app_Watch *watch);

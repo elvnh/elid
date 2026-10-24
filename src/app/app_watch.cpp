@@ -6,15 +6,20 @@
 
 void app_watch__loop(app_Watch *watch)
 {
+    memmi_ContinueMode continue_mode = MEMMI_CONTINUE_UNHANDLED;
+
     while (!atomic_load_s32(&watch->should_terminate)) {
         memmi_Process proc = watch->process;
-        memmi_DebugEvent debug_event = memmi_wait_for_debug_event(
-            proc, MEMMI_CONTINUE_UNHANDLED, APP_WATCH_TIMEOUT_MS);
 
-        if (debug_event.status != MEMMI_OK) {
-            ASSERT(0);
-        } else {
+        // TODO: don't use infinite timeout since the thread won't exit when app exits
+        memmi_DebugEvent debug_event = memmi_wait_for_debug_event(
+            proc, continue_mode, MEMMI_TIMEOUT_INFINITE);
+
+        if (debug_event.status == MEMMI_OK) {
             if (debug_event.kind == MEMMI_DEBUG_EVENT_BREAKPOINT) {
+                // We don't want to crash the application when a breakpoint is triggered.
+                continue_mode = MEMMI_CONTINUE_HANDLED;
+
                 b32 breakpoint_is_ours = debug_event.as.breakpoint.breakpoint_index == watch->breakpoint_index;
 
                 if (breakpoint_is_ours) {
@@ -25,9 +30,10 @@ void app_watch__loop(app_Watch *watch)
                     event->instruction_pointer_after_execution = debug_event.as.breakpoint.ip_register;
 
                     queue_push(&watch->event_queue, event);
-
-                    printf("event\n");
                 }
+            } else {
+                // Don't handle any non-breakpoint exceptions, pass them on to the debuggee.
+                continue_mode = MEMMI_CONTINUE_UNHANDLED;
             }
         }
     }
@@ -101,7 +107,7 @@ app_WatchInstruction app_watch_find_instruction_preceding_address(
     }
 
     if (ALWAYS(containing_region)) {
-        b32 found_instruction = true;
+        b32 found_instruction = false;
 
         usize instruction_address = containing_region->metadata.address;
         usize offset = 0;
@@ -157,6 +163,7 @@ proc_Status app_watch_poll_events(app_Watch *watch)
         scratch.arena, watch->process, permissions);
 
     if (executable_regions.status != PROC_STATUS_OK) {
+        // TODO: why is this triggered?
         result = executable_regions.status;
     } else {
         // TODO: read in the contents of the memory regions on demand instead
@@ -191,6 +198,13 @@ proc_Status app_watch_poll_events(app_Watch *watch)
                 instr = arena_alloc_struct(watch->arena, app_WatchInstruction);
                 *instr = app_watch_find_instruction_preceding_address(
                     watch, executable_regions_contents, event_address);
+                instr->trigger_count = 1;
+
+                ASSERT(instr->start_address);
+                ASSERT(instr->mnemonic.data);
+                ASSERT(instr->mnemonic.data);
+
+                sll_push_back(&watch->triggered_instruction_list, instr);
             }
         }
 
