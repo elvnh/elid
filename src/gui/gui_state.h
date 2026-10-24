@@ -41,6 +41,7 @@ struct gui_State {
     // TODO: pack all popup states into anonymous struct
     struct {
         s32 selected_index;
+        char search_textbox[256];
     } process_list_popup;
 
     struct {
@@ -60,7 +61,6 @@ struct gui_State {
         app_WatchInstruction *selected_instruction;
         bool hexadecimal_register_display;
     } address_watch_popup;
-
 };
 
 b32 gui_init(gui_State *gui);

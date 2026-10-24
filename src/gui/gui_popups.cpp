@@ -26,6 +26,8 @@ void gui__popup_open(gui_State *gui, gui_Popup popup)
 void gui_popup_running_processes(gui_State *gui)
 {
     gui->process_list_popup.selected_index = -1;
+    zero_mem(gui->process_list_popup.search_textbox, sizeof(gui->process_list_popup.search_textbox));
+
     gui__popup_open(gui, GUI_POPUP_OPEN_PROCESS);
 }
 
@@ -104,6 +106,8 @@ static void gui__popup_open_process(gui_State *gui, app_State *app)
             process_count = usize_to_s32(app->running_process_list.count);
         }
 
+        // TODO: show number of processes
+
         b32 item_is_highlighted = false;
 
         ImVec2 listbox_size = {-FLT_MIN, -ImGui::GetFrameHeight()};
@@ -111,24 +115,30 @@ static void gui__popup_open_process(gui_State *gui, app_State *app)
         if (ImGui::BeginListBox("##process_list", listbox_size)) {
             for (s32 i = 0; i < process_count; ++i) {
                 memmi_ProcessInfo proc = app->running_process_list.data[i];
+                ASSERT(proc.name.data);
+                ASSERT(proc.name.count > 0);
+
                 String proc_name = {(u8 *)proc.name.data, proc.name.count};
-                char *proc_name_nt = str_to_cstr(gui->frame_arena, proc_name);
+                char *proc_name_cstr = str_to_cstr(gui->frame_arena, proc_name);
 
-                ASSERT(proc_name.count > 0);
+                String textbox_contents = str_from_cstr(gui->process_list_popup.search_textbox);
+                StringSearch search_result = str_search(proc_name, textbox_contents, STR_SEARCH_CASE_INSENSITIVE);
 
-                ImGui::PushID(s64_to_s32(proc.pid));
+                if (search_result.match) {
+                    ImGui::PushID(s64_to_s32(proc.pid));
 
-                b32 is_selected = gui->process_list_popup.selected_index == i;
+                    b32 is_selected = gui->process_list_popup.selected_index == i;
 
-                if (ImGui::Selectable(proc_name_nt, is_selected)) {
-                    gui->process_list_popup.selected_index = i;
+                    if (ImGui::Selectable(proc_name_cstr, is_selected)) {
+                        gui->process_list_popup.selected_index = i;
+                    }
+
+                    if (ImGui::IsItemHovered()) {
+                        item_is_highlighted = true;
+                    }
+
+                    ImGui::PopID();
                 }
-
-                if (ImGui::IsItemHovered()) {
-                    item_is_highlighted = true;
-                }
-
-                ImGui::PopID();
             }
 
             ImGui::EndListBox();
@@ -154,6 +164,11 @@ static void gui__popup_open_process(gui_State *gui, app_State *app)
         if (ImGui::Button("Cancel")) {
             should_close = true;
         }
+
+        ImGui::SameLine();
+
+        ImGui::InputText("##process_list_search",
+            gui->process_list_popup.search_textbox, sizeof(gui->process_list_popup.search_textbox));
 
         if (should_close) {
             gui_popup_close(gui, GUI_POPUP_OPEN_PROCESS);
