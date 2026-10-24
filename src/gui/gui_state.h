@@ -58,6 +58,7 @@ struct gui_State {
     struct {
         app_Watch *watch;
         app_WatchInstruction *selected_instruction;
+        bool hexadecimal_register_display;
     } address_watch_popup;
 
 };

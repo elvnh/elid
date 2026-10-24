@@ -68,4 +68,4 @@ struct proc_Registers {
 
 proc_Registers  proc_get_thread_registers(memmi_TID tid);
 char           *proc_register_to_cstr(Arena *arena, proc_Register reg);
-char           *proc_register_value_to_cstr(Arena *arena, proc_RegisterValue value);
+char           *proc_register_value_to_cstr(Arena *arena, proc_RegisterValue value, b32 hex);

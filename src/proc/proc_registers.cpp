@@ -143,9 +143,15 @@ char *proc_register_to_cstr(Arena *arena, proc_Register reg)
     return result;
 }
 
-char *proc_register_value_to_cstr(Arena *arena, proc_RegisterValue value)
+char *proc_register_value_to_cstr(Arena *arena, proc_RegisterValue value, b32 hex)
 {
-    char *result = str_format_cstr(arena, "%" PRIuPTR, value);
+    char *result = 0;
+
+    if (hex) {
+        result = str_format_cstr(arena, "%" PRIxPTR, value);
+    } else {
+        result = str_format_cstr(arena, "%" PRIuPTR, value);
+    }
 
     return result;
 }
