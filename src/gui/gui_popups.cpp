@@ -65,6 +65,16 @@ void gui_popup_edit_address_table_entry(gui_State *gui, app_AddressTableEntry *o
     gui__popup_open(gui, GUI_POPUP_ADD_ADDRESS);
 }
 
+void gui_popup_address_watch(gui_State *gui, app_Watch *watch)
+{
+    ASSERT(watch);
+
+    gui->address_watch_popup.watch = watch;
+    gui->address_watch_popup.selected_instruction = 0;
+
+    gui__popup_open(gui, GUI_POPUP_WATCH);
+}
+
 void gui_popup_close(gui_State *gui, gui_Popup popup)
 {
     ASSERT(popup != GUI_POPUP_COUNT);
@@ -306,6 +316,109 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
     }
 }
 
+void gui__popup_address_watch(gui_State *gui)
+{
+    ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+    ImVec2 root_window_size = ImGui::GetContentRegionAvail();
+
+    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, {0.5f, 0.5f});
+    ImGui::SetNextWindowSize({root_window_size.x * 0.75f, root_window_size.y * 0.75f}, ImGuiCond_Appearing);
+
+    s32 popup_flags = ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar;
+
+    app_Watch *watch = gui->address_watch_popup.watch;
+
+    if (watch) {
+        const char *title = str_format_cstr(gui->frame_arena, "Address watch: %" PRIx64, watch->breakpoint_address);
+        const char *popup_name = gui__popup_get_name(gui->frame_arena, GUI_POPUP_WATCH, title);
+
+        if (ImGui::BeginPopupModal(popup_name, 0, popup_flags)) {
+            ASSERT(watch);
+
+            const char *table_columns[] = {"Count", "Address", "Instruction"};
+            s32 column_count = array_capacity(table_columns);
+
+            s32 table_flags = ImGuiTableFlags_Resizable
+                | ImGuiTableFlags_BordersV
+                | ImGuiTableFlags_Borders
+                | ImGuiTableFlags_ScrollY
+                | ImGuiTableFlags_SizingStretchSame;
+
+
+            f32 instr_table_height_fraction = ImGui::GetContentRegionAvail().y * 0.8f;
+
+            ImGui::BeginChild("##child_instr_table", {-FLT_MIN, instr_table_height_fraction}); {
+                if (ImGui::BeginTable("#instruction_table", column_count, table_flags, {})) {
+                    ImGui::TableSetupScrollFreeze(0, 1);
+
+                    for (s32 col = 0; col < column_count; ++col) {
+                        ImGui::TableSetupColumn(table_columns[col]);
+                    }
+
+                    ImGui::TableHeadersRow();
+
+                    // s32 instr_count = list_count(&watch->triggered_instruction_list);
+
+                    s32 selectable_flags = ImGuiSelectableFlags_SpanAllColumns;
+
+                    for (app_WatchInstruction *instr = list_head(&watch->triggered_instruction_list);
+                         instr;
+                         instr = list_next(instr)) {
+                        ImGui::TableNextRow();
+
+                        b32 is_row_selected = gui->address_watch_popup.selected_instruction == instr;
+
+                        // Instruction trigger count
+                        ImGui::TableSetColumnIndex(0); {
+                            char *trigger_count_str = str_format_cstr(gui->frame_arena, "%" PRIu32, instr->trigger_count);
+
+                            if (ImGui::Selectable(trigger_count_str, is_row_selected, selectable_flags)) {
+                                gui->address_watch_popup.selected_instruction = instr;
+                            }
+                        }
+
+                        // Instruction address
+                        ImGui::TableSetColumnIndex(1); {
+                            char *address_str = str_format_cstr(gui->frame_arena, "%" PRIx64, instr->start_address);
+
+                            if (ImGui::Selectable(address_str, is_row_selected, selectable_flags)) {
+                                gui->address_watch_popup.selected_instruction = instr;
+                            }
+                        }
+
+                        // Instruction mnemonic
+                        ImGui::TableSetColumnIndex(2); {
+                            char *mnemonic_str = str_to_cstr(gui->frame_arena, instr->mnemonic);
+
+                            if (ImGui::Selectable(mnemonic_str, is_row_selected, selectable_flags)) {
+                                gui->address_watch_popup.selected_instruction = instr;
+                            }
+                        }
+                    }
+                } ImGui::EndTable();
+            } ImGui::EndChild();
+
+            ImVec2 textbox_size = {-FLT_MIN, -ImGui::GetFrameHeight()};
+
+            char *registers_text = str_format_cstr(
+                gui->frame_arena,
+                "regs: x"
+            );
+
+            ImGui::TextUnformatted(registers_text);
+
+            ImGui::Separator();
+
+            if (ImGui::Button("OK", ImVec2(120, 0))) {
+                gui_popup_close(gui, GUI_POPUP_WATCH);
+            }
+
+            ImGui::EndPopup();
+        }
+    }
+}
+
+
 void gui_popup_display_active_popups(gui_State *gui, app_State *app)
 {
     for (gui_Popup popup = {}; popup < GUI_POPUP_COUNT; inc_enum(&popup)) {
@@ -324,6 +437,7 @@ void gui_popup_display_active_popups(gui_State *gui, app_State *app)
     gui__popup_open_process(gui, app);
     gui__popup_edit_value(gui, app);
     gui__popup_edit_address_table_entry(gui, app);
+    gui__popup_address_watch(gui);
 
     gui__generic_error_popup(gui, GUI_POPUP_ERROR_INSUFFICIENT_PERMS_FOR_SCAN,
         "Insufficient permissions to perform scan.");

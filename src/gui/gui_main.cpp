@@ -85,6 +85,11 @@ static void gui__main_window(gui_State *gui, app_State *app)
         }
 
         gui_open_process_button(gui, app);
+        ImGui::SameLine();
+
+        if (ImGui::Button("Watch")) {
+            gui_popup_address_watch(gui, app->watch);
+        }
 
         // NOTE: widgets wrapped in functions should never themselves call
         // BeginChild, we should only do that from top level like this

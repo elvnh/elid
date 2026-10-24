@@ -6,6 +6,7 @@ enum gui_Popup {
     GUI_POPUP_OPEN_PROCESS,
     GUI_POPUP_EDIT_VALUE,
     GUI_POPUP_ADD_ADDRESS,
+    GUI_POPUP_WATCH,
 
     /* Errors */
     GUI_POPUP_ERROR_PROC_DIED_DURING_SCAN,
@@ -37,6 +38,7 @@ struct gui_State {
 
     b32 popup_states[GUI_POPUP_COUNT];
 
+    // TODO: pack all popup states into anonymous struct
     struct {
         s32 selected_index;
     } process_list_popup;
@@ -52,6 +54,12 @@ struct gui_State {
         scan_ValueType selected_value_type;
         app_AddressTableEntry *edited_entry;
     } edit_address_table_entry_popup;
+
+    struct {
+        app_Watch *watch;
+        app_WatchInstruction *selected_instruction;
+    } address_watch_popup;
+
 };
 
 b32 gui_init(gui_State *gui);
