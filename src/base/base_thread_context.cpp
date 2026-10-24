@@ -17,9 +17,13 @@ ThreadContext *thread_ctx_get(void)
 {
     ThreadContext *result = 0;
 
-    if (ALWAYS(g__thread_context.initialized)) {
-        result = &g__thread_context;
+    if (!g__thread_context.initialized) {
+        thread_ctx_init();
     }
+
+    result = &g__thread_context;
+
+    ASSERT(g__thread_context.initialized);
 
     return result;
 }
