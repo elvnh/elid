@@ -179,8 +179,14 @@ static void gui__popup_open_process(gui_State *gui, app_State *app)
 
         ImGui::SameLine();
 
+        // Set search textbox to be focused.
+        if (ImGui::IsWindowAppearing()) {
+            ImGui::SetKeyboardFocusHere();
+        }
+
+        ImGuiInputTextFlags input_text_flags = ImGuiInputTextFlags_EscapeClearsAll;
         ImGui::InputText("##process_list_search",
-            gui->process_list_popup.search_textbox, sizeof(gui->process_list_popup.search_textbox));
+            gui->process_list_popup.search_textbox, sizeof(gui->process_list_popup.search_textbox), input_text_flags);
 
         if (should_close) {
             gui_popup_close(gui, GUI_POPUP_OPEN_PROCESS);
