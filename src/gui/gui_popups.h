@@ -5,4 +5,5 @@ void gui_popup_running_processes(gui_State *gui);
 void gui_popup_edit_value(gui_State *gui, scan_ValueType type, uintptr_t address, scan_Value_Maybe curr_value);
 void gui_popup_edit_address_table_entry(gui_State *gui, app_AddressTableEntry *optional_entry);
 void gui_popup_error(gui_State *gui, app_Error error);
+void gui_popup_address_watch(gui_State *gui, app_Watch *watch);
 void gui_popup_display_active_popups(gui_State *gui, app_State *app);

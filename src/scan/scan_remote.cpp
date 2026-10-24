@@ -40,8 +40,9 @@ scan_Result scan_remote_memory_first(Arena *arena, memmi_Process proc, scan_Sett
     Arena *scan_scratch_arena = thread_ctx_get()->per_scan_scratch_arena;
 
     // For allocations that need to live for entire lifetime of function.
-    Temp temp = scratch_begin();
-    memmi_Allocator temp_allocator = proc_memmi_allocator_from_arena(temp.arena);
+
+    ScratchArena scratch = scratch_begin();
+    memmi_Allocator temp_allocator = proc_memmi_allocator_from_arena(scratch.arena);
 
     memmi_MemoryRegions memory_regions = memmi_get_process_memory_regions(proc, temp_allocator);
 

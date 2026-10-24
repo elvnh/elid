@@ -26,6 +26,9 @@ struct app_State {
     app_AddressTable address_table;
 
     app_ErrorList error_list;
+
+    Pool *watch_pool;
+    app_Watch *watch; // TODO: list of watches?
 };
 
 b32  app_init(app_State *app);

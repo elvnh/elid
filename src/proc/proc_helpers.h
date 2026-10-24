@@ -1,6 +1,7 @@
 #pragma once
 
-// This file defines helpers for interacting with the memmi library.
+// This file defines functions and types for interacting with other processes.
+// TODO: wrap all memmi functions and types
 
 enum proc_Status {
     PROC_STATUS_OK                       = 0,
@@ -22,16 +23,46 @@ struct proc_ObjectList {
     usize count;
 };
 
+enum proc_RegionPermission {
+    PROC_PERMISSION_READ    = (1u << 0u),
+    PROC_PERMISSION_WRITE   = (1u << 1u),
+    PROC_PERMISSION_EXECUTE = (1u << 2u),
+};
+struct proc_MemoryRegion {
+    uintptr_t             address;
+    usize                 size;
+    proc_RegionPermission permissions;
+};
+
+struct proc_MemoryRegionList {
+    proc_Status status;
+    proc_MemoryRegion *data;
+    usize count;
+};
+
+struct proc_MemoryRegionContents {
+    proc_MemoryRegion metadata;
+    void *contents;
+};
+
+struct proc_MemoryRegionContentsList {
+    proc_MemoryRegionContents *data;
+    usize count;
+};
+
 DEFINE_MAYBE_TYPE(proc_Object);
+DEFINE_MAYBE_TYPE(proc_MemoryRegion);
 
 proc_Status     proc_status_from_memmi_status(memmi_Status status);
 
 // TODO: bad name
-proc_ObjectList   proc_get_loaded_objects(Arena *arena, memmi_Process proc);
-proc_Object_Maybe proc_get_object_address_is_contained_in(proc_ObjectList objects, uintptr_t addr, usize size);
-memmi_Allocator   proc_memmi_allocator_from_arena(Arena *arena);
-String            proc_copy_memmi_string(Arena *arena, memmi_String string);
-proc_Object       proc_object_from_memmi_object(Arena *arena, memmi_Object object);
-proc_ObjectList   proc_object_list_from_memmi_object_list(Arena *arena, memmi_ObjectList objects);
-b32               proc_object_has_unique_filename(proc_Object object, proc_ObjectList objects);
-proc_ObjectList   proc_get_loaded_objects(Arena *arena, memmi_Process proc);
+proc_ObjectList       proc_get_loaded_objects(Arena *arena, memmi_Process proc);
+proc_Object_Maybe     proc_get_object_address_is_contained_in(proc_ObjectList objects, uintptr_t addr, usize size);
+memmi_Allocator       proc_memmi_allocator_from_arena(Arena *arena);
+String                proc_copy_memmi_string(Arena *arena, memmi_String string);
+proc_Object           proc_object_from_memmi_object(Arena *arena, memmi_Object object);
+proc_ObjectList       proc_object_list_from_memmi_object_list(Arena *arena, memmi_ObjectList objects);
+b32                   proc_object_has_unique_filename(proc_Object object, proc_ObjectList objects);
+proc_ObjectList       proc_get_loaded_objects(Arena *arena, memmi_Process proc);
+proc_MemoryRegionList proc_get_memory_regions_with_permissions(Arena *arena, memmi_Process proc, proc_RegionPermission perms);
+proc_MemoryRegionContentsList proc_get_contents_of_memory_regions(Arena *arena, proc_MemoryRegionList regions);

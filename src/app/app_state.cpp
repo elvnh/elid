@@ -3,6 +3,7 @@
 #define APP_PERMANENT_ARENA_SIZE     MB(32)
 #define APP_PROCESS_LIST_ARENA_SIZE  MB(4)
 #define APP_SCAN_RESULT_ARENA_SIZE   sizeof(scan_Match) * THOUSAND(100)
+#define APP_WATCH_POOL_SIZE          4
 
 b32 app_init(app_State *app)
 {
@@ -12,6 +13,7 @@ b32 app_init(app_State *app)
     app->process_list_arena = arena_create(APP_PROCESS_LIST_ARENA_SIZE);
     app->scan_result_arena = arena_create(APP_SCAN_RESULT_ARENA_SIZE);
     app->previous_scan_result_arena = arena_create(APP_SCAN_RESULT_ARENA_SIZE);
+    app->watch_pool = pool_create(app->permanent_arena, app_Watch, APP_WATCH_POOL_SIZE);
 
     // TODO: check number of cores on system
     s32 thread_count = 16;

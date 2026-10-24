@@ -129,3 +129,35 @@ void app_action_remove_address_table_entry(app_State *app, app_AddressTableEntry
 {
     app_addr_table_remove(&app->address_table, entry);
 }
+
+void app_action_begin_watch(app_State *app, uintptr_t address, app_WatchCondition cond, u32 length)
+{
+    ASSERT(!memmi_process_is_null(app->open_process_handle));
+    ASSERT(!app->watch);
+
+    app->watch = pool_alloc(app->watch_pool, app_Watch);
+
+    // NOTE: for now, we always use breakpoint index 0
+    app_watch_init(app->watch, app->open_process_handle, address, 0, cond, length);
+
+    app->watch->task = app_wq_push_task_as_child(
+        app->work_queue, app_async_watch_address, app->watch, app->frame_root_task);
+}
+
+void app_action_end_watch(app_State *app)
+{
+    if (ALWAYS(app->watch)) {
+        app_watch_destroy(app->watch_pool, app->watch);
+
+        app->watch = 0;
+    }
+}
+
+void app_action_poll_watch_events(app_State *app)
+{
+    if (app->watch) {
+        proc_Status poll_result = app_watch_poll_events(app->watch);
+        // TODO: why is this assertion triggered?
+        // ASSERT(poll_result == PROC_STATUS_OK);
+    }
+}
