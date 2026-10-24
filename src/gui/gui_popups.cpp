@@ -398,19 +398,11 @@ void gui__popup_address_watch(gui_State *gui)
                 } ImGui::EndTable();
             } ImGui::EndChild();
 
-            ImVec2 instr_label_child_dims = {ImGui::GetContentRegionAvail().x * 0.8f, ImGui::GetFrameHeightWithSpacing()};
-            ImGuiChildFlags instr_label_child_flags = ImGuiChildFlags_AlwaysUseWindowPadding;
-            ImGuiWindowFlags instr_label_window_flags =
-                  ImGuiWindowFlags_NoScrollbar
-                | ImGuiWindowFlags_NoScrollWithMouse;
+            ImGui::TextUnformatted("Registers last time instruction was hit:");
 
-            // ImGui::BeginChild("##child_instr_label", instr_label_child_dims, instr_label_child_flags, instr_label_window_flags); {
-                ImGui::TextUnformatted("Registers last time instruction was hit:");
-            // } ImGui::EndChild();
-
-
-
+            // TODO: allow copying values of registers
             f32 regs_instr_child_height = -ImGui::GetFrameHeightWithSpacing();
+
             ImGui::BeginChild("##child_instr_regs", {-FLT_MIN, regs_instr_child_height}, ImGuiChildFlags_Borders); {
                 app_WatchInstruction *selected_instr = gui->address_watch_popup.selected_instruction;
                 b32 registers_are_valid = selected_instr
