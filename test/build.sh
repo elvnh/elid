@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-
+CC=gcc
 CXX=g++
 CXXFLAGS="
     -DDEBUG_BUILD=1
@@ -8,6 +8,7 @@ CXXFLAGS="
     -I../src
     -I../deps/memmi/include
     -I../deps/memmi/include/memmi
+    -I../deps/
     -Werror
     -fsanitize=thread
     -std=c++11
@@ -51,4 +52,9 @@ mkdir -p ${BUILD_DIR};
 mkdir -p $(dirname ${GENERATED_TEST_RUNNER});
 
 python3 generate_test_runner.py src/**/* -o ${GENERATED_TEST_RUNNER} &&
-${CXX} ${CXXFLAGS} ${GENERATED_TEST_RUNNER} -o ${BIN} ${MEMMI_SRCS}
+
+# Compile Zydis in C mode as it is not valid for C++ mode
+ZYDIS_OBJ="${BUILD_DIR}/Zydis.o"
+${CC} ../deps/Zydis/Zydis.c -c -o ${ZYDIS_OBJ} -I../deps/Zydis
+
+${CXX} ${CXXFLAGS} ${GENERATED_TEST_RUNNER} -o ${BIN} ${MEMMI_SRCS} ${ZYDIS_OBJ}
