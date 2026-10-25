@@ -76,23 +76,25 @@
 extern "C" {
 #endif
 
-int  stn_parse_s8(const char *str,  size_t length, int8_t   *out, uint32_t base);
-int  stn_parse_u8(const char *str,  size_t length, uint8_t  *out, uint32_t base);
-int  stn_parse_s16(const char *str, size_t length, int16_t  *out, uint32_t base);
-int  stn_parse_u16(const char *str, size_t length, uint16_t *out, uint32_t base);
-int  stn_parse_s32(const char *str, size_t length, int32_t  *out, uint32_t base);
-int  stn_parse_u32(const char *str, size_t length, uint32_t *out, uint32_t base);
-int  stn_parse_s64(const char *str, size_t length, int64_t  *out, uint32_t base);
-int  stn_parse_u64(const char *str, size_t length, uint64_t *out, uint32_t base);
+int  stn_parse_s8(const char *str,    size_t length, int8_t   *out, uint32_t base);
+int  stn_parse_u8(const char *str,    size_t length, uint8_t  *out, uint32_t base);
+int  stn_parse_s16(const char *str,   size_t length, int16_t  *out, uint32_t base);
+int  stn_parse_u16(const char *str,   size_t length, uint16_t *out, uint32_t base);
+int  stn_parse_s32(const char *str,   size_t length, int32_t  *out, uint32_t base);
+int  stn_parse_u32(const char *str,   size_t length, uint32_t *out, uint32_t base);
+int  stn_parse_s64(const char *str,   size_t length, int64_t  *out, uint32_t base);
+int  stn_parse_u64(const char *str,   size_t length, uint64_t *out, uint32_t base);
+int  stn_parse_usize(const char *str, size_t length, size_t   *out, uint32_t base);
 
-int  stn_parse_s8_ranged(const char  *str, size_t length, int8_t   *out, uint32_t base, int8_t  min,  int8_t   max);
-int  stn_parse_u8_ranged(const char  *str, size_t length, uint8_t  *out, uint32_t base, uint8_t min,  uint8_t  max);
-int  stn_parse_s16_ranged(const char *str, size_t length, int16_t  *out, uint32_t base, int16_t min,  int16_t  max);
-int  stn_parse_u16_ranged(const char *str, size_t length, uint16_t *out, uint32_t base, uint16_t min, uint16_t max);
-int  stn_parse_s32_ranged(const char *str, size_t length, int32_t  *out, uint32_t base, int32_t  min, int32_t  max);
-int  stn_parse_u32_ranged(const char *str, size_t length, uint32_t *out, uint32_t base, uint32_t min, uint32_t max);
-int  stn_parse_s64_ranged(const char *str, size_t length, int64_t  *out, uint32_t base, int64_t  min, int64_t  max);
-int  stn_parse_u64_ranged(const char *str, size_t length, uint64_t *out, uint32_t base, uint64_t min, uint64_t max);
+int  stn_parse_s8_ranged(const char  *str,   size_t length, int8_t   *out, uint32_t base, int8_t   min, int8_t   max);
+int  stn_parse_u8_ranged(const char  *str,   size_t length, uint8_t  *out, uint32_t base, uint8_t  min, uint8_t  max);
+int  stn_parse_s16_ranged(const char *str,   size_t length, int16_t  *out, uint32_t base, int16_t  min, int16_t  max);
+int  stn_parse_u16_ranged(const char *str,   size_t length, uint16_t *out, uint32_t base, uint16_t min, uint16_t max);
+int  stn_parse_s32_ranged(const char *str,   size_t length, int32_t  *out, uint32_t base, int32_t  min, int32_t  max);
+int  stn_parse_u32_ranged(const char *str,   size_t length, uint32_t *out, uint32_t base, uint32_t min, uint32_t max);
+int  stn_parse_s64_ranged(const char *str,   size_t length, int64_t  *out, uint32_t base, int64_t  min, int64_t  max);
+int  stn_parse_u64_ranged(const char *str,   size_t length, uint64_t *out, uint32_t base, uint64_t min, uint64_t max);
+int  stn_parse_usize_ranged(const char *str, size_t length, size_t   *out, uint32_t base, size_t   min, size_t   max);
 
 int  stn_parse_digit(char c, uint32_t *out, uint32_t base);
 
@@ -275,6 +277,40 @@ int stn_parse_digit(char c, uint32_t *out, uint32_t base)
     }
 
     *out = value;
+
+    return result;
+}
+
+int stn_parse_usize(const char *str, size_t length, size_t *out, uint32_t base)
+{
+    int result = 0;
+
+    #if SIZE_MAX == UINT8_MAX
+        result = stn_parse_u8(str, length, out, base);
+    #elif SIZE_MAX == UINT16_MAX
+        result = stn_parse_u16(str, length, out, base);
+    #elif SIZE_MAX == UINT32_MAX
+        result = stn_parse_u32(str, length, out, base);
+    #elif SIZE_MAX == UINT64_MAX
+        result = stn_parse_u64(str, length, out, base);
+    #endif
+
+    return result;
+}
+
+int stn_parse_usize_ranged(const char *str, size_t length, size_t *out, uint32_t base, size_t min, size_t max)
+{
+    int result = 0;
+
+    #if SIZE_MAX == UINT8_MAX
+        result = stn_parse_u8_ranged(str, length, out, base, min, max);
+    #elif SIZE_MAX == UINT16_MAX
+        result = stn_parse_u16_ranged(str, length, out, base, min, max);
+    #elif SIZE_MAX == UINT32_MAX
+        result = stn_parse_u32_ranged(str, length, out, base, min, max);
+    #elif SIZE_MAX == UINT64_MAX
+        result = stn_parse_u64_ranged(str, length, out, base, min, max);
+    #endif
 
     return result;
 }
