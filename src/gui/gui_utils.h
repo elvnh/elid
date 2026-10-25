@@ -15,6 +15,7 @@ char                  *gui_cstr_from_value_type(Arena *arena, scan_ValueType typ
 scan_Settings          gui_get_scan_settings(gui_State *gui);
 void                   gui_push_no_selectable_highlight(void);
 void                   gui_pop_no_selectable_highlight(void);
+void                   gui_set_initial_keyboard_focus_here(s32 offset = 0);
 
 // TODO: move this elsewhere
 scan_ValueType gui_value_type_dropdown(gui_State *gui, const char *title, scan_ValueType current_type, f32 width);

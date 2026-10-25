@@ -267,3 +267,10 @@ void gui_pop_no_selectable_highlight(void)
     ImGui::PopStyleColor();
     ImGui::PopStyleColor();
 }
+
+void gui_set_initial_keyboard_focus_here(s32 offset)
+{
+    if (ImGui::IsWindowAppearing()) {
+        ImGui::SetKeyboardFocusHere(offset);
+    }
+}

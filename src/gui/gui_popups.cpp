@@ -312,15 +312,29 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
     const char *popup_name = gui__popup_get_name(gui->frame_arena, GUI_POPUP_ADD_ADDRESS, title);
 
     if (ImGui::BeginPopupModal(popup_name, 0, popup_flags)) {
+        b32 should_close = false;
+        b32 should_add = false;
+
+        u32 address_number_base = 16;
+        usize_Maybe address = gui_try_parse_address(
+            gui->edit_address_table_entry_popup.address_textbox, address_number_base);
+
         ImGui::TextUnformatted("Address:");
 
         ImGui::SameLine();
 
-        ImGui::InputText(
+        ImGuiInputTextFlags input_text_flags =
+            ImGuiInputTextFlags_EnterReturnsTrue;
+
+        gui_set_initial_keyboard_focus_here();
+
+        if (ImGui::InputText(
             "##address",
             gui->edit_address_table_entry_popup.address_textbox,
-            array_capacity(gui->edit_address_table_entry_popup.address_textbox)
-        );
+            array_capacity(gui->edit_address_table_entry_popup.address_textbox),
+            input_text_flags)) {
+            should_add = true;
+        }
 
         ImGui::Separator();
 
@@ -330,34 +344,37 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
         gui->edit_address_table_entry_popup.selected_value_type =
             gui_value_type_dropdown(gui, "Value type:", current_value_type, combo_box_width);
 
-        b32 should_close = false;
-
-        u32 base = 16;
-        usize_Maybe address = gui_try_parse_address(gui->edit_address_table_entry_popup.address_textbox, base);
 
         ImGui::BeginDisabled(!address.ok); {
             if (ImGui::Button("OK")) {
-                should_close = true;
-
-                app_AddressTableEntry entry = {};
-                entry.address = address.value;
-                entry.value_type = gui->edit_address_table_entry_popup.selected_value_type;
-
-                app_AddressTableEntry *edited_entry = gui->edit_address_table_entry_popup.edited_entry;
-
-                if (edited_entry) {
-                    app_action_edit_address_table_entry(app, edited_entry, entry);
-                } else {
-                    app_action_push_address_table_entry(app, entry);
-                }
-
-
+                should_add = true;
             }
         } ImGui::EndDisabled();
 
         ImGui::SameLine();
 
         if (ImGui::Button("Cancel")) {
+            should_close = true;
+        }
+
+        if (should_add && address.ok) {
+            should_close = true;
+
+            app_AddressTableEntry entry = {};
+            entry.address = address.value;
+            entry.value_type = gui->edit_address_table_entry_popup.selected_value_type;
+
+            app_AddressTableEntry *edited_entry = gui->edit_address_table_entry_popup.edited_entry;
+
+            if (edited_entry) {
+                app_action_edit_address_table_entry(app, edited_entry, entry);
+            } else {
+                app_action_push_address_table_entry(app, entry);
+            }
+        }
+
+        if (ImGui::IsKeyPressed(ImGuiKey_Escape)) {
+            should_add = false;
             should_close = true;
         }
 
