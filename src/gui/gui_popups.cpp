@@ -140,19 +140,19 @@ static void gui__popup_open_process(gui_State *gui, app_State *app)
                 if (search_result.match) {
                     ++new_filtered_process_count;
 
-                    ImGui::PushID(s64_to_s32(proc.pid));
+                    const char *proc_id = str_format_cstr(gui->frame_arena, "process_%d", s64_to_s32(proc.pid));
 
-                    b32 is_selected = gui->process_list_popup.selected_index == i;
+                    ImGui::PushID(proc_id); {
+                        b32 is_selected = gui->process_list_popup.selected_index == i;
 
-                    if (ImGui::Selectable(proc_name_cstr, is_selected)) {
-                        gui->process_list_popup.selected_index = i;
-                    }
+                        if (ImGui::Selectable(proc_name_cstr, is_selected)) {
+                            gui->process_list_popup.selected_index = i;
+                        }
 
-                    if (ImGui::IsItemHovered()) {
-                        item_is_highlighted = true;
-                    }
-
-                    ImGui::PopID();
+                        if (ImGui::IsItemHovered()) {
+                            item_is_highlighted = true;
+                        }
+                    } ImGui::PopID();
                 }
             }
 
@@ -421,32 +421,36 @@ void gui__popup_address_watch(gui_State *gui)
 
                         b32 is_row_selected = gui->address_watch_popup.selected_instruction == instr;
 
-                        // Instruction trigger count
-                        ImGui::TableSetColumnIndex(0); {
-                            char *trigger_count_str = str_format_cstr(gui->frame_arena, "%" PRIu32, instr->trigger_count);
+                        const char *instr_id = str_format_cstr(gui->frame_arena, "instr_%" PRIxPTR, instr->start_address);
 
-                            if (ImGui::Selectable(trigger_count_str, is_row_selected, selectable_flags)) {
-                                gui->address_watch_popup.selected_instruction = instr;
+                        ImGui::PushID(instr_id); {
+                            // Instruction trigger count
+                            ImGui::TableSetColumnIndex(0); {
+                                char *trigger_count_str = str_format_cstr(gui->frame_arena, "%" PRIu32, instr->trigger_count);
+
+                                if (ImGui::Selectable(trigger_count_str, is_row_selected, selectable_flags)) {
+                                    gui->address_watch_popup.selected_instruction = instr;
+                                }
                             }
-                        }
 
-                        // Instruction address
-                        ImGui::TableSetColumnIndex(1); {
-                            char *address_str = str_format_cstr(gui->frame_arena, "%" PRIx64, instr->start_address);
+                            // Instruction address
+                            ImGui::TableSetColumnIndex(1); {
+                                char *address_str = str_format_cstr(gui->frame_arena, "%" PRIx64, instr->start_address);
 
-                            if (ImGui::Selectable(address_str, is_row_selected, selectable_flags)) {
-                                gui->address_watch_popup.selected_instruction = instr;
+                                if (ImGui::Selectable(address_str, is_row_selected, selectable_flags)) {
+                                    gui->address_watch_popup.selected_instruction = instr;
+                                }
                             }
-                        }
 
-                        // Instruction mnemonic
-                        ImGui::TableSetColumnIndex(2); {
-                            char *mnemonic_str = str_to_cstr(gui->frame_arena, instr->mnemonic);
+                            // Instruction mnemonic
+                            ImGui::TableSetColumnIndex(2); {
+                                char *mnemonic_str = str_to_cstr(gui->frame_arena, instr->mnemonic);
 
-                            if (ImGui::Selectable(mnemonic_str, is_row_selected, selectable_flags)) {
-                                gui->address_watch_popup.selected_instruction = instr;
+                                if (ImGui::Selectable(mnemonic_str, is_row_selected, selectable_flags)) {
+                                    gui->address_watch_popup.selected_instruction = instr;
+                                }
                             }
-                        }
+                        } ImGui::PopID();
                     }
                 } ImGui::EndTable();
             } ImGui::EndChild();
