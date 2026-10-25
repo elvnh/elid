@@ -64,6 +64,9 @@ int main(int argc, char **argv)
             // TODO: should wait_for_task run the task if not already started?
             app_wq_run_task(frame_task);
             app_wq_wait_for_task(frame_task);
+
+            // TODO: remove this restriction
+            ASSERT((app_wq_get_active_task_count(app.work_queue) == 0) && "Work is not allowed to span over multiple frames");
         }
     }
 
