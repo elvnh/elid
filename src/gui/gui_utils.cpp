@@ -39,13 +39,7 @@ usize_Maybe gui_try_parse_address(const char *input, u32 base)
 
     usize length = strlen(input);
 
-    // TODO: provide this functionality (usize and ssize) in stn
-    result.ok =
-#if ARCHITECTURE_X64
-        stn_parse_u64(input, length, &result.value, base);
-#elif ARCHITECTURE_X86
-        stn_parse_u32(input, length, &result.value, base);
-#endif
+    result.ok = stn_parse_usize(input, length, &result.value, base);
 
     return result;
 }
