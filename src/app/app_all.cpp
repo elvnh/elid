@@ -10,3 +10,4 @@
 #include "app_state.cpp"
 #include "app_async.cpp"
 #include "app_actions.cpp"
+#include "app_main.cpp"

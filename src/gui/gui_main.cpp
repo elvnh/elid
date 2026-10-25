@@ -56,7 +56,7 @@ static void gui__end_window(gui_State *gui)
     ImGui::End();
 }
 
-b32 gui_should_close(gui_State *gui)
+b32 gui__should_close(gui_State *gui)
 {
     b32 result = glfwWindowShouldClose(gui->window);
 
@@ -115,8 +115,10 @@ static void gui__main_window(gui_State *gui, app_State *app)
     } gui__end_window(gui);
 }
 
-void gui_update_and_render(gui_State *gui, app_State *app)
+void gui__update_and_render(gui_State *gui, app_State *app)
 {
+    arena_reset(gui->frame_arena);
+
     glfwPollEvents();
 
     if (glfwGetWindowAttrib(gui->window, GLFW_ICONIFIED) != 0) {
@@ -137,5 +139,14 @@ void gui_update_and_render(gui_State *gui, app_State *app)
         }
 
         gui__end_frame(gui);
+    }
+}
+
+void gui_run(gui_State *gui, app_State *app)
+{
+    while (!gui__should_close(gui)) {
+        app_update_early(app);
+        gui__update_and_render(gui, app);
+        app_update_late(app);
     }
 }
