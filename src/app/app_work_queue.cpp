@@ -114,6 +114,8 @@ void app_wq_run_task(app_TaskID id)
 {
     app__Task *task = app__wq_task_from_id(id);
 
+    atomic_inc_usize(&task->from_queue->parent_queue->active_task_count);
+
     #if DEBUG_BUILD
     {
         s32 expect = 0;
@@ -212,6 +214,8 @@ static void app__wq_execute_task(app__Task *task)
 
     task->function(id, task->user_data);
     app__wq_finish_task(task);
+
+    atomic_dec_usize(&task->from_queue->parent_queue->active_task_count);
 }
 
 static b32 app__wq_task_is_finished(app_TaskID id, app__Task *task)
@@ -391,4 +395,11 @@ app_TaskID app_wq_push_task_impl(app_WorkQueue *wq, app_TaskFunction fn, app_Tas
 
 void app_wq_null_function(app_TaskID, void *)
 {
+}
+
+usize app_wq_get_active_task_count(app_WorkQueue *wq)
+{
+    usize result = atomic_load_usize(&wq->active_task_count);
+
+    return result;
 }

@@ -21,6 +21,7 @@ struct app_WorkQueue {
     app__ThreadWorkQueue *thread_queues;
     s32 thread_count;
     b32 should_terminate; // Atomic
+    usize active_task_count;
 };
 
 // Can be provided as argument when creating task if no input to task function is needed.
@@ -35,3 +36,4 @@ void           app_wq_destroy(app_WorkQueue *wq);
 #define        app_wq_push_task_as_child(wq, fn, data, parent) app_wq_push_task_impl((wq), (fn), (parent), &(data), sizeof((data)))
 void           app_wq_run_task(app_TaskID id);
 void           app_wq_wait_for_task(app_TaskID id);
+usize          app_wq_get_active_task_count(app_WorkQueue *wq);
