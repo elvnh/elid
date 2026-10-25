@@ -58,10 +58,3 @@ void app_async_update_result_table_entry(app_TaskID, void *data)
         }
     }
 }
-
-void app_async_watch_address(app_TaskID, void *data)
-{
-    app_Watch *watch = *(app_Watch **)data;
-
-    app_watch_run(watch);
-}

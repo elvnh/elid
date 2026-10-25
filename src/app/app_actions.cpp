@@ -130,6 +130,15 @@ void app_action_remove_address_table_entry(app_State *app, app_AddressTableEntry
     app_addr_table_remove(&app->address_table, entry);
 }
 
+static void *app_action__watch_entry_point(void *data)
+{
+    app_Watch *watch = (app_Watch *)data;
+
+    app_watch_run(watch);
+
+    return 0;
+}
+
 void app_action_begin_watch(app_State *app, uintptr_t address, app_WatchCondition cond, u32 length)
 {
     ASSERT(!memmi_process_is_null(app->open_process_handle));
@@ -140,8 +149,7 @@ void app_action_begin_watch(app_State *app, uintptr_t address, app_WatchConditio
     // NOTE: for now, we always use breakpoint index 0
     app_watch_init(app->watch, app->open_process_handle, address, 0, cond, length);
 
-    app->watch->task = app_wq_push_task_as_child(
-        app->work_queue, app_async_watch_address, app->watch, app->frame_root_task);
+    app->watch->thread = thread_create(app_action__watch_entry_point, app->watch);
 }
 
 void app_action_end_watch(app_State *app)

@@ -78,7 +78,7 @@ void app_watch_destroy(Pool *pool, app_Watch *watch)
 {
     atomic_store_s32(&watch->should_terminate, true);
 
-    app_wq_wait_for_task(watch->task);
+    thread_join(watch->thread);
 
     mutex_destroy(watch->event_queue.mutex);
 

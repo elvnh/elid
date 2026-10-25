@@ -33,7 +33,7 @@ struct app_Watch {
     app_WatchCondition breakpoint_condition;
     u32 breakpoint_length;
 
-    app_TaskID task; // The watch task handle.
+    Thread thread; // The watch task handle.
 
     // Asynchronously filled by the watch thread.
     struct {
