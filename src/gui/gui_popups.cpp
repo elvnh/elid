@@ -85,13 +85,37 @@ void gui_popup_close(gui_State *gui, gui_Popup popup)
     ImGui::CloseCurrentPopup();
 }
 
-static void gui__popup_open_process(gui_State *gui, app_State *app)
+static void gui__set_initial_popup_size(f32 width_fraction, f32 height_fraction)
 {
+    ASSERT((width_fraction >= 0.0f) || (fabsf(width_fraction) == FLT_MIN));
+    ASSERT((width_fraction <= 1.0f));
+    ASSERT((height_fraction >= 0.0f) || (fabsf(height_fraction) == FLT_MIN));
+    ASSERT((height_fraction <= 1.0f));
+
     ImVec2 center = ImGui::GetMainViewport()->GetCenter();
     ImVec2 root_window_size = ImGui::GetContentRegionAvail();
 
     ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, {0.5f, 0.5f});
-    ImGui::SetNextWindowSize({root_window_size.x * 0.75f, root_window_size.y * 0.75f}, ImGuiCond_Appearing);
+
+    ImVec2 window_size = {
+        root_window_size.x * width_fraction,
+        root_window_size.y * height_fraction
+    };
+
+    if (fabsf(width_fraction) == FLT_MIN) {
+        window_size.x = width_fraction;
+    }
+
+    if (fabsf(height_fraction) == FLT_MIN) {
+        window_size.y = height_fraction;
+    }
+
+    ImGui::SetNextWindowSize(window_size, ImGuiCond_Appearing);
+}
+
+static void gui__popup_open_process(gui_State *gui, app_State *app)
+{
+    gui__set_initial_popup_size(0.75f, 0.75f);
 
     s32 popup_flags = ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar;
 
@@ -99,9 +123,7 @@ static void gui__popup_open_process(gui_State *gui, app_State *app)
 
     if (ImGui::BeginPopupModal(name, 0, popup_flags)) {
         // Search textbox
-        if (ImGui::IsWindowAppearing()) {
-            ImGui::SetKeyboardFocusHere();
-        }
+        gui_set_initial_keyboard_focus_here();
 
         ImGui::SetNextItemWidth(-ImGui::GetFrameHeight());
         ImGuiInputTextFlags input_text_flags = {};
@@ -218,11 +240,7 @@ static void gui__popup_open_process(gui_State *gui, app_State *app)
 
 static void gui__generic_error_popup(gui_State *gui, gui_Popup popup, const char *text)
 {
-    ImVec2 center = ImGui::GetMainViewport()->GetCenter();
-    ImVec2 root_window_size = ImGui::GetContentRegionAvail();
-
-    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, {0.5f, 0.5f});
-    ImGui::SetNextWindowSize({root_window_size.x * 0.75f, root_window_size.y * 0.75f}, ImGuiCond_Appearing);
+    gui__set_initial_popup_size(0.75f, 0.75f);
 
     s32 popup_flags = ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_AlwaysAutoResize;
 
@@ -242,11 +260,7 @@ static void gui__generic_error_popup(gui_State *gui, gui_Popup popup, const char
 
 static void gui__popup_edit_value(gui_State *gui, app_State *app)
 {
-    ImVec2 center = ImGui::GetMainViewport()->GetCenter();
-    ImVec2 root_window_size = ImGui::GetContentRegionAvail();
-
-    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, {0.5f, 0.5f});
-    ImGui::SetNextWindowSize({-FLT_MIN, root_window_size.y * 0.75f}, ImGuiCond_Appearing);
+    gui__set_initial_popup_size(-FLT_MIN, 0.75f);
 
     s32 popup_flags = ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_AlwaysAutoResize;
 
@@ -299,12 +313,7 @@ static void gui__popup_edit_value(gui_State *gui, app_State *app)
 
 static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
 {
-    // TODO: this preamble is repeated a lot
-    ImVec2 center = ImGui::GetMainViewport()->GetCenter();
-    ImVec2 root_window_size = ImGui::GetContentRegionAvail();
-
-    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, {0.5f, 0.5f});
-    ImGui::SetNextWindowSize({-FLT_MIN, root_window_size.y * 0.75f}, ImGuiCond_Appearing);
+    gui__set_initial_popup_size(-FLT_MIN, 0.75f);
 
     s32 popup_flags = ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_AlwaysAutoResize;
 
@@ -388,11 +397,7 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
 
 void gui__popup_address_watch(gui_State *gui)
 {
-    ImVec2 center = ImGui::GetMainViewport()->GetCenter();
-    ImVec2 root_window_size = ImGui::GetContentRegionAvail();
-
-    ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, {0.5f, 0.5f});
-    ImGui::SetNextWindowSize({root_window_size.x * 0.75f, root_window_size.y * 0.75f}, ImGuiCond_Appearing);
+    gui__set_initial_popup_size(0.75f, 0.75f);
 
     s32 popup_flags = ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar;
 
