@@ -13,6 +13,23 @@ void gui_open_process_button(gui_State *gui, app_State *app)
     }
 }
 
+static void gui__begin_watch(gui_State *gui, app_State *app, uintptr_t address, app_WatchCondition cond, usize size)
+{
+    app_action_begin_watch(app, address, cond, (u32)size);
+    gui_popup_address_watch(gui, app->watch);
+}
+
+static void gui__address_watch_context_menu_items(gui_State *gui, app_State *app, uintptr_t address, usize size)
+{
+    if (ImGui::Selectable("Find out what writes to this address")) {
+        gui__begin_watch(gui, app, address, APP_WATCH_COND_WRITE, size);
+    }
+
+    if (ImGui::Selectable("Find out what accesses this address")) {
+        gui__begin_watch(gui, app, address, APP_WATCH_COND_READ_WRITE, size);
+    }
+}
+
 void gui_scan_result_table(gui_State *gui, app_State *app)
 {
     s32 table_flags = ImGuiTableFlags_Resizable
@@ -113,9 +130,12 @@ void gui_scan_result_table(gui_State *gui, app_State *app)
 
                         // Right click on row context menu.
                         if (ImGui::BeginPopupContextItem()) {
+                            uintptr_t address = scan_address_from_match_details(match);
+                            usize value_type_size = scan_val_type_get_size(app->result_list.value_type);
+
                             if (ImGui::Selectable("Add to table")) {
                                 app_AddressTableEntry entry = {};
-                                entry.address = scan_address_from_match_details(match);
+                                entry.address = address;
                                 entry.value_type = app->result_list.value_type;
                                 entry.current_value = match.match->value;
                                 entry.last_read_successful = true;
@@ -124,17 +144,17 @@ void gui_scan_result_table(gui_State *gui, app_State *app)
                             }
 
                             if (ImGui::Selectable("Edit this value...")) {
-                                uintptr_t address = scan_address_from_match_details(match);
+
                                 gui_popup_edit_value(
                                     gui, app->result_list.value_type, address, SOME(curr_value));
                             }
 
                             if (ImGui::Selectable("Copy this address")) {
-                                uintptr_t address = scan_address_from_match_details(match);
-
                                 char *address_str = str_format_cstr(gui->frame_arena, "%" PRIxPTR, address);
                                 ImGui::SetClipboardText(address_str);
                             }
+
+                            gui__address_watch_context_menu_items(gui, app, address, value_type_size);
 
                             ImGui::EndPopup();
                         }
@@ -166,6 +186,9 @@ static void gui__address_table_context_menu(app_State *app, gui_State *gui, app_
         if (ImGui::Selectable("Delete")) {
             app_action_remove_address_table_entry(app, entry);
         }
+
+        gui__address_watch_context_menu_items(
+            gui, app, entry->address, scan_val_type_get_size(entry->value_type));
 
         gui_push_no_selectable_highlight();
 
