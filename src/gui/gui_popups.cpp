@@ -98,6 +98,17 @@ static void gui__popup_open_process(gui_State *gui, app_State *app)
     const char *name = gui__popup_get_name(gui->frame_arena, GUI_POPUP_OPEN_PROCESS, "Open process");
 
     if (ImGui::BeginPopupModal(name, 0, popup_flags)) {
+        // Search textbox
+        if (ImGui::IsWindowAppearing()) {
+            ImGui::SetKeyboardFocusHere();
+        }
+
+        ImGui::SetNextItemWidth(-ImGui::GetFrameHeight());
+        ImGuiInputTextFlags input_text_flags = {};
+        ImGui::InputText("##process_list_search",
+            gui->process_list_popup.search_textbox, sizeof(gui->process_list_popup.search_textbox), input_text_flags);
+
+        // Listbox
         s32 process_count = 0;
 
         b32 is_ready = atomic_load_s32(&app->process_list_ready);
@@ -162,12 +173,11 @@ static void gui__popup_open_process(gui_State *gui, app_State *app)
         b32 has_double_clicked = item_is_highlighted && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left);
 
         b32 should_close = false;
+        b32 should_open_process = false;
 
         ImGui::BeginDisabled(!is_ready || !is_valid_index); {
             if ((ImGui::Button("Open") || has_double_clicked) && is_valid_index) {
-                memmi_ProcessInfo clicked_process = app->running_process_list.data[selected_index];
-
-                should_close = app_action_open_process(app, clicked_process.pid);
+                should_open_process = true;
             }
         } ImGui::EndDisabled();
 
@@ -179,14 +189,24 @@ static void gui__popup_open_process(gui_State *gui, app_State *app)
 
         ImGui::SameLine();
 
-        // Set search textbox to be focused.
-        if (ImGui::IsWindowAppearing()) {
-            ImGui::SetKeyboardFocusHere();
+        // Keyboard controls
+        if (ImGui::IsKeyPressed(ImGuiKey_Enter)) {
+            if (is_valid_index) {
+                should_open_process = true;
+            }
+        } else if (ImGui::IsKeyPressed(ImGuiKey_Escape)) {
+            should_close = true;
         }
 
-        ImGuiInputTextFlags input_text_flags = ImGuiInputTextFlags_EscapeClearsAll;
-        ImGui::InputText("##process_list_search",
-            gui->process_list_popup.search_textbox, sizeof(gui->process_list_popup.search_textbox), input_text_flags);
+        if (should_open_process) {
+            ASSERT(selected_index >= 0);
+            ASSERT(selected_index < process_count);
+            ASSERT(is_valid_index);
+
+            memmi_ProcessInfo clicked_process = app->running_process_list.data[selected_index];
+
+            should_close = app_action_open_process(app, clicked_process.pid);
+        }
 
         if (should_close) {
             gui_popup_close(gui, GUI_POPUP_OPEN_PROCESS);
