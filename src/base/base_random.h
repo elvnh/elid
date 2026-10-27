@@ -4,7 +4,7 @@ struct rng_State {
     u64 data[4];
 };
 
-/* Functions using global RNG state */
+/* Functions using thread-local RNG state */
 void rng_seed(u64 seed);
 
 u32  rng_u32(u32 min, u32 max);

@@ -6,7 +6,9 @@
 // so it doesn't need to be too large
 #define THREAD_SCAN_SCRATCH_ARENA_SIZE MB(32)
 
+// All thread-local variables should go here.
 struct ThreadContext {
+    // Chain of scratch arenas.
     Arena *first_scratch_arena;
 
     // For reading memory to scan and then discard.

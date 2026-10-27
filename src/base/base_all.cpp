@@ -14,7 +14,7 @@
 #include "base_arena.cpp"
 #include "base_pool.cpp"
 #include "base_string.cpp"
+#include "base_random.cpp"
 #include "base_thread_context.cpp"
 #include "base_scratch.cpp"
 #include "base_path.cpp"
-#include "base_random.cpp"
