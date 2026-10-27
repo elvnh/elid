@@ -17,3 +17,4 @@
 #include "base_thread_context.cpp"
 #include "base_scratch.cpp"
 #include "base_path.cpp"
+#include "base_random.cpp"
