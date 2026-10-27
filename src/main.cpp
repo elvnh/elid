@@ -21,6 +21,7 @@ int main(int argc, char **argv)
 
     if (argc > 1) {
         pid_parsing_succeeded = stn_parse_s64(argv[1], strlen(argv[1]), &pid_arg, 10);
+
         if (!pid_parsing_succeeded) {
             fprintf(stderr, "Pid provided was not valid.\n");
         }
@@ -36,12 +37,6 @@ int main(int argc, char **argv)
             if (!app_action_open_process(&app, {pid_arg})) {
                 fprintf(stderr, "Failed to open provided pid.\n");
             }
-        }
-
-        u64 address = 0;
-
-        if (!stn_parse_u64(argv[2], strlen(argv[2]), &address, 10)) {
-            ASSERT(0);
         }
 
         gui_run(&gui, &app);
