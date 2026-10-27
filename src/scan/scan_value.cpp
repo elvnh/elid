@@ -145,7 +145,28 @@ b32 scan_val_gt(scan_ValueType type, scan_Value a, scan_Value b)
 
 b32 scan_val_lt(scan_ValueType type, scan_Value a, scan_Value b)
 {
-    b32 result = !scan_val_gt(type, a, b) && !scan_val_eq(type, a, b);
+    b32 result = false;
+
+    BEGIN_EXHAUSTIVE_SWITCH;
+    switch (type) {
+        case SCAN_VALUE_TYPE_INT32: {
+            // We have to compare these both as signed and unsigned integers, as we don't
+            // know which signedness the values have. This means we'll receive some false
+            // positives/negatives.
+            result = (a.int32 < b.int32) || (wrap_u32_to_s32(a.int32) < wrap_u32_to_s32(b.int32));
+        } break;
+
+        case SCAN_VALUE_TYPE_FLOAT32: {
+            // TODO: should we compare non-exactly for floats?
+            TODO("Unimplemented");
+            // result = (a.float32 > b.float32);
+        } break;
+
+        INVALID_CASE(SCAN_VALUE_TYPE_COUNT);
+
+        INVALID_DEFAULT_CASE;
+    }
+    END_EXHAUSTIVE_SWITCH;
 
     return result;
 }
