@@ -3,7 +3,7 @@
 void app_action_get_running_processes(app_State *app)
 {
     atomic_store_s32(&app->process_list_ready, false);
-    app_wq_push_task(app->work_queue, app_async_get_running_processes, app);
+    app_wq_push_task(app->per_frame_work_queue, app_async_get_running_processes, app);
 }
 
 b32 app_action_open_process(app_State *app, memmi_PID pid)
@@ -100,8 +100,7 @@ void app_action_update_address_table_entry_value(app_State *app, app_AddressTabl
         arg.app = app;
         arg.entry = entry;
 
-        app_wq_push_task_as_child(
-            app->work_queue, app_async_update_address_table_entry_value, arg, app->frame_root_task);
+        app_wq_push_task(app->per_frame_work_queue, app_async_update_address_table_entry_value, arg);
     }
 }
 
@@ -117,7 +116,7 @@ void app_action_update_result_table_entry(app_State *app, scan_MatchDetails matc
     args.app = app;
     args.match_details = match;
 
-    app_wq_push_task_as_child(app->work_queue, app_async_update_result_table_entry, args, app->frame_root_task);
+    app_wq_push_task(app->per_frame_work_queue, app_async_update_result_table_entry, args);
 }
 
 void app_action_edit_address_table_entry(app_State *app, app_AddressTableEntry *entry, app_AddressTableEntry new_entry)

@@ -113,8 +113,13 @@ static app__Task *app__wq_task_from_id(app_TaskID id)
 void app_wq_run_task(app_TaskID id)
 {
     app__Task *task = app__wq_task_from_id(id);
+    app__ThreadWorkQueue *queue = task->from_queue;
+    app_WorkQueue *wq = queue->parent_queue;
 
-    atomic_inc_usize(&task->from_queue->parent_queue->active_task_count);
+    {
+        ScopedLock lock = scoped_lock(wq->active_task_count_mutex);
+        ++wq->active_task_count;
+    }
 
     #if DEBUG_BUILD
     {
@@ -127,8 +132,6 @@ void app_wq_run_task(app_TaskID id)
         }
     }
     #endif
-
-    app__ThreadWorkQueue *queue = task->from_queue;
 
     {
         ScopedLock lock = scoped_lock(queue->queue_mutex);
@@ -215,7 +218,12 @@ static void app__wq_execute_task(app__Task *task)
     task->function(id, task->user_data);
     app__wq_finish_task(task);
 
-    atomic_dec_usize(&task->from_queue->parent_queue->active_task_count);
+    app_WorkQueue *wq = task->from_queue->parent_queue;
+    {
+        ScopedLock lock = scoped_lock(wq->active_task_count_mutex);
+        --wq->active_task_count;
+        cond_var_broadcast(wq->task_finished_cond_var);
+    }
 }
 
 static b32 app__wq_task_is_finished(app_TaskID id, app__Task *task)
@@ -295,6 +303,9 @@ app_WorkQueue *app_wq_create(Arena *arena, s32 thread_count)
     result->thread_queues = arena_alloc_array(arena, app__ThreadWorkQueue, s32_to_usize(thread_count));
     result->thread_count = thread_count;
 
+    result->active_task_count_mutex = mutex_create();
+    result->task_finished_cond_var = cond_var_create();
+
     for (s32 i = 0; i < thread_count; ++i) {
         app__ThreadWorkQueue *queue = &result->thread_queues[i];
         app__wq_init_thread_work_queue(result, queue);
@@ -325,6 +336,9 @@ void app_wq_destroy(app_WorkQueue *wq)
 
         thread_join(queue->thread);
     }
+
+    mutex_destroy(wq->active_task_count_mutex);
+    cond_var_destroy(wq->task_finished_cond_var);
 
     for (s32 i = 0; i < wq->thread_count; ++i) {
         app__ThreadWorkQueue *queue = &wq->thread_queues[i];
@@ -399,7 +413,17 @@ void app_wq_null_function(app_TaskID, void *)
 
 usize app_wq_get_active_task_count(app_WorkQueue *wq)
 {
-    usize result = atomic_load_usize(&wq->active_task_count);
+    ScopedLock lock = scoped_lock(wq->active_task_count_mutex);
+    usize result = wq->active_task_count;
 
     return result;
+}
+
+void app_wq_wait_for_all_tasks(app_WorkQueue *wq)
+{
+    ScopedLock lock = scoped_lock(wq->active_task_count_mutex);
+
+    while (wq->active_task_count != 0) {
+        cond_var_wait(wq->task_finished_cond_var, wq->active_task_count_mutex);
+    }
 }
