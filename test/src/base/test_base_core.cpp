@@ -665,17 +665,17 @@ TEST_CASE(is_aligned_pow2)
 }
 
 /* Binary */
-TEST_CASE(rotate_left_no_high_bits)
+TEST_CASE(rotate_left_no_high_bits_u32)
 {
-    REQUIRE(rotate_left(0x1, 1) == 0x2);
-    REQUIRE(rotate_left(0x1, 2) == 0x4);
+    REQUIRE(rotate_left((u32)0x1, 1) == (u32)0x2);
+    REQUIRE(rotate_left((u32)0x1, 2) == (u32)0x4);
 
-    REQUIRE(rotate_left(0xFF, 1) == 0x1FE);
-    REQUIRE(rotate_left(0xFF, 4) == 0xFF0);
-    REQUIRE(rotate_left(0xFF, 8) == 0xFF00);
+    REQUIRE(rotate_left((u32)0xFF, 1) == (u32)0x1FE);
+    REQUIRE(rotate_left((u32)0xFF, 4) == (u32)0xFF0);
+    REQUIRE(rotate_left((u32)0xFF, 8) == (u32)0xFF00);
 }
 
-TEST_CASE(rotate_left_high_bits)
+TEST_CASE(rotate_left_high_bits_u32)
 {
     REQUIRE(rotate_left(U32_MAX, 1) == U32_MAX);
     REQUIRE(rotate_left(U32_MAX, 2) == U32_MAX);
@@ -683,10 +683,38 @@ TEST_CASE(rotate_left_high_bits)
     REQUIRE(rotate_left(U32_MAX, 31) == U32_MAX);
 
 
-    REQUIRE(rotate_left((1u << 31) | 0x1, 1) == 3);
-    REQUIRE(rotate_left((1u << 31) | 0x1, 2) == 6);
+    REQUIRE(rotate_left((u32)(1u << 31), 1) == 1);
+    REQUIRE(rotate_left((u32)(1u << 31), 2) == 2);
+    REQUIRE(rotate_left((u32)((1u << 31) | 0x1), 1) == 3);
+    REQUIRE(rotate_left((u32)((1u << 31) | 0x1), 2) == 6);
 
-    REQUIRE(rotate_left((1u << 31) | (1u << 30) | 0x1, 1) == ((1u << 31) | 0x3));
+    REQUIRE(rotate_left((u32)((1u << 31) | (1u << 30) | 0x1), 1) == (u32)((1u << 31) | 0x3));
+}
+
+TEST_CASE(rotate_left_no_high_bits_u64)
+{
+    REQUIRE(rotate_left((u64)0x1, 1) == (u64)0x2);
+    REQUIRE(rotate_left((u64)0x1, 2) == (u64)0x4);
+
+    REQUIRE(rotate_left((u64)0xFF, 1) == (u64)0x1FE);
+    REQUIRE(rotate_left((u64)0xFF, 4) == (u64)0xFF0);
+    REQUIRE(rotate_left((u64)0xFF, 8) == (u64)0xFF00);
+}
+
+TEST_CASE(rotate_left_high_bits_u64)
+{
+    REQUIRE(rotate_left(U64_MAX, 1) == U64_MAX);
+    REQUIRE(rotate_left(U64_MAX, 2) == U64_MAX);
+    REQUIRE(rotate_left(U64_MAX, 8) == U64_MAX);
+    REQUIRE(rotate_left(U64_MAX, 31) == U64_MAX);
+
+
+    REQUIRE(rotate_left((u64)((u64)1u << 63), 1) == 1);
+    REQUIRE(rotate_left((u64)((u64)1u << 63), 2) == 2);
+    REQUIRE(rotate_left((u64)(((u64)1 << 63) | 0x1), 1) == 3);
+    REQUIRE(rotate_left((u64)(((u64)1 << 63) | 0x1), 2) == 6);
+
+    REQUIRE(rotate_left((u64)(((u64)1 << 63) | ((u64)1 << 62) | 0x1), 1) == (u64)(((u64)1 << 63) | 0x3));
 }
 
 /* Maybe */
