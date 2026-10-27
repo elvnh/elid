@@ -12,8 +12,7 @@ struct app_State {
     Arena *scan_result_arena;
     Arena *previous_scan_result_arena;
 
-    app_WorkQueue *work_queue;
-    app_TaskID frame_root_task;
+    app_WorkQueue *per_frame_work_queue;
 
     app_ScannerState scanner_state;
     memmi_Process open_process_handle;

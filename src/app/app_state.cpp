@@ -17,7 +17,7 @@ b32 app_init(app_State *app)
 
     // TODO: check number of cores on system
     s32 thread_count = 16;
-    app->work_queue = app_wq_create(app->permanent_arena, thread_count);
+    app->per_frame_work_queue = app_wq_create(app->permanent_arena, thread_count);
 
     // Initialize thread local contexts.
     // TODO: when we multithread, ensure that all threads do this
@@ -28,7 +28,7 @@ b32 app_init(app_State *app)
         && (app->process_list_arena != 0)
         && (app->scan_result_arena != 0)
         && (app->previous_scan_result_arena != 0)
-        && (app->work_queue != 0)
+        && (app->per_frame_work_queue != 0)
         && (thread_context != 0);
 
     if (result) {
