@@ -264,6 +264,12 @@ b32 ptr_is_aligned(void *val, u64 align);
 b32 is_aligned_pow2(u64 val, u64 align);
 u64 align_pow2(u64 val, u64 align);
 
+/* Binary */
+#define rotate_left(n, steps)                                           \
+    ASSERT_AND_THEN(                                                    \
+        ((steps) < TYPE_BIT_WIDTH(n)),                                  \
+        (((n) << (steps)) | ((n) >> (TYPE_BIT_WIDTH(n) - (steps)))))
+
 /* ASan */
 #if POISON_MEMORY
 #    include <sanitizer/asan_interface.h>

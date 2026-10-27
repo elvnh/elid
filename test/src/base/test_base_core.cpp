@@ -664,6 +664,31 @@ TEST_CASE(is_aligned_pow2)
     REQUIRE(!is_aligned(33, 8));
 }
 
+/* Binary */
+TEST_CASE(rotate_left_no_high_bits)
+{
+    REQUIRE(rotate_left(0x1, 1) == 0x2);
+    REQUIRE(rotate_left(0x1, 2) == 0x4);
+
+    REQUIRE(rotate_left(0xFF, 1) == 0x1FE);
+    REQUIRE(rotate_left(0xFF, 4) == 0xFF0);
+    REQUIRE(rotate_left(0xFF, 8) == 0xFF00);
+}
+
+TEST_CASE(rotate_left_high_bits)
+{
+    REQUIRE(rotate_left(U32_MAX, 1) == U32_MAX);
+    REQUIRE(rotate_left(U32_MAX, 2) == U32_MAX);
+    REQUIRE(rotate_left(U32_MAX, 8) == U32_MAX);
+    REQUIRE(rotate_left(U32_MAX, 31) == U32_MAX);
+
+
+    REQUIRE(rotate_left((1u << 31) | 0x1, 1) == 3);
+    REQUIRE(rotate_left((1u << 31) | 0x1, 2) == 6);
+
+    REQUIRE(rotate_left((1u << 31) | (1u << 30) | 0x1, 1) == ((1u << 31) | 0x3));
+}
+
 /* Maybe */
 TEST_CASE(maybe_basic)
 {
