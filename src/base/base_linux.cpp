@@ -105,6 +105,18 @@ void sema_dec(Semaphore sema)
     ASSERT_ALWAYS(wait_result == 0);
 }
 
+s32 sema_get(Semaphore sema)
+{
+    int result = 0;
+
+    sem_t *handle = (sem_t *)sema.data;
+
+    int sem_getvalue_result = sem_getvalue(handle, &result);
+    ASSERT_ALWAYS(sem_getvalue_result == 0);
+
+    return result;
+}
+
 Mutex mutex_create()
 {
     pthread_mutex_t *handle = (pthread_mutex_t *)allocate_memory(sizeof(pthread_mutex_t));

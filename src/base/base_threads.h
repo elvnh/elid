@@ -26,6 +26,7 @@ Semaphore sema_create(u32 initial_count);
 void      sema_destroy(Semaphore sema);
 void      sema_inc(Semaphore sema);
 void      sema_dec(Semaphore sema);
+s32       sema_get(Semaphore sema);
 
 /* Recursive mutexes */
 struct Mutex {
