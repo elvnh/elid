@@ -5,10 +5,10 @@
 #include <string.h>
 #include <inttypes.h>
 
-#include "base_context.h"
+#include "base_context.cpp"
 #include "base_core.cpp"
-#include "base_list.h"
-#include "base_time.h"
+#include "base_list.cpp"
+#include "base_time.cpp"
 #include "base_threads.cpp"
 #include "base_platform.cpp"
 #include "base_arena.cpp"
