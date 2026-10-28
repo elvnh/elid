@@ -14,7 +14,7 @@ struct ThreadContext {
     // For reading memory to scan and then discard.
     Arena *per_scan_scratch_arena;
 
-    /* rng_State rng; */
+    rng_State rng;
 
     b32 initialized;
 };

@@ -7,7 +7,7 @@ ThreadContext *thread_ctx_init(void)
     g__thread_context.first_scratch_arena = arena_create(THREAD_SCRATCH_ARENA_SIZE);
     g__thread_context.per_scan_scratch_arena = arena_create(THREAD_SCAN_SCRATCH_ARENA_SIZE);
 
-    // rng_seed(g__thread_context.rng, get_monotonic_clock_ms());
+    rng_seed(&g__thread_context.rng, get_monotonic_clock_ms());
 
     g__thread_context.initialized = true;
 
