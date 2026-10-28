@@ -1,5 +1,6 @@
 #include "base_random.h"
 
+// TODO: move into thread context
 static thread_local rng_State g__rng_state;
 
 static u64 rng__splitmix(u64 *state)

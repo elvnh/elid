@@ -3,13 +3,8 @@
 /* Threads */
 typedef void *(*ThreadEntryPoint)(void *user_data);
 
-struct ThreadInitializationArgs {
-    ThreadEntryPoint entry_point;
-    void *user_data;
-};
 struct Thread {
     u64 data;
-    ThreadInitializationArgs *init_args;
 };
 
 Thread thread_create(ThreadEntryPoint entry_point, void *user_data);

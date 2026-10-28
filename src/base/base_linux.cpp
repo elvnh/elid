@@ -36,18 +36,10 @@ Thread thread_create(ThreadEntryPoint entry_point, void *user_data)
 {
     pthread_t thread = 0;
 
-    // Before passing control to the entry point, run a function that initializes
-    // thread local variables.
-    ThreadInitializationArgs *init_args =
-        (ThreadInitializationArgs *)allocate_memory(sizeof(ThreadInitializationArgs));
-    init_args->entry_point = entry_point;
-    init_args->user_data = user_data;
-
-    int create_result = pthread_create(&thread, 0, thread_initialization, init_args);
+    int create_result = pthread_create(&thread, 0, entry_point, user_data);
     ASSERT_ALWAYS(create_result == 0);
 
-    // We hold on to initialization arguments since we need to free them later.
-    Thread result = {(u64)thread, init_args};
+    Thread result = {(u64)thread};
 
     return result;
 }
@@ -59,8 +51,6 @@ b32 thread_join(Thread thread)
     ASSERT(errno == 0);
 
     b32 result = join_result == 0;
-
-    free_memory(thread.init_args, sizeof(*thread.init_args));
 
     return result;
 }
