@@ -60,7 +60,7 @@ Semaphore sema_create(u32 initial_count)
     // NOTE: POSIX semaphores can't be copied, which is why we have to allocate them on the
     // heap. The reason for not using arenas is that it would create a circular dependency, as
     // arenas depend on this file.
-    sem_t *sem = (sem_t *)allocate_memory(sizeof(sem_t));
+    sem_t *sem = (sem_t *)calloc(1, sizeof(sem_t));
     ASSERT_ALWAYS(sem);
 
     int init_result = sem_init(sem, 0, initial_count);
@@ -74,8 +74,9 @@ Semaphore sema_create(u32 initial_count)
 void sema_destroy(Semaphore sema)
 {
     sem_t *handle = (sem_t *)sema.data;
+
     sem_destroy(handle);
-    free_memory(handle, sizeof(*handle));
+    free(handle);
 }
 
 void sema_inc(Semaphore sema)
@@ -109,7 +110,7 @@ s32 sema_get(Semaphore sema)
 
 Mutex mutex_create()
 {
-    pthread_mutex_t *handle = (pthread_mutex_t *)allocate_memory(sizeof(pthread_mutex_t));
+    pthread_mutex_t *handle = (pthread_mutex_t *)calloc(1, sizeof(pthread_mutex_t));
     ASSERT_ALWAYS(handle);
 
     pthread_mutexattr_t attr = {};
@@ -138,7 +139,7 @@ void mutex_destroy(Mutex mutex)
     int destroy_result = pthread_mutex_destroy(handle);
     ASSERT_ALWAYS(destroy_result == 0);
 
-    free_memory(handle, sizeof(*handle));
+    free(handle);
 }
 
 void mutex_lock(Mutex mutex)
@@ -161,7 +162,7 @@ void mutex_unlock(Mutex mutex)
 
 ConditionVariable cond_var_create()
 {
-    pthread_cond_t *data = (pthread_cond_t *)allocate_memory(sizeof(pthread_cond_t));
+    pthread_cond_t *data = (pthread_cond_t *)calloc(1, sizeof(pthread_cond_t));
     ASSERT_ALWAYS(data);
 
     int init_cond_result = pthread_cond_init(data, 0);
@@ -180,7 +181,7 @@ void cond_var_destroy(ConditionVariable cond_var)
     int destroy_result = pthread_cond_destroy(data);
     ASSERT(destroy_result == 0);
 
-    free_memory(data, sizeof(*data));
+    free(data);
 }
 
 void cond_var_signal(ConditionVariable cond_var)
