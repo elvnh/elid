@@ -62,7 +62,8 @@ void gui_scan_result_table(gui_State *gui, app_State *app)
 
         ImGui::TableHeadersRow();
 
-        if ((app->result_list.total_match_count > 0)
+        if (!atomic_load_s32(&app->scan_in_progress)
+            && (app->result_list.total_match_count > 0)
             && (app->result_list.total_match_count <= GUI_MAX_DISPLAYED_RESULT_COUNT)) {
             scan_ResultView result_view = scan_result_make_view(gui->frame_arena, app->result_list);
 

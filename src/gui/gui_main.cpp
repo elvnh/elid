@@ -89,10 +89,16 @@ static void gui__main_window(gui_State *gui, app_State *app)
         // NOTE: widgets wrapped in functions should never themselves call
         // BeginChild, we should only do that from top level like this
         {
+            usize result_count = 0;
+
+            if (!atomic_load_usize(&app->scan_in_progress)) {
+                result_count = app->result_list.total_match_count;
+            }
+
             char *result_count_label = str_format_cstr(
                 gui->frame_arena,
                 "Results: %zu",
-                app->result_list.total_match_count);
+                result_count);
 
             ImGui::TextUnformatted(result_count_label);
 
