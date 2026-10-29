@@ -211,6 +211,10 @@ static void gui__popup_open_process(gui_State *gui, app_State *app)
 
         ImGui::SameLine();
 
+        if (ImGui::Button("Refresh")) {
+            app_action_get_running_processes(app);
+        }
+
         // Keyboard controls
         if (ImGui::IsKeyPressed(ImGuiKey_Enter)) {
             if (is_valid_index) {
