@@ -41,23 +41,25 @@ static void app__maybe_push_scan_error(app_State *app, proc_Status status)
 
 void app_action_run_first_scan(app_State *app, scan_Settings settings, scan_Comparison cmp)
 {
-    // TODO: async
-    arena_reset(app->scan_result_arena);
-    arena_reset(app->previous_scan_result_arena);
+    ASSERT(!atomic_load_s32(&app->scan_in_progress));
+    ASSERT(atomic_load_s32(&app->scanner_state) == APP_SCANNER_STATE_FIRST_SCAN_READY);
 
-    app->result_list = scan_remote_memory_first(
-        app->scan_result_arena, app->open_process_handle, settings, cmp);
+    app->scan_in_progress = true;
 
-    app__maybe_push_scan_error(app, app->result_list.errors);
+    app_AsyncScanArgs args = {};
+    args.app = app;
+    args.settings = settings;
+    args.cmp = cmp;
 
-    app->scanner_state = APP_SCANNER_STATE_NEXT_SCAN_READY;
+    app_wq_push_task(app->multi_frame_work_queue, app_async_run_first_scan, args);
 }
 
 void app_action_run_next_scan(app_State *app, scan_Settings settings, scan_Comparison cmp)
 {
     // TODO: async
+    ASSERT(!atomic_load_s32(&app->scan_in_progress));
     ASSERT(app->result_list.total_match_count > 0);
-    ASSERT(app->scanner_state == APP_SCANNER_STATE_NEXT_SCAN_READY);
+    ASSERT(atomic_load_s32(&app->scanner_state) == APP_SCANNER_STATE_NEXT_SCAN_READY);
 
     SWAP(app->scan_result_arena, app->previous_scan_result_arena);
 

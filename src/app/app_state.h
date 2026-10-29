@@ -1,6 +1,6 @@
 #pragma once
 
-enum app_ScannerState {
+enum app_ScannerState : s32 {
     APP_SCANNER_STATE_FIRST_SCAN_READY,
     APP_SCANNER_STATE_NEXT_SCAN_READY,
 };
@@ -16,6 +16,8 @@ struct app_State {
     app_WorkQueue *multi_frame_work_queue;
 
     app_ScannerState scanner_state;
+    b32 scan_in_progress;
+
     memmi_Process open_process_handle;
 
     memmi_ProcessList running_process_list;
