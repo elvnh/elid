@@ -294,6 +294,14 @@ static void app__wq_init_thread_work_queue(app_WorkQueue *wq, app__ThreadWorkQue
     app__wq_alloc_free_tasks(queue);
 }
 
+static void app__wq_destroy_thread_work_queue(app__ThreadWorkQueue *queue)
+{
+    mutex_destroy(queue->queue_mutex);
+    cond_var_destroy(queue->task_available_or_finished_cond_var);
+
+    arena_destroy(queue->arena);
+}
+
 app_WorkQueue *app_wq_create(Arena *arena, s32 thread_count)
 {
     app_WorkQueue *result = arena_alloc_struct(arena, app_WorkQueue);
@@ -340,10 +348,7 @@ void app_wq_destroy(app_WorkQueue *wq)
     for (s32 i = 0; i < wq->thread_count; ++i) {
         app__ThreadWorkQueue *queue = &wq->thread_queues[i];
 
-        mutex_destroy(queue->queue_mutex);
-        cond_var_destroy(queue->task_available_or_finished_cond_var);
-
-        arena_destroy(queue->arena);
+        app__wq_destroy_thread_work_queue(queue);
     }
 }
 
