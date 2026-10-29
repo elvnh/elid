@@ -59,22 +59,33 @@ void app_async_update_result_table_entry(app_TaskID, void *data)
     }
 }
 
+static void app_async__maybe_push_scan_error(app_State *app, proc_Status status)
+{
+    if (status != PROC_STATUS_OK) {
+        if (status & PROC_STATUS_NO_SUCH_PROCESS) {
+            app_push_error(app, {APP_ERROR_PROCESS_DIED_BEFORE_OR_DURING_SCAN});
+        } else if (status & PROC_STATUS_INSUFFICIENT_PERMISSIONS) {
+            app_push_error(app, {APP_ERROR_INSUFFICIENT_PERMS_FOR_SCAN});
+        }
+    }
+}
+
 void app_async_run_first_scan(app_TaskID, void *data)
 {
     app_AsyncScanArgs args = *(app_AsyncScanArgs *)data;
+    app_State *app = args.app;
 
-    arena_reset(args.app->scan_result_arena);
-    arena_reset(args.app->previous_scan_result_arena);
+    arena_reset(app->scan_result_arena);
+    arena_reset(app->previous_scan_result_arena);
 
     // TODO: multithread scans
-    args.app->result_list = scan_remote_memory_first(
-        args.app->scan_result_arena, args.app->open_process_handle, args.settings, args.cmp);
+    app->result_list = scan_remote_memory_first(
+        app->scan_result_arena, app->open_process_handle, args.settings, args.cmp);
 
-    atomic_store_s32(&args.app->scan_in_progress, false);
-    atomic_store_s32(&args.app->scanner_state, APP_SCANNER_STATE_NEXT_SCAN_READY);
+    atomic_store_s32(&app->scan_in_progress, false);
+    atomic_store_s32(&app->scanner_state, APP_SCANNER_STATE_NEXT_SCAN_READY);
 
-    // TODO: make sure errors are thread safe
-    // app__maybe_push_scan_error(app, app->result_list.errors);
+    app_async__maybe_push_scan_error(app, app->result_list.errors);
 }
 
 void app_async_run_next_scan(app_TaskID, void *data)
@@ -89,8 +100,7 @@ void app_async_run_next_scan(app_TaskID, void *data)
     app->result_list = scan_remote_memory_next(
         app->scan_result_arena, app->open_process_handle, args.settings, args.cmp, app->result_list);
 
-    // TODO: make sure errors are thread safe
-    // app__maybe_push_scan_error(app, app->result_list.errors);
+    app_async__maybe_push_scan_error(app, app->result_list.errors);
 
     atomic_store_s32(&args.app->scan_in_progress, false);
 }

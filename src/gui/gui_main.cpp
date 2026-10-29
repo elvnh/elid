@@ -66,13 +66,17 @@ b32 gui__should_close(gui_State *gui)
 static void gui__main_window(gui_State *gui, app_State *app)
 {
     gui__begin_root_window(gui); {
-        // TODO: make it so that stacked popups work
-        for (usize i = 0; i < array_count(&app->error_list); ++i) {
-            app_Error error = array_at(&app->error_list, i);
-            gui_popup_error(gui, error);
-        }
+        {
+            ScopedLock lock = scoped_lock(app->error_list.mutex);
 
-        array_clear(&app->error_list);
+            // TODO: make it so that stacked popups work
+            for (usize i = 0; i < array_count(&app->error_list); ++i) {
+                app_Error error = array_at(&app->error_list, i);
+                gui_popup_error(gui, error);
+            }
+
+            array_clear(&app->error_list);
+        }
 
         gui_popup_display_active_popups(gui, app);
 

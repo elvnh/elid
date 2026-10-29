@@ -13,4 +13,8 @@ struct app_Error {
 struct app_ErrorList {
     app_Error data[64];
     usize     count;
+    Mutex     mutex;
 };
+
+app_ErrorList app_error_list_create();
+void          app_error_list_destroy(app_ErrorList *errors);

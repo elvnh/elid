@@ -28,17 +28,6 @@ void app_action_close_opened_process(app_State *app)
     app->open_process_handle = {};
 }
 
-static void app__maybe_push_scan_error(app_State *app, proc_Status status)
-{
-    if (status != PROC_STATUS_OK) {
-        if (status & PROC_STATUS_NO_SUCH_PROCESS) {
-            app_push_error(app, {APP_ERROR_PROCESS_DIED_BEFORE_OR_DURING_SCAN});
-        } else if (status & PROC_STATUS_INSUFFICIENT_PERMISSIONS) {
-            app_push_error(app, {APP_ERROR_INSUFFICIENT_PERMS_FOR_SCAN});
-        }
-    }
-}
-
 void app_action_run_first_scan(app_State *app, scan_Settings settings, scan_Comparison cmp)
 {
     ASSERT(!atomic_load_s32(&app->scan_in_progress));

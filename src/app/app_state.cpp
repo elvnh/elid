@@ -14,6 +14,7 @@ b32 app_init(app_State *app)
     app->scan_result_arena = arena_create(APP_SCAN_RESULT_ARENA_SIZE);
     app->previous_scan_result_arena = arena_create(APP_SCAN_RESULT_ARENA_SIZE);
     app->watch_pool = pool_create(app->permanent_arena, app_Watch, APP_WATCH_POOL_SIZE);
+    app->error_list = app_error_list_create();
 
     // TODO: check number of cores on system
     // TODO: come up with a good distribution of number of threads between the different work queues
@@ -42,10 +43,14 @@ void app_destroy(app_State *app)
     (void)app;
     // app_wq_destroy(app->per_frame_work_queue);
     // app_wq_destroy(app->multi_frame_work_queue);
+
+    app_error_list_destroy(&app->error_list);
 }
 
 void app_push_error(app_State *app, app_Error error)
 {
+    ScopedLock lock = scoped_lock(app->error_list.mutex);
+
     if (NEVER(app->error_list.count >= array_capacity(app->error_list.data))) {
         ASSERT(app->error_list.count == array_capacity(app->error_list.data));
 
