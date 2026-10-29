@@ -345,15 +345,19 @@ void gui_scan_parameters(gui_State *gui, app_State *app)
 
         // Scan buttons
         {
+            app_ScannerState scanner_state = atomic_load_s32(&app->scanner_state);
             b32 scanning_disabled = !parsed_scan_input.ok
-                || memmi_process_is_null(app->open_process_handle);
+                || memmi_process_is_null(app->open_process_handle)
+                || atomic_load_s32(&app->scan_in_progress);
 
             ImGui::BeginDisabled(scanning_disabled); {
-                if (app->scanner_state == APP_SCANNER_STATE_FIRST_SCAN_READY) {
+                if (scanner_state == APP_SCANNER_STATE_FIRST_SCAN_READY) {
                     if (ImGui::Button("First scan")) {
                         app_action_run_first_scan(app, scan_settings, parsed_scan_input.value);
                     }
-                } else if (ALWAYS(app->scanner_state == APP_SCANNER_STATE_NEXT_SCAN_READY)) {
+                } else {
+                    ASSERT(scanner_state == APP_SCANNER_STATE_NEXT_SCAN_READY);
+
                     if (ImGui::Button("New scan")) {
                         app_action_reset_scan_results(app);
                     }
@@ -361,7 +365,7 @@ void gui_scan_parameters(gui_State *gui, app_State *app)
 
                 ImGui::SameLine();
 
-                b32 next_scan_disabled = app->scanner_state != APP_SCANNER_STATE_NEXT_SCAN_READY
+                b32 next_scan_disabled = scanner_state != APP_SCANNER_STATE_NEXT_SCAN_READY
                     || (app->result_list.total_match_count == 0);
 
                 ImGui::BeginDisabled(next_scan_disabled); {
