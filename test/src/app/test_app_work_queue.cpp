@@ -314,3 +314,86 @@ TEST_CASE_REPEAT(wq_deep_task_tree, TEST_WQ_REPEAT_COUNT)
 
     app_wq_destroy(wq);
 }
+
+TEST_CASE_REPEAT(wq_wait_for_all_tasks_single_task, TEST_WQ_REPEAT_COUNT)
+{
+    ScratchArena scratch = scratch_begin();
+    app_WorkQueue *wq = app_wq_create(scratch.arena, 16);
+
+    s32 counter = 0;
+    s32 *counter_ptr = &counter;
+
+    app_wq_push_task(wq, [] (app_TaskID, void *data) {
+        s32 *c = *(s32 **)data;
+
+        sleep_ms(50);
+
+        *c += 1;
+    }, counter_ptr);
+
+    app_wq_wait_for_all_tasks(wq);
+
+    REQUIRE(counter == 1);
+
+    app_wq_destroy(wq);
+}
+
+TEST_CASE_REPEAT(wq_wait_for_all_tasks_multiple_tasks, TEST_WQ_REPEAT_COUNT)
+{
+    ScratchArena scratch = scratch_begin();
+    app_WorkQueue *wq = app_wq_create(scratch.arena, 16);
+
+    s32 counter = 0;
+    s32 *counter_ptr = &counter;
+
+    s32 counter_target = 100;
+
+    for (s32 i = 0; i < counter_target; ++i) {
+        app_wq_push_task(wq, [] (app_TaskID, void *data) {
+            s32 *c = *(s32 **)data;
+
+            sleep_ms(50);
+
+            atomic_inc_s32(c);
+        }, counter_ptr);
+    }
+
+    app_wq_wait_for_all_tasks(wq);
+
+    REQUIRE(counter == counter_target);
+
+    app_wq_destroy(wq);
+}
+
+TEST_CASE_REPEAT(wq_wait_for_all_tasks_multiple_tasks_different_durations, TEST_WQ_REPEAT_COUNT)
+{
+    ScratchArena scratch = scratch_begin();
+    app_WorkQueue *wq = app_wq_create(scratch.arena, 16);
+
+    s32 counter = 0;
+
+    s32 counter_target = 100;
+
+    struct Args {
+        s32 *counter_ptr;
+        s32 wait_duration_in_ms;
+    };
+
+    for (s32 i = 0; i < counter_target; ++i) {
+        Args args = {&counter, i * 10};
+
+        app_wq_push_task(wq, [] (app_TaskID, void *data) {
+            Args a = *(Args *)data;
+
+            sleep_ms((u32)a.wait_duration_in_ms);
+
+            atomic_inc_s32(a.counter_ptr);
+        }, args);
+    }
+
+    app_wq_wait_for_all_tasks(wq);
+
+    REQUIRE(counter == counter_target);
+
+    app_wq_destroy(wq);
+}
