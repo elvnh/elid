@@ -61,12 +61,9 @@ static void app__wq_alloc_free_tasks(app__ThreadWorkQueue *queue)
 
 static app__ThreadWorkQueue *app__wq_get_random_thread_queue(app_WorkQueue *wq)
 {
-    // TODO: randomize
-    static thread_local s32 index = 0;
+    s32 index = rng_s32(0, wq->thread_count);
 
     app__ThreadWorkQueue *result = &wq->thread_queues[index];
-
-    index = (index + 1) % wq->thread_count;
 
     return result;
 }

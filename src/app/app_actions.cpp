@@ -20,7 +20,6 @@ b32 app_action_open_process(app_State *app, memmi_PID pid)
     }
 
     return result;
-
 }
 
 void app_action_close_opened_process(app_State *app)

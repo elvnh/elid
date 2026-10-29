@@ -27,6 +27,11 @@ static u64 rng__next_u64(rng_State *rng)
 }
 
 /* Functions using global RNG state */
+s32 rng_s32(s32 min, s32 max)
+{
+    return rng_s32_s(&thread_ctx_get()->rng, min, max);
+}
+
 u32 rng_u32(u32 min, u32 max)
 {
     return rng_u32_s(&thread_ctx_get()->rng, min, max);
@@ -38,6 +43,13 @@ u64 rng_u64(u64 min, u64 max)
 }
 
 /* Functions using user provided RNG state */
+s32 rng_s32_s(rng_State *rng, s32 min, s32 max)
+{
+    s32 result = (s32)rng_u64_s(rng, (u64)min, (u64)max);
+
+    return result;
+}
+
 u32 rng_u32_s(rng_State *rng, u32 min, u32 max)
 {
     u32 result = (u32)rng_u64_s(rng, min, max);
