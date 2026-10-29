@@ -44,9 +44,10 @@ TEST_CASE(wq_basic_destroy_no_wait)
 
     app_wq_run_task(task);
     sleep_ms(100);
-    app_wq_destroy(wq);
 
     REQUIRE(i == 123);
+
+    app_wq_destroy(wq);
 }
 
 #define TEST_WQ_DEFAULT_WAIT_MS 100
@@ -97,8 +98,6 @@ TEST_CASE_REPEAT(wq_child_task_wait_for_parent_with_slow_child, TEST_WQ_REPEAT_C
 
         app_wq_destroy(wq);
     }
-
-
 }
 
 TEST_CASE_REPEAT(wq_child_task_wait_for_slow_child, TEST_WQ_REPEAT_COUNT)
@@ -138,6 +137,8 @@ TEST_CASE_REPEAT(wq_child_task_wait_for_slow_child, TEST_WQ_REPEAT_COUNT)
 
         u64 tp2 = get_monotonic_clock_ms();
         u64 elapsed = tp2 - tp1;
+
+        app_wq_wait_for_task(parent);
 
         REQUIRE(counter == 2);
 
