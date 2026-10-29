@@ -84,7 +84,7 @@ static void gui__main_window(gui_State *gui, app_State *app)
             ImGui::TextUnformatted(open_pid_text);
         }
 
-        gui_open_process_button(gui, app);
+        gui_open_and_close_process_buttons(gui, app);
 
         // NOTE: widgets wrapped in functions should never themselves call
         // BeginChild, we should only do that from top level like this

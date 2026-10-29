@@ -3,7 +3,7 @@
 #define GUI_MAX_DISPLAYED_RESULT_COUNT THOUSAND(50)
 #define GUI_ADDRESS_AT_STATIC_OFFSET_COLOR {0, 1, 0, 1}
 
-void gui_open_process_button(gui_State *gui, app_State *app)
+void gui_open_and_close_process_buttons(gui_State *gui, app_State *app)
 {
     // TODO: disable if we're scanning
     if (ImGui::Button("Open process")) {
@@ -11,6 +11,14 @@ void gui_open_process_button(gui_State *gui, app_State *app)
 
         gui_popup_running_processes(gui);
     }
+
+    ImGui::SameLine();
+
+    ImGui::BeginDisabled(!app_has_opened_process(app)); {
+        if (ImGui::Button("Close process")) {
+            app_action_close_opened_process(app);
+        }
+    } ImGui::EndDisabled();
 }
 
 static void gui__begin_watch(gui_State *gui, app_State *app, uintptr_t address, app_WatchCondition cond, usize size)
