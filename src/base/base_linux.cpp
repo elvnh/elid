@@ -32,11 +32,42 @@ usize get_system_page_size(void)
     return result;
 }
 
+struct ThreadCreationArgs {
+    ThreadEntryPoint entry_point;
+    void *user_data;
+};
+
+// TODO: Solve this circular dependency properly
+struct ThreadContext;
+ThreadContext  *thread_ctx_init();
+void            thread_ctx_destroy();
+
+void *thread__setup_and_teardown(void *data)
+{
+    ThreadCreationArgs *args = (ThreadCreationArgs *)data;
+
+    thread_ctx_init();
+
+    args->entry_point(args->user_data);
+
+    // Initializing thread context will performs allocations, so destroy it after thread is done to
+    // avoid leaking memory.
+    thread_ctx_destroy();
+
+    free(args);
+
+    return 0;
+}
+
 Thread thread_create(ThreadEntryPoint entry_point, void *user_data)
 {
     pthread_t thread = 0;
 
-    int create_result = pthread_create(&thread, 0, entry_point, user_data);
+    ThreadCreationArgs *args = (ThreadCreationArgs *)calloc(1, sizeof(ThreadCreationArgs));
+    args->entry_point = entry_point;
+    args->user_data = user_data;
+
+    int create_result = pthread_create(&thread, 0, thread__setup_and_teardown, args);
     ASSERT_ALWAYS(create_result == 0);
 
     Thread result = {(u64)thread};

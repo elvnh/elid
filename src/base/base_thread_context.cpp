@@ -2,7 +2,7 @@
 
 thread_global ThreadContext g__thread_context;
 
-ThreadContext *thread_ctx_init(void)
+ThreadContext *thread_ctx_init()
 {
     g__thread_context.first_scratch_arena = arena_create(THREAD_SCRATCH_ARENA_SIZE);
     g__thread_context.per_scan_scratch_arena = arena_create(THREAD_SCAN_SCRATCH_ARENA_SIZE);
@@ -16,7 +16,18 @@ ThreadContext *thread_ctx_init(void)
     return result;
 }
 
-ThreadContext *thread_ctx_get(void)
+void thread_ctx_destroy()
+{
+    ThreadContext *ctx = thread_ctx_get();
+    ASSERT(ctx);
+
+    if (ALWAYS(ctx->initialized)) {
+        arena_destroy(ctx->first_scratch_arena);
+        arena_destroy(ctx->per_scan_scratch_arena);
+    }
+}
+
+ThreadContext *thread_ctx_get()
 {
     ThreadContext *result = 0;
 

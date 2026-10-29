@@ -19,5 +19,6 @@ struct ThreadContext {
     b32 initialized;
 };
 
-ThreadContext  *thread_ctx_init(void);
+ThreadContext  *thread_ctx_init();
+void            thread_ctx_destroy();
 ThreadContext  *thread_ctx_get(void);
