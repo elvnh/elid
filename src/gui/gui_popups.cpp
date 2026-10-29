@@ -115,6 +115,8 @@ static void gui__set_initial_popup_size(f32 width_fraction, f32 height_fraction)
 
 static void gui__popup_open_process(gui_State *gui, app_State *app)
 {
+    // TODO: display PID plus name, and allow searching for pid rather than just name
+
     gui__set_initial_popup_size(0.75f, 0.75f);
 
     s32 popup_flags = ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar;

@@ -433,3 +433,18 @@ void gui_scan_parameters(gui_State *gui, app_State *app)
     } ImGui::EndChild();
 }
 
+void gui_scan_progress_bar(gui_State *gui, app_State *app)
+{
+    usize current = atomic_load_usize(&app->bytes_scanned);
+    usize target = atomic_load_usize(&app->bytes_to_scan);
+    ASSERT(current <= target);
+
+    f32 progress = 0.0f;
+
+    if (target > 0) {
+        progress = (f32)current / (f32)target;
+    }
+
+    // TODO: lerp between values
+    ImGui::ProgressBar(progress, ImVec2(-FLT_MIN, 0.0f), "");
+}

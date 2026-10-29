@@ -28,12 +28,19 @@ void app_action_close_opened_process(app_State *app)
     app->open_process_handle = {};
 }
 
+void app_action__prepare_scan(app_State *app)
+{
+    app->scan_in_progress = true;
+    app->bytes_to_scan = 0;
+    app->bytes_scanned = 0;
+}
+
 void app_action_run_first_scan(app_State *app, scan_Settings settings, scan_Comparison cmp)
 {
     ASSERT(!atomic_load_s32(&app->scan_in_progress));
     ASSERT(atomic_load_s32(&app->scanner_state) == APP_SCANNER_STATE_FIRST_SCAN_READY);
 
-    app->scan_in_progress = true;
+    app_action__prepare_scan(app);
 
     app_AsyncScanArgs args = {};
     args.app = app;
@@ -49,7 +56,7 @@ void app_action_run_next_scan(app_State *app, scan_Settings settings, scan_Compa
     ASSERT(app->result_list.total_match_count > 0);
     ASSERT(atomic_load_s32(&app->scanner_state) == APP_SCANNER_STATE_NEXT_SCAN_READY);
 
-    app->scan_in_progress = true;
+    app_action__prepare_scan(app);
 
     app_AsyncScanArgs args = {};
     args.app = app;

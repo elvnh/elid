@@ -17,6 +17,8 @@ struct app_State {
 
     app_ScannerState scanner_state;
     b32 scan_in_progress;
+    usize bytes_to_scan;
+    usize bytes_scanned;
 
     memmi_Process open_process_handle;
 

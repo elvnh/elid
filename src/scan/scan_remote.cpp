@@ -25,7 +25,8 @@ static void scan__push_region_matches(Arena *arena, scan_Result *result, scan_Ma
     }
 }
 
-scan_Result scan_remote_memory_first(Arena *arena, memmi_Process proc, scan_Settings settings, scan_Comparison cmp)
+scan_Result scan_remote_memory_first(Arena *arena, memmi_Process proc, scan_Settings settings,
+    scan_Comparison cmp, scan_Progress progress)
 {
     scan_Result result = {};
     result.value_type = cmp.value_type;
@@ -51,6 +52,25 @@ scan_Result scan_remote_memory_first(Arena *arena, memmi_Process proc, scan_Sett
     if (memory_regions.status != MEMMI_OK) {
         result.errors = proc_status_from_memmi_status(memory_regions.status);
     } else {
+        // Calculate total size of memory regions so that progress bar can track scan progress.
+        usize total_memory_region_size = 0;
+
+        for (usize i = 0; i < memory_regions.count; ++i) {
+            // TODO: this check is repeated further down
+            memmi_MemoryRegion region = memory_regions.data[i];
+
+            b32 should_skip_region =
+                !(region.permissions & MEMMI_REGION_PERMISSION_READ)
+                || (region.kind == MEMMI_REGION_MAPPED_FILE)
+                || (region.size >= SCAN_SKIP_REGION_SIZE_THRESHOLD);
+
+            if (!should_skip_region) {
+                total_memory_region_size += region.size;
+            }
+        }
+
+        atomic_store_usize(progress.bytes_to_scan_ptr, total_memory_region_size);
+
         for (usize i = 0; i < memory_regions.count; ++i) {
             memmi_MemoryRegion region = memory_regions.data[i];
 
@@ -89,6 +109,9 @@ scan_Result scan_remote_memory_first(Arena *arena, memmi_Process proc, scan_Sett
                             read_mem_result.bytes_read, region.base_address,
                             cmp, settings.required_alignment);
 
+                    // TODO: do we want to update progress bar with higher granularity than region?
+                    atomic_add_usize(progress.bytes_scanned_ptr, region.size);
+
                     ASSERT(matches);
 
                     proc_Object_Maybe containing_object =
@@ -111,7 +134,8 @@ scan_Result scan_remote_memory_first(Arena *arena, memmi_Process proc, scan_Sett
     return result;
 }
 
-scan_Result scan_remote_memory_next(Arena *arena, memmi_Process proc, scan_Settings settings, scan_Comparison cmp, scan_Result prev_results)
+scan_Result scan_remote_memory_next(Arena *arena, memmi_Process proc, scan_Settings settings,
+    scan_Comparison cmp, scan_Result prev_results, scan_Progress progress)
 {
     scan_Result result = {};
     result.value_type = cmp.value_type;

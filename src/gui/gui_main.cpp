@@ -89,6 +89,9 @@ static void gui__main_window(gui_State *gui, app_State *app)
         }
 
         gui_open_and_close_process_buttons(gui, app);
+        ImGui::SameLine();
+        gui_scan_progress_bar(gui, app);
+
 
         // NOTE: widgets wrapped in functions should never themselves call
         // BeginChild, we should only do that from top level like this

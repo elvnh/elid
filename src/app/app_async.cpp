@@ -75,12 +75,16 @@ void app_async_run_first_scan(app_TaskID, void *data)
     app_AsyncScanArgs args = *(app_AsyncScanArgs *)data;
     app_State *app = args.app;
 
+    scan_Progress progress = {};
+    progress.bytes_to_scan_ptr = &app->bytes_to_scan;
+    progress.bytes_scanned_ptr = &app->bytes_scanned;
+
     arena_reset(app->scan_result_arena);
     arena_reset(app->previous_scan_result_arena);
 
     // TODO: multithread scans
     app->result_list = scan_remote_memory_first(
-        app->scan_result_arena, app->open_process_handle, args.settings, args.cmp);
+        app->scan_result_arena, app->open_process_handle, args.settings, args.cmp, progress);
 
     atomic_store_s32(&app->scan_in_progress, false);
     atomic_store_s32(&app->scanner_state, APP_SCANNER_STATE_NEXT_SCAN_READY);
@@ -93,12 +97,16 @@ void app_async_run_next_scan(app_TaskID, void *data)
     app_AsyncScanArgs args = *(app_AsyncScanArgs *)data;
     app_State *app = args.app;
 
+    scan_Progress progress = {};
+    progress.bytes_to_scan_ptr = &app->bytes_to_scan;
+    progress.bytes_scanned_ptr = &app->bytes_scanned;
+
     SWAP(app->scan_result_arena, app->previous_scan_result_arena);
 
     arena_reset(app->scan_result_arena);
 
     app->result_list = scan_remote_memory_next(
-        app->scan_result_arena, app->open_process_handle, args.settings, args.cmp, app->result_list);
+        app->scan_result_arena, app->open_process_handle, args.settings, args.cmp, app->result_list, progress);
 
     app_async__maybe_push_scan_error(app, app->result_list.errors);
 

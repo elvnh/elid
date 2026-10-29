@@ -40,7 +40,8 @@ static void scan__push_match(Arena *arena, scan_MatchList *list, scan_Match matc
     ++list->total_match_count;
 }
 
-scan_MatchList *scan_local_memory_first(Arena *arena, void *mem, usize mem_size, uintptr_t base_address, scan_Comparison cmp, usize alignment)
+scan_MatchList *scan_local_memory_first(Arena *arena, void *mem, usize mem_size, uintptr_t base_address,
+    scan_Comparison cmp, usize alignment)
 {
     // TODO: now that we're providing the base address, we may as well store the
     // absolute address in scan_Match
@@ -80,7 +81,8 @@ scan_MatchList *scan_local_memory_first(Arena *arena, void *mem, usize mem_size,
     return result;
 }
 
-scan_MatchList *scan_local_memory_next(Arena *arena, void *mem, usize mem_size, scan_Comparison cmp, scan_MatchList *prev_matches)
+scan_MatchList *scan_local_memory_next(Arena *arena, void *mem, usize mem_size, scan_Comparison cmp,
+    scan_MatchList *prev_matches)
 {
     scan_MatchList *result = scan__alloc_match_list(arena);
 
