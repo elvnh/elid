@@ -5,19 +5,20 @@
 
 void gui_open_and_close_process_buttons(gui_State *gui, app_State *app)
 {
-    // TODO: disable if we're scanning
-    if (ImGui::Button("Open process")) {
-        app_action_get_running_processes(app);
+    ImGui::BeginDisabled(atomic_load_s32(&app->scan_in_progress)); {
+        if (ImGui::Button("Open process")) {
+            app_action_get_running_processes(app);
 
-        gui_popup_running_processes(gui);
-    }
-
-    ImGui::SameLine();
-
-    ImGui::BeginDisabled(!app_has_opened_process(app)); {
-        if (ImGui::Button("Close process")) {
-            app_action_close_opened_process(app);
+            gui_popup_running_processes(gui);
         }
+
+        ImGui::SameLine();
+
+        ImGui::BeginDisabled(!app_has_opened_process(app)); {
+            if (ImGui::Button("Close process")) {
+                app_action_close_opened_process(app);
+            }
+        } ImGui::EndDisabled();
     } ImGui::EndDisabled();
 }
 
