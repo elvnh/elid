@@ -63,8 +63,6 @@ void app_async_run_first_scan(app_TaskID, void *data)
 {
     app_AsyncScanArgs args = *(app_AsyncScanArgs *)data;
 
-    sleep(2);
-
     arena_reset(args.app->scan_result_arena);
     arena_reset(args.app->previous_scan_result_arena);
 
@@ -77,4 +75,22 @@ void app_async_run_first_scan(app_TaskID, void *data)
 
     // TODO: make sure errors are thread safe
     // app__maybe_push_scan_error(app, app->result_list.errors);
+}
+
+void app_async_run_next_scan(app_TaskID, void *data)
+{
+    app_AsyncScanArgs args = *(app_AsyncScanArgs *)data;
+    app_State *app = args.app;
+
+    SWAP(app->scan_result_arena, app->previous_scan_result_arena);
+
+    arena_reset(app->scan_result_arena);
+
+    app->result_list = scan_remote_memory_next(
+        app->scan_result_arena, app->open_process_handle, args.settings, args.cmp, app->result_list);
+
+    // TODO: make sure errors are thread safe
+    // app__maybe_push_scan_error(app, app->result_list.errors);
+
+    atomic_store_s32(&args.app->scan_in_progress, false);
 }

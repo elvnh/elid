@@ -56,19 +56,18 @@ void app_action_run_first_scan(app_State *app, scan_Settings settings, scan_Comp
 
 void app_action_run_next_scan(app_State *app, scan_Settings settings, scan_Comparison cmp)
 {
-    // TODO: async
     ASSERT(!atomic_load_s32(&app->scan_in_progress));
     ASSERT(app->result_list.total_match_count > 0);
     ASSERT(atomic_load_s32(&app->scanner_state) == APP_SCANNER_STATE_NEXT_SCAN_READY);
 
-    SWAP(app->scan_result_arena, app->previous_scan_result_arena);
+    app->scan_in_progress = true;
 
-    arena_reset(app->scan_result_arena);
+    app_AsyncScanArgs args = {};
+    args.app = app;
+    args.settings = settings;
+    args.cmp = cmp;
 
-    app->result_list = scan_remote_memory_next(
-        app->scan_result_arena, app->open_process_handle, settings, cmp, app->result_list);
-
-    app__maybe_push_scan_error(app, app->result_list.errors);
+    app_wq_push_task(app->multi_frame_work_queue, app_async_run_next_scan, args);
 }
 
 void app_action_reset_scan_results(app_State *app)
