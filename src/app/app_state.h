@@ -13,6 +13,7 @@ struct app_State {
     Arena *previous_scan_result_arena;
 
     app_WorkQueue *per_frame_work_queue;
+    app_WorkQueue *multi_frame_work_queue;
 
     app_ScannerState scanner_state;
     memmi_Process open_process_handle;
@@ -31,5 +32,6 @@ struct app_State {
 };
 
 b32  app_init(app_State *app);
+void app_destroy(app_State *app);
 void app_push_error(app_State *app, app_Error error);
 b32  app_has_opened_process(app_State *app);

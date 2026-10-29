@@ -16,20 +16,17 @@ b32 app_init(app_State *app)
     app->watch_pool = pool_create(app->permanent_arena, app_Watch, APP_WATCH_POOL_SIZE);
 
     // TODO: check number of cores on system
+    // TODO: come up with a good distribution of number of threads between the different work queues
     s32 thread_count = 16;
     app->per_frame_work_queue = app_wq_create(app->permanent_arena, thread_count);
-
-    // Initialize thread local contexts.
-    // TODO: when we multithread, ensure that all threads do this
-    ThreadContext *thread_context = thread_ctx_init();
-    ASSERT(thread_context);
+    app->multi_frame_work_queue = app_wq_create(app->permanent_arena, thread_count);
 
     result = (app->permanent_arena != 0)
         && (app->process_list_arena != 0)
         && (app->scan_result_arena != 0)
         && (app->previous_scan_result_arena != 0)
         && (app->per_frame_work_queue != 0)
-        && (thread_context != 0);
+        && (app->multi_frame_work_queue != 0);
 
     if (result) {
         result = app_addr_table_init(app->permanent_arena, &app->address_table);
@@ -38,6 +35,13 @@ b32 app_init(app_State *app)
     ASSERT(result);
 
     return result;
+}
+
+void app_destroy(app_State *app)
+{
+    (void)app;
+    // app_wq_destroy(app->per_frame_work_queue);
+    // app_wq_destroy(app->multi_frame_work_queue);
 }
 
 void app_push_error(app_State *app, app_Error error)
