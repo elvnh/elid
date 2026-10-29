@@ -3,7 +3,7 @@
 void app_action_get_running_processes(app_State *app)
 {
     atomic_store_s32(&app->process_list_ready, false);
-    app_wq_push_task(app->per_frame_work_queue, app_async_get_running_processes, app);
+    app_wq_push_task(app->multi_frame_work_queue, app_async_get_running_processes, app);
 }
 
 b32 app_action_open_process(app_State *app, memmi_PID pid)
