@@ -211,11 +211,11 @@ static void app__wq_finish_task(app__Task *task)
 static void app__wq_execute_task(app__Task *task)
 {
     app_TaskID id = app__wq_id_from_task(task);
+    app_WorkQueue *wq = task->from_queue->parent_queue;
 
     task->function(id, task->user_data);
     app__wq_finish_task(task);
 
-    app_WorkQueue *wq = task->from_queue->parent_queue;
     {
         ScopedLock lock = scoped_lock(wq->active_task_count_mutex);
         --wq->active_task_count;
