@@ -267,3 +267,11 @@ u64 get_monotonic_clock_ms(void)
 
     return result;
 }
+
+Pid get_self_pid()
+{
+    pid_t pid = getpid();
+    Pid result = pid;
+
+    return result;
+}
