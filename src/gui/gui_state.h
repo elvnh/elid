@@ -36,6 +36,8 @@ struct gui_State {
         bool pause_while_scanning;
     } scan_parameters;
 
+    f32 previous_progress_bar_value;
+
     b32 popup_states[GUI_POPUP_COUNT];
 
     // TODO: pack all popup states into anonymous struct

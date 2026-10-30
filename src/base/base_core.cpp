@@ -512,6 +512,16 @@ u64 align_pow2(u64 val, u64 align)
     return result;
 }
 
+f32 lerp(f32 a, f32 b, f32 t)
+{
+    ASSERT(t >= 0.0f);
+    ASSERT(t <= 1.0f);
+
+    f32 result = a * (1.0f - t) + b * t;
+
+    return result;
+}
+
 /* Memory operations */
 void copy_mem(void *dst, void *src, usize item_count, usize item_size)
 {

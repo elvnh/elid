@@ -263,6 +263,7 @@ b32 is_aligned(u64 val, u64 align);
 b32 ptr_is_aligned(void *val, u64 align);
 b32 is_aligned_pow2(u64 val, u64 align);
 u64 align_pow2(u64 val, u64 align);
+f32 lerp(f32 a, f32 b, f32 t);
 
 /* Binary */
 #define rotate_left(n, steps)                                           \
