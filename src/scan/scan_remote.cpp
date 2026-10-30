@@ -148,6 +148,15 @@ scan_Result scan_remote_memory_next(Arena *arena, memmi_Process proc, scan_Setti
 
     b32 at_least_one_read_succeeded = false;
 
+    // Get the total number of bytes we need to scan so the progress bar can show our progress.
+    usize bytes_to_scan = 0;
+    for (scan_RegionMatches *region = list_head(&prev_results); region; region = list_next(region)) {
+        bytes_to_scan += region->region_size;
+    }
+
+    atomic_store_usize(progress.bytes_to_scan_ptr, bytes_to_scan);
+
+    // TODO: rename match_list
     for (scan_RegionMatches *match_list = list_head(&prev_results); match_list; match_list = list_next(match_list)) {
         // Reset the arena before reading each regions memory, as we only need it during the scan of
         // that region.
@@ -172,6 +181,8 @@ scan_Result scan_remote_memory_next(Arena *arena, memmi_Process proc, scan_Setti
             scan__push_region_matches(arena, &result, matches, match_list->region_base_address,
                 match_list->region_size, match_list->containing_object);
         }
+
+        atomic_add_usize(progress.bytes_scanned_ptr, match_list->region_size);
     }
 
     // TODO: reduce code duplication between this and first scan
