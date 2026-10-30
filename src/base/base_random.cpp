@@ -42,6 +42,15 @@ u64 rng_u64(u64 min, u64 max)
     return rng_u64_s(&thread_ctx_get()->rng, min, max);
 }
 
+u64 rng_usize(usize min, usize max)
+{
+    #if ARCHITECTURE_X64
+    return rng_u64(min, max);
+    #elif ARCHITECTURE_X86
+    return rng_u32(min, max);
+    #endif
+}
+
 /* Functions using user provided RNG state */
 s32 rng_s32_s(rng_State *rng, s32 min, s32 max)
 {

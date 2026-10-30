@@ -4,19 +4,7 @@
  */
 
 /* Utilities */
-struct test_LocalScanResults {
-    scan_MatchList *matches;
-    scan_ResultView view;
-};
-
-static test_LocalScanResults test_make_local_scan_results(Arena *arena, scan_MatchList *matches)
-{
-    test_LocalScanResults result = {};
-    result.matches = matches;
-    result.view = scan_match_list_make_view(arena, matches);
-
-    return result;
-}
+#define TEST_SCAN_LARGE_ARRAY_SIZE MB(64)
 
 // For searching aligned values in an array.
 #define test_scan_local_array_first2(arena, data, count, cmp)           \
@@ -32,6 +20,28 @@ static test_LocalScanResults test_make_local_scan_results(Arena *arena, scan_Mat
     test_make_local_scan_results((arena),                               \
         scan_local_memory_first((arena), (data), size, (uintptr_t)(data), (cmp), (align)))
 
+#define test_scan_local_memory_next2(arena, data, size, cmp, prev_matches)    \
+    test_make_local_scan_results((arena),                               \
+        scan_local_memory_next((arena), (data), size, (cmp), (prev_matches)))
+
+
+struct test_LocalScanResults {
+    scan_MatchList *matches;
+    scan_ResultView view;
+};
+
+static test_LocalScanResults test_make_local_scan_results(Arena *arena, scan_MatchList *matches)
+{
+    test_LocalScanResults result = {};
+    result.matches = matches;
+    result.view = scan_match_list_make_view(arena, matches);
+
+    return result;
+}
+
+// TODO: remove 2 suffix
+
+
 static b32 test_check_local_match(scan_MatchDetails details, scan_TypedValue expected_value, uintptr_t expected_offset)
 {
     // Since we created a scan_ResultView from a scan_MatchList, the region the matches are located
@@ -40,6 +50,23 @@ static b32 test_check_local_match(scan_MatchDetails details, scan_TypedValue exp
 
     b32 result = (offset == expected_offset)
         && scan_val_eq(expected_value.type, expected_value.value, details.match->value);
+
+    return result;
+}
+
+static b32 test_result_views_eq(scan_ValueType type, scan_ResultView lhs, scan_ResultView rhs)
+{
+    b32 result = lhs.count == rhs.count;
+
+    for (usize i = 0; result && i < lhs.count; ++i) {
+        scan_MatchDetails lhs_details = lhs.data[i];
+        scan_MatchDetails rhs_details = rhs.data[i];
+
+        if (!scan_val_eq(type, lhs_details.match->value, rhs_details.match->value)
+            || (lhs_details.match->offset_from_base != rhs_details.match->offset_from_base)) {
+            result = false;
+        }
+    }
 
     return result;
 }
@@ -223,6 +250,66 @@ TEST_CASE(scan_local_first_repeating_unaligned_values_with_unaligned_search)
     REQUIRE(test_check_local_match(matches.data[4], scan_val, 2 * sizeof(s32) + 0));
 }
 
+TEST_CASE(scan_local_first_large_array_aligned)
+{
+    ScratchArena scratch = scratch_begin();
+
+    scan_TypedValue scan_val = scan_val_make_int32(12345);
+    usize alignment = alignof(s32);
+
+    usize val_size = scan_val_type_get_size(scan_val.type);
+    scan_Comparison cmp = scan_cmp_make_exact(scan_val);
+
+    usize array_size = TEST_SCAN_LARGE_ARRAY_SIZE;
+    u8 *array = arena_alloc_array(scratch.arena, u8, array_size);
+
+    usize aligned_offsets[] = {0, 4, 32, 48, 1024, 880, array_size - val_size};
+
+    for (usize i = 0; i < array_capacity(aligned_offsets); ++i) {
+        ASSERT(is_aligned_pow2(aligned_offsets[i], alignment));
+
+        memcpy(array + aligned_offsets[i], &scan_val.value, val_size);
+    }
+
+    scan_ResultView matches = test_scan_local_memory_first2(
+         scratch.arena, array, array_size, cmp, alignment).view;
+
+    REQUIRE(matches.count == array_capacity(aligned_offsets));
+
+    for (usize i = 0; i < matches.count; ++i) {
+        REQUIRE(scan_val_eq(scan_val.type, matches.data[i].match->value, scan_val.value));
+    }
+}
+
+TEST_CASE(scan_local_first_large_array_unaligned)
+{
+    ScratchArena scratch = scratch_begin();
+
+    scan_TypedValue scan_val = scan_val_make_int32(12345);
+
+    usize val_size = scan_val_type_get_size(scan_val.type);
+    scan_Comparison cmp = scan_cmp_make_exact(scan_val);
+
+    usize array_size = TEST_SCAN_LARGE_ARRAY_SIZE;
+    u8 *array = arena_alloc_array(scratch.arena, u8, array_size);
+
+    // Both aligned and unaligned indices, we should find both.
+    usize unaligned_offsets[] = {0, 5, 17, 29, 55, 1023, 501, array_size - val_size};
+
+    for (usize i = 0; i < array_capacity(unaligned_offsets); ++i) {
+        memcpy(array + unaligned_offsets[i], &scan_val.value, val_size);
+    }
+
+    scan_ResultView matches = test_scan_local_memory_first2(
+         scratch.arena, array, array_size, cmp, 1).view;
+
+    REQUIRE(matches.count == array_capacity(unaligned_offsets));
+
+    for (usize i = 0; i < matches.count; ++i) {
+        REQUIRE(scan_val_eq(scan_val.type, matches.data[i].match->value, scan_val.value));
+    }
+}
+
 /* Next scan */
 TEST_CASE(scan_local_next_single_value_unchanged)
 {
@@ -382,4 +469,140 @@ TEST_CASE(scan_local_first_small_array_different_arrays)
 
     REQUIRE(test_check_local_match(next_results.data[0], scan_val, 2 * sizeof(s32)));
     REQUIRE(test_check_local_match(next_results.data[1], scan_val, 4 * sizeof(s32)));
+}
+
+TEST_CASE(scan_local_next_large_array_aligned_unchanged)
+{
+    ScratchArena scratch = scratch_begin();
+
+    scan_TypedValue scan_val = scan_val_make_int32(12345);
+    usize alignment = alignof(s32);
+
+    usize val_size = scan_val_type_get_size(scan_val.type);
+    scan_Comparison cmp = scan_cmp_make_exact(scan_val);
+
+    usize array_size = TEST_SCAN_LARGE_ARRAY_SIZE;
+    u8 *array = arena_alloc_array(scratch.arena, u8, array_size);
+
+    usize aligned_offsets[] = {0, 4, 32, 48, 880, 1024, array_size - val_size};
+
+    for (usize i = 0; i < array_capacity(aligned_offsets); ++i) {
+        ASSERT(is_aligned_pow2(aligned_offsets[i], alignment));
+
+        memcpy(array + aligned_offsets[i], &scan_val.value, val_size);
+    }
+
+    test_LocalScanResults first_matches = test_scan_local_memory_first2(
+         scratch.arena, array, array_size, cmp, alignment);
+
+    scan_ResultView next_matches = test_scan_local_memory_next2(
+         scratch.arena, array, array_size, cmp, first_matches.matches).view;
+
+    // TODO: use this function in more places
+    REQUIRE(test_result_views_eq(scan_val.type, first_matches.view, next_matches));
+}
+
+TEST_CASE(scan_local_next_large_array_aligned_changed)
+{
+    ScratchArena scratch = scratch_begin();
+
+    scan_TypedValue scan_val = scan_val_make_int32(12345);
+    usize alignment = alignof(s32);
+
+    usize val_size = scan_val_type_get_size(scan_val.type);
+    scan_Comparison cmp = scan_cmp_make_exact(scan_val);
+
+    usize array_size = TEST_SCAN_LARGE_ARRAY_SIZE;
+    u8 *array = arena_alloc_array(scratch.arena, u8, array_size);
+
+    usize aligned_offsets[] = {0, 4, 32, 48, 880, 1024, array_size - val_size};
+
+    for (usize i = 0; i < array_capacity(aligned_offsets); ++i) {
+        memcpy(array + aligned_offsets[i], &scan_val.value, val_size);
+    }
+
+    test_LocalScanResults first_matches = test_scan_local_memory_first2(
+         scratch.arena, array, array_size, cmp, alignment);
+
+    // Change some values between the two scans.
+    memset(array + aligned_offsets[0], 0xFF, val_size);
+    memset(array + aligned_offsets[3], 0xFF, val_size);
+    memset(array + aligned_offsets[6], 0xFF, val_size);
+
+    scan_ResultView next_matches = test_scan_local_memory_next2(
+         scratch.arena, array, array_size, cmp, first_matches.matches).view;
+
+    REQUIRE(next_matches.count == (first_matches.view.count - 3));
+
+    REQUIRE(test_check_local_match(next_matches.data[0], scan_val, aligned_offsets[1]));
+    REQUIRE(test_check_local_match(next_matches.data[1], scan_val, aligned_offsets[2]));
+    REQUIRE(test_check_local_match(next_matches.data[2], scan_val, aligned_offsets[4]));
+    REQUIRE(test_check_local_match(next_matches.data[3], scan_val, aligned_offsets[5]));
+}
+
+TEST_CASE(scan_local_next_large_array_unaligned_unchanged)
+{
+    ScratchArena scratch = scratch_begin();
+
+    scan_TypedValue scan_val = scan_val_make_int32(12345);
+    usize alignment = alignof(s32);
+
+    usize val_size = scan_val_type_get_size(scan_val.type);
+    scan_Comparison cmp = scan_cmp_make_exact(scan_val);
+
+    usize array_size = TEST_SCAN_LARGE_ARRAY_SIZE;
+    u8 *array = arena_alloc_array(scratch.arena, u8, array_size);
+
+    // TODO: utility function for creating array with value scattered to n locations
+    usize unaligned_offsets[] = {0, 5, 17, 29, 55, 1023, 501, array_size - val_size};
+
+    for (usize i = 0; i < array_capacity(unaligned_offsets); ++i) {
+        memcpy(array + unaligned_offsets[i], &scan_val.value, val_size);
+    }
+
+    test_LocalScanResults first_matches = test_scan_local_memory_first2(
+         scratch.arena, array, array_size, cmp, alignment);
+
+    scan_ResultView next_matches = test_scan_local_memory_next2(
+         scratch.arena, array, array_size, cmp, first_matches.matches).view;
+
+    REQUIRE(test_result_views_eq(scan_val.type, first_matches.view, next_matches));
+}
+
+TEST_CASE(scan_local_next_large_array_unaligned_changed)
+{
+    ScratchArena scratch = scratch_begin();
+
+    scan_TypedValue scan_val = scan_val_make_int32(12345);
+
+    usize val_size = scan_val_type_get_size(scan_val.type);
+    scan_Comparison cmp = scan_cmp_make_exact(scan_val);
+
+    usize array_size = TEST_SCAN_LARGE_ARRAY_SIZE;
+    u8 *array = arena_alloc_array(scratch.arena, u8, array_size);
+
+    // TODO: utility function for creating array with value scattered to n locations
+    usize unaligned_offsets[] = {0, 5, 17, 29, 55, 1023, 501, array_size - val_size};
+
+    for (usize i = 0; i < array_capacity(unaligned_offsets); ++i) {
+        memcpy(array + unaligned_offsets[i], &scan_val.value, val_size);
+    }
+
+    test_LocalScanResults first_matches = test_scan_local_memory_first2(
+         scratch.arena, array, array_size, cmp, 1);
+
+    // Change some values between the two scans.
+    memset(array + unaligned_offsets[0], 0xFF, val_size);
+    memset(array + unaligned_offsets[3], 0xFF, val_size);
+    memset(array + unaligned_offsets[6], 0xFF, val_size);
+
+    scan_ResultView next_matches = test_scan_local_memory_next2(
+         scratch.arena, array, array_size, cmp, first_matches.matches).view;
+
+    REQUIRE(next_matches.count == (first_matches.view.count - 3));
+
+    REQUIRE(test_check_local_match(next_matches.data[0], scan_val, unaligned_offsets[1]));
+    REQUIRE(test_check_local_match(next_matches.data[1], scan_val, unaligned_offsets[2]));
+    REQUIRE(test_check_local_match(next_matches.data[2], scan_val, unaligned_offsets[4]));
+    REQUIRE(test_check_local_match(next_matches.data[3], scan_val, unaligned_offsets[5]));
 }
