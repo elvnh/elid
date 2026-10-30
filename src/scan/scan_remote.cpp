@@ -28,6 +28,8 @@ static void scan__push_region_matches(Arena *arena, scan_Result *result, scan_Ma
 scan_Result scan_remote_memory_first(Arena *arena, memmi_Process proc, scan_Settings settings,
     scan_Comparison cmp, scan_Progress progress)
 {
+    u64 t1 = get_monotonic_clock_ns();
+
     scan_Result result = {};
     result.value_type = cmp.value_type;
     result.scan_mode = cmp.mode;
@@ -125,6 +127,11 @@ scan_Result scan_remote_memory_first(Arena *arena, memmi_Process proc, scan_Sett
                 atomic_add_usize(progress.bytes_scanned_ptr, region.size);
             }
         }
+
+        u64 t2 = get_monotonic_clock_ns();
+
+        u64 elapsed_ms = (t2 - t1) / MILLION(1);
+        printf("Scanned %zu bytes in %" PRIu64 " milliseconds\n", total_memory_region_size, elapsed_ms);
     }
 
     if (at_least_one_read_succeeded && !(result.errors & PROC_STATUS_NO_SUCH_PROCESS)) {
@@ -133,12 +140,16 @@ scan_Result scan_remote_memory_first(Arena *arena, memmi_Process proc, scan_Sett
         result.errors = PROC_STATUS_OK;
     }
 
+
+
     return result;
 }
 
 scan_Result scan_remote_memory_next(Arena *arena, memmi_Process proc, scan_Settings settings,
     scan_Comparison cmp, scan_Result prev_results, scan_Progress progress)
 {
+    u64 t1 = get_monotonic_clock_ns();
+
     scan_Result result = {};
     result.value_type = cmp.value_type;
     result.scan_mode = cmp.mode;
@@ -186,6 +197,11 @@ scan_Result scan_remote_memory_next(Arena *arena, memmi_Process proc, scan_Setti
 
         atomic_add_usize(progress.bytes_scanned_ptr, match_list->region_size);
     }
+
+    u64 t2 = get_monotonic_clock_ns();
+
+    u64 elapsed_ms = (t2 - t1) / MILLION(1);
+    printf("Scanned %zu bytes in %" PRIu64 " milliseconds\n", bytes_to_scan, elapsed_ms);
 
     // TODO: reduce code duplication between this and first scan
     if (at_least_one_read_succeeded && !(result.errors & PROC_STATUS_NO_SUCH_PROCESS)) {
