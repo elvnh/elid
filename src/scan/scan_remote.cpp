@@ -109,9 +109,6 @@ scan_Result scan_remote_memory_first(Arena *arena, memmi_Process proc, scan_Sett
                             read_mem_result.bytes_read, region.base_address,
                             cmp, settings.required_alignment);
 
-                    // TODO: do we want to update progress bar with higher granularity than region?
-                    atomic_add_usize(progress.bytes_scanned_ptr, region.size);
-
                     ASSERT(matches);
 
                     proc_Object_Maybe containing_object =
@@ -121,6 +118,10 @@ scan_Result scan_remote_memory_first(Arena *arena, memmi_Process proc, scan_Sett
                     scan__push_region_matches(arena, &result, matches, region.base_address,
                         region.size, containing_object);
                 }
+
+                // TODO: do we want to update progress bar with higher granularity than region?
+                // Consider the region as scanned with regards to the progress bar whether it failed or succeeded.
+                atomic_add_usize(progress.bytes_scanned_ptr, region.size);
             }
         }
     }
