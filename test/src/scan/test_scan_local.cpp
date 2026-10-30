@@ -1,3 +1,10 @@
+/*
+  TODO:
+  - Use scratch arenas in tests instead of manually creating and destroying
+  - Flatten match list when checking results
+  - Unit test next scan
+ */
+
 #define TEST_SCAN_ARENA_SIZE MB(8)
 
 #define test_scan_local_array_first(arena, data, count, cmp)            \
@@ -141,7 +148,7 @@ TEST_CASE(scan_local_first_unaligned)
     memcpy(memory + 1, &scan_value, sizeof(scan_value));
     memcpy(memory + 7, &scan_value, sizeof(scan_value));
     memcpy(memory + 19, &scan_value, sizeof(scan_value));
-    memcpy(memory + 988, &scan_value, sizeof(scan_value));
+    memcpy(memory + 987, &scan_value, sizeof(scan_value));
 
     // Copy value to aligned addresses
     memcpy(memory + 12, &scan_value, sizeof(scan_value));
@@ -153,6 +160,43 @@ TEST_CASE(scan_local_first_unaligned)
         arena, memory, 1024, scan_cmp_make_exact(scan_val_make_int32((u32)scan_value)), 1);
 
     REQUIRE(matches->total_match_count == 8);
+
+    arena_destroy(arena);
+}
+
+TEST_CASE(scan_local_first_aligned)
+{
+    Arena *arena = arena_create(TEST_SCAN_ARENA_SIZE);
+    s32 scan_value = 123;
+
+    char *memory = (char *)arena_alloc_bytes(arena, 1024, 1, alignof(s32));
+    memset(memory, 0xCD, 1024);
+
+    // Copy value to unaligned addresses
+    memcpy(memory + 1, &scan_value, sizeof(scan_value));
+    memcpy(memory + 7, &scan_value, sizeof(scan_value));
+    memcpy(memory + 19, &scan_value, sizeof(scan_value));
+    memcpy(memory + 987, &scan_value, sizeof(scan_value));
+
+    // Copy value to aligned addresses
+    memcpy(memory + 12, &scan_value, sizeof(scan_value));
+    memcpy(memory + 24, &scan_value, sizeof(scan_value));
+    memcpy(memory + 788, &scan_value, sizeof(scan_value));
+    memcpy(memory + 1020, &scan_value, sizeof(scan_value));
+
+    scan_MatchList *matches = test_scan_local_memory_first(
+        arena, memory, 1024, scan_cmp_make_exact(scan_val_make_int32((u32)scan_value)), 4);
+
+    // Only the aligned values should count.
+    REQUIRE(matches->total_match_count == 4);
+
+    scan_ResultView view = scan_match_list_make_view(arena, matches);
+    REQUIRE(view.count == 4);
+    REQUIRE(view.data[0].match->offset_from_base == 12);
+    REQUIRE(view.data[0].match->offset_from_base == 12);
+    REQUIRE(view.data[1].match->offset_from_base == 24);
+    REQUIRE(view.data[2].match->offset_from_base == 788);
+    REQUIRE(view.data[3].match->offset_from_base == 1020);
 
     arena_destroy(arena);
 }
