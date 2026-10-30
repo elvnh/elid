@@ -153,18 +153,21 @@ void gui_scan_result_table(gui_State *gui, app_State *app)
                                 app_addr_table_push(&app->address_table, entry);
                             }
 
-                            if (ImGui::Selectable("Edit this value...")) {
-
-                                gui_popup_edit_value(
-                                    gui, app->result_list.value_type, address, SOME(curr_value));
-                            }
-
                             if (ImGui::Selectable("Copy this address")) {
                                 char *address_str = str_format_cstr(gui->frame_arena, "%" PRIxPTR, address);
                                 ImGui::SetClipboardText(address_str);
                             }
 
-                            gui__address_watch_context_menu_items(gui, app, address, value_type_size);
+                            // Don't allow editing or watching values in result table if the user has closed the
+                            // process that was scanned through.
+                            ImGui::BeginDisabled(app_result_table_is_stale(app)); {
+                                if (ImGui::Selectable("Edit this value...")) {
+                                    gui_popup_edit_value(
+                                        gui, app->result_list.value_type, address, SOME(curr_value));
+                                }
+
+                                gui__address_watch_context_menu_items(gui, app, address, value_type_size);
+                            } ImGui::EndDisabled();
 
                             ImGui::EndPopup();
                         }

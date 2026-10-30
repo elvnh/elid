@@ -42,3 +42,4 @@ b32  app_init(app_State *app);
 void app_destroy(app_State *app);
 void app_push_error(app_State *app, app_Error error);
 b32  app_has_opened_process(app_State *app);
+b32  app_result_table_is_stale(app_State *app);

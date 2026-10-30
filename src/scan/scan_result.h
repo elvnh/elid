@@ -55,6 +55,7 @@ struct scan_Result {
     proc_Status         errors;
     usize               total_match_count;
 
+    memmi_Process       scanned_process;
     proc_ObjectList     process_objects;
 
     scan_RegionMatches *first;

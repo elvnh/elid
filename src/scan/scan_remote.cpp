@@ -31,6 +31,7 @@ scan_Result scan_remote_memory_first(Arena *arena, memmi_Process proc, scan_Sett
     scan_Result result = {};
     result.value_type = cmp.value_type;
     result.scan_mode = cmp.mode;
+    result.scanned_process = proc;
     result.process_objects = proc_get_loaded_objects(arena, proc);
 
     ASSERT(result.process_objects.status == PROC_STATUS_OK);
@@ -141,6 +142,7 @@ scan_Result scan_remote_memory_next(Arena *arena, memmi_Process proc, scan_Setti
     scan_Result result = {};
     result.value_type = cmp.value_type;
     result.scan_mode = cmp.mode;
+    result.scanned_process = proc;
     result.process_objects = proc_get_loaded_objects(arena, proc);
 
     // For temporarily storing the memory of a region during the scan of it.

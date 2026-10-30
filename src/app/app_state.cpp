@@ -66,3 +66,12 @@ b32 app_has_opened_process(app_State *app)
 
     return result;
 }
+
+b32 app_result_table_is_stale(app_State *app)
+{
+    b32 result =
+        (atomic_load_s32(&app->scanner_state) == APP_SCANNER_STATE_SWITCHED_PROCESS_AFTER_FIRST_SCAN)
+        || (!atomic_load_s32(&app->scan_in_progress) && (app->open_process_handle.pid != app->result_list.scanned_process.pid));
+
+    return result;
+}
