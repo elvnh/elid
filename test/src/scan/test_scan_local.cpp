@@ -71,6 +71,20 @@ static b32 test_result_views_eq(scan_ValueType type, scan_ResultView lhs, scan_R
     return result;
 }
 
+static void test_scatter_value_(void *array, usize array_size, scan_TypedValue value, usize *indices, usize index_count)
+{
+    usize value_size = scan_val_type_get_size(value.type);
+
+    for (usize i = 0; i < index_count; ++i) {
+        usize index = indices[i];
+        ASSERT(index + value_size <= array_size);
+
+        memcpy((u8 *)array + index, &value.value, value_size);
+    }
+}
+#define test_scatter_value(array, array_size, scan_value, indices) \
+    test_scatter_value_((array), (array_size), (scan_value), (indices), array_capacity((indices)))
+
 /* First scan */
 TEST_CASE(scan_local_first_single_value_success)
 {
@@ -137,21 +151,17 @@ TEST_CASE(scan_local_first_unaligned_values_with_unaligned_search)
     char *memory = (char *)arena_alloc_bytes(scratch.arena, memory_size, 1, alignof(s32));
     memset(memory, 0xCD, memory_size);
 
+    scan_TypedValue scan_val = scan_val_make_int32((u32)value);
+
     // Copy value to unaligned addresses
     usize unaligned_offsets[] = {1, 7, 19, 987};
-    for (usize i = 0; i < array_capacity(unaligned_offsets); ++i) {
-        memcpy(memory + unaligned_offsets[i], &value, sizeof(value));
-
-    }
+    test_scatter_value(memory, memory_size, scan_val, unaligned_offsets);
 
     // Copy value to aligned addresses
     usize aligned_offsets[] = {12, 24, 788, 1020};
-    for (usize i = 0; i < array_capacity(aligned_offsets); ++i) {
-        memcpy(memory + aligned_offsets[i], &value, sizeof(value));
+    test_scatter_value(memory, memory_size, scan_val, aligned_offsets);
 
-    }
 
-    scan_TypedValue scan_val = scan_val_make_int32((u32)value);
     scan_Comparison cmp = scan_cmp_make_exact(scan_val);
     scan_ResultView results = test_scan_local_memory_first2(scratch.arena, memory, memory_size, cmp, 1).view;
 
@@ -459,12 +469,7 @@ TEST_CASE(scan_local_next_large_array_aligned_unchanged)
     u8 *array = arena_alloc_array(scratch.arena, u8, array_size);
 
     usize aligned_offsets[] = {0, 4, 32, 48, 880, 1024, array_size - val_size};
-
-    for (usize i = 0; i < array_capacity(aligned_offsets); ++i) {
-        ASSERT(is_aligned_pow2(aligned_offsets[i], alignment));
-
-        memcpy(array + aligned_offsets[i], &scan_val.value, val_size);
-    }
+    test_scatter_value(array, array_size, scan_val, aligned_offsets);
 
     test_LocalScanResults first_matches = test_scan_local_memory_first2(
          scratch.arena, array, array_size, cmp, alignment);
@@ -489,10 +494,7 @@ TEST_CASE(scan_local_next_large_array_aligned_changed)
     u8 *array = arena_alloc_array(scratch.arena, u8, array_size);
 
     usize aligned_offsets[] = {0, 4, 32, 48, 880, 1024, array_size - val_size};
-
-    for (usize i = 0; i < array_capacity(aligned_offsets); ++i) {
-        memcpy(array + aligned_offsets[i], &scan_val.value, val_size);
-    }
+    test_scatter_value(array, array_size, scan_val, aligned_offsets);
 
     test_LocalScanResults first_matches = test_scan_local_memory_first2(
          scratch.arena, array, array_size, cmp, alignment);
@@ -526,12 +528,9 @@ TEST_CASE(scan_local_next_large_array_unaligned_unchanged)
     usize array_size = TEST_SCAN_LARGE_ARRAY_SIZE;
     u8 *array = arena_alloc_array(scratch.arena, u8, array_size);
 
-    // TODO: utility function for creating array with value scattered to n locations
     usize unaligned_offsets[] = {0, 5, 17, 29, 55, 1023, 501, array_size - val_size};
 
-    for (usize i = 0; i < array_capacity(unaligned_offsets); ++i) {
-        memcpy(array + unaligned_offsets[i], &scan_val.value, val_size);
-    }
+    test_scatter_value(array, array_size, scan_val, unaligned_offsets);
 
     test_LocalScanResults first_matches = test_scan_local_memory_first2(
          scratch.arena, array, array_size, cmp, alignment);
@@ -557,9 +556,7 @@ TEST_CASE(scan_local_next_large_array_unaligned_changed)
     // TODO: utility function for creating array with value scattered to n locations
     usize unaligned_offsets[] = {0, 5, 17, 29, 55, 1023, 501, array_size - val_size};
 
-    for (usize i = 0; i < array_capacity(unaligned_offsets); ++i) {
-        memcpy(array + unaligned_offsets[i], &scan_val.value, val_size);
-    }
+    test_scatter_value(array, array_size, scan_val, unaligned_offsets);
 
     test_LocalScanResults first_matches = test_scan_local_memory_first2(
          scratch.arena, array, array_size, cmp, 1);
