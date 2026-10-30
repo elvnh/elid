@@ -60,7 +60,10 @@ int scan__result_view_sort_cmp(const void *a, const void *b)
 
 void scan__result_view_sort(scan_ResultView *results)
 {
-    qsort(results->data, results->count, sizeof(*results->data), scan__result_view_sort_cmp);
+    if (results->count > 0) {
+        ASSERT(results->data);
+        qsort(results->data, results->count, sizeof(*results->data), scan__result_view_sort_cmp);
+    }
 }
 
 scan_ResultView scan_result_make_view(Arena *arena, scan_Result scan_result)
