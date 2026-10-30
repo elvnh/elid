@@ -358,7 +358,8 @@ void gui_scan_parameters(gui_State *gui, app_State *app)
                         app_action_run_first_scan(app, scan_settings, parsed_scan_input.value);
                     }
                 } else {
-                    ASSERT(scanner_state == APP_SCANNER_STATE_NEXT_SCAN_READY);
+                    ASSERT((scanner_state == APP_SCANNER_STATE_NEXT_SCAN_READY)
+                        || (scanner_state == APP_SCANNER_STATE_SWITCHED_PROCESS_AFTER_FIRST_SCAN));
 
                     if (ImGui::Button("New scan")) {
                         app_action_reset_scan_results(app);

@@ -24,6 +24,10 @@ b32 app_action_open_process(app_State *app, memmi_PID pid)
 
 void app_action_close_opened_process(app_State *app)
 {
+    if (app->scanner_state != APP_SCANNER_STATE_FIRST_SCAN_READY) {
+        app->scanner_state = APP_SCANNER_STATE_SWITCHED_PROCESS_AFTER_FIRST_SCAN;
+    }
+
     memmi_close_process(app->open_process_handle, memmi_default_allocator());
     app->open_process_handle = {};
 }
@@ -38,7 +42,8 @@ void app_action__prepare_scan(app_State *app)
 void app_action_run_first_scan(app_State *app, scan_Settings settings, scan_Comparison cmp)
 {
     ASSERT(!atomic_load_s32(&app->scan_in_progress));
-    ASSERT(atomic_load_s32(&app->scanner_state) == APP_SCANNER_STATE_FIRST_SCAN_READY);
+    ASSERT((atomic_load_s32(&app->scanner_state) == APP_SCANNER_STATE_FIRST_SCAN_READY)
+        || (atomic_load_s32(&app->scanner_state) == APP_SCANNER_STATE_SWITCHED_PROCESS_AFTER_FIRST_SCAN));
 
     app_action__prepare_scan(app);
 
