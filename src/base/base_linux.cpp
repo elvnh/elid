@@ -244,6 +244,10 @@ void cond_var_wait(ConditionVariable cond_var, Mutex mutex)
     ASSERT_ALWAYS(wait_result == 0);
 }
 
+void sleep_ms(u32 ms)
+{
+    usleep(ms * 1000);
+}
 
 u64 get_monotonic_clock_ns(void)
 {
