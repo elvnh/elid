@@ -69,3 +69,4 @@ struct scan_ResultView {
 
 scan_ResultView scan_result_make_view(Arena *arena, scan_Result scan_result);
 uintptr_t       scan_address_from_match_details(scan_MatchDetails details);
+scan_ResultView scan_match_list_make_view(Arena *arena, scan_MatchList *matches);
