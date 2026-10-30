@@ -319,12 +319,13 @@ TEST_CASE(scan_local_next_single_value_unchanged)
 
     scan_TypedValue scan_val = scan_val_make_int32((u32)buffer);
     scan_Comparison cmp = scan_cmp_make_exact(scan_val);
-    scan_MatchList *first_results = test_scan_local_array_first2(scratch.arena, &buffer, 1, cmp).matches;
 
-    scan_ResultView next_results = test_scan_local_array_next2(scratch.arena, &buffer, 1, cmp, first_results).view;
+    test_LocalScanResults first_results = test_scan_local_array_first2(scratch.arena, &buffer, 1, cmp);
+
+    scan_ResultView next_results = test_scan_local_array_next2(scratch.arena, &buffer, 1, cmp, first_results.matches).view;
     REQUIRE(next_results.count == 1);
 
-    REQUIRE(test_check_local_match(next_results.data[0], scan_val, 0));
+    REQUIRE(test_result_views_eq(scan_val.type, first_results.view, next_results));
 }
 
 TEST_CASE(scan_local_next_single_value_changed)
@@ -352,15 +353,14 @@ TEST_CASE(scan_local_next_small_array_unchanged)
     s32 values[] = {0, 2, (s32)scan_val.value.int32, 1, (s32)scan_val.value.int32};
 
     scan_Comparison cmp = scan_cmp_make_exact(scan_val);
-    scan_MatchList *first_matches = test_scan_local_array_first2(scratch.arena, values, array_capacity(values), cmp).matches;
+
+    test_LocalScanResults first_results = test_scan_local_array_first2(
+        scratch.arena, values, array_capacity(values), cmp);
+
     scan_ResultView next_results = test_scan_local_array_next2(
-        scratch.arena, values, array_capacity(values), cmp, first_matches).view;
+        scratch.arena, values, array_capacity(values), cmp, first_results.matches).view;
 
-    REQUIRE(next_results.count == 2);
-    REQUIRE(next_results.count == first_matches->total_match_count);
-
-    REQUIRE(test_check_local_match(next_results.data[0], scan_val, 2 * sizeof(s32)));
-    REQUIRE(test_check_local_match(next_results.data[1], scan_val, 4 * sizeof(s32)));
+    REQUIRE(test_result_views_eq(scan_val.type, first_results.view, next_results));
 }
 
 TEST_CASE(scan_local_next_small_array_change_one_match)
@@ -413,40 +413,16 @@ TEST_CASE(scan_local_next_small_array_change_non_match)
     s32 values[] = {0, 2, (s32)scan_val.value.int32, 1, (s32)scan_val.value.int32};
 
     scan_Comparison cmp = scan_cmp_make_exact(scan_val);
-    scan_MatchList *first_matches = test_scan_local_array_first2(scratch.arena, values, array_capacity(values), cmp).matches;
+    test_LocalScanResults first_results = test_scan_local_array_first2(
+        scratch.arena, values, array_capacity(values), cmp);
 
     // Changing a non-match inbetween scans shouldn't make a difference.
     values[0] = 75;
 
     scan_ResultView next_results = test_scan_local_array_next2(
-        scratch.arena, values, array_capacity(values), cmp, first_matches).view;
+        scratch.arena, values, array_capacity(values), cmp, first_results.matches).view;
 
-    REQUIRE(next_results.count == first_matches->total_match_count);
-
-    REQUIRE(test_check_local_match(next_results.data[0], scan_val, 2 * sizeof(s32)));
-    REQUIRE(test_check_local_match(next_results.data[1], scan_val, 4 * sizeof(s32)));
-}
-
-TEST_CASE(scan_local_first_small_array_change_non_match)
-{
-    ScratchArena scratch = scratch_begin();
-
-    scan_TypedValue scan_val = scan_val_make_int32(123);
-    s32 values[] = {0, 2, (s32)scan_val.value.int32, 1, (s32)scan_val.value.int32};
-
-    scan_Comparison cmp = scan_cmp_make_exact(scan_val);
-    scan_MatchList *first_matches = test_scan_local_array_first2(scratch.arena, values, array_capacity(values), cmp).matches;
-
-    // Changing a non-match inbetween scans shouldn't make a difference.
-    values[0] = 75;
-
-    scan_ResultView next_results = test_scan_local_array_next2(
-        scratch.arena, values, array_capacity(values), cmp, first_matches).view;
-
-    REQUIRE(next_results.count == first_matches->total_match_count);
-
-    REQUIRE(test_check_local_match(next_results.data[0], scan_val, 2 * sizeof(s32)));
-    REQUIRE(test_check_local_match(next_results.data[1], scan_val, 4 * sizeof(s32)));
+    REQUIRE(test_result_views_eq(scan_val.type, first_results.view, next_results));
 }
 
 TEST_CASE(scan_local_first_small_array_different_arrays)
@@ -457,18 +433,16 @@ TEST_CASE(scan_local_first_small_array_different_arrays)
     s32 values[] = {0, 2, (s32)scan_val.value.int32, 1, (s32)scan_val.value.int32};
 
     scan_Comparison cmp = scan_cmp_make_exact(scan_val);
-    scan_MatchList *first_matches = test_scan_local_array_first2(scratch.arena, values, array_capacity(values), cmp).matches;
+    test_LocalScanResults first_results = test_scan_local_array_first2(
+        scratch.arena, values, array_capacity(values), cmp);
 
     s32 values2[array_capacity(values)] = {};
     memcpy(values2, values, sizeof(values));
 
     scan_ResultView next_results = test_scan_local_array_next2(
-        scratch.arena, values2, array_capacity(values2), cmp, first_matches).view;
+        scratch.arena, values2, array_capacity(values2), cmp, first_results.matches).view;
 
-    REQUIRE(next_results.count == first_matches->total_match_count);
-
-    REQUIRE(test_check_local_match(next_results.data[0], scan_val, 2 * sizeof(s32)));
-    REQUIRE(test_check_local_match(next_results.data[1], scan_val, 4 * sizeof(s32)));
+    REQUIRE(test_result_views_eq(scan_val.type, first_results.view, next_results));
 }
 
 TEST_CASE(scan_local_next_large_array_aligned_unchanged)
@@ -498,7 +472,6 @@ TEST_CASE(scan_local_next_large_array_aligned_unchanged)
     scan_ResultView next_matches = test_scan_local_memory_next2(
          scratch.arena, array, array_size, cmp, first_matches.matches).view;
 
-    // TODO: use this function in more places
     REQUIRE(test_result_views_eq(scan_val.type, first_matches.view, next_matches));
 }
 
