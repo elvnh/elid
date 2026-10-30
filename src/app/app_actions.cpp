@@ -75,6 +75,9 @@ void app_action_reset_scan_results(app_State *app)
 
     app->scanner_state = APP_SCANNER_STATE_FIRST_SCAN_READY;
     app->result_list = {};
+
+    app->bytes_scanned = 0;
+    app->bytes_to_scan = 0;
 }
 
 void app_action_edit_value_at_address(app_State *app, uintptr_t address, scan_ValueType type, scan_Value new_value)
