@@ -1,6 +1,6 @@
 #include "app_async.h"
 
-void app_async_get_running_processes(app_TaskID, void *data)
+void app_async_get_running_processes(TaskID, void *data)
 {
     app_State *app = *(app_State **)data;
 
@@ -13,7 +13,7 @@ void app_async_get_running_processes(app_TaskID, void *data)
     atomic_store_s32(&app->process_list_ready, true);
 }
 
-void app_async_update_address_table_entry_value(app_TaskID, void *data)
+void app_async_update_address_table_entry_value(TaskID, void *data)
 {
     app_UpdateAddressTableArgs *args = (app_UpdateAddressTableArgs *)data;
     app_AddressTableEntry *entry = args->entry;
@@ -29,7 +29,7 @@ void app_async_update_address_table_entry_value(app_TaskID, void *data)
     }
 }
 
-void app_async_update_result_table_entry(app_TaskID, void *data)
+void app_async_update_result_table_entry(TaskID, void *data)
 {
     app_UpdateResultTableArgs *args = (app_UpdateResultTableArgs *)data;
 
@@ -70,7 +70,7 @@ static void app_async__maybe_push_scan_error(app_State *app, proc_Status status)
     }
 }
 
-void app_async_run_first_scan(app_TaskID, void *data)
+void app_async_run_first_scan(TaskID, void *data)
 {
     app_AsyncScanArgs args = *(app_AsyncScanArgs *)data;
     app_State *app = args.app;
@@ -92,7 +92,7 @@ void app_async_run_first_scan(app_TaskID, void *data)
     app_async__maybe_push_scan_error(app, app->result_list.errors);
 }
 
-void app_async_run_next_scan(app_TaskID, void *data)
+void app_async_run_next_scan(TaskID, void *data)
 {
     app_AsyncScanArgs args = *(app_AsyncScanArgs *)data;
     app_State *app = args.app;

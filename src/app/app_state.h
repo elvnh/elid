@@ -13,8 +13,8 @@ struct app_State {
     Arena *scan_result_arena;
     Arena *previous_scan_result_arena;
 
-    app_WorkQueue *per_frame_work_queue;
-    app_WorkQueue *multi_frame_work_queue;
+    WorkQueue *per_frame_work_queue;
+    WorkQueue *multi_frame_work_queue;
 
     app_ScannerState scanner_state;
     b32 scan_in_progress;

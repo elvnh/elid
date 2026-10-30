@@ -19,3 +19,4 @@
 #include "base_random.cpp"
 #include "base_scratch.cpp"
 #include "base_path.cpp"
+#include "base_work_queue.cpp"

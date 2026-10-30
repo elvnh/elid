@@ -7,5 +7,5 @@ void app_update_early(app_State *app)
 
 void app_update_late(app_State *app)
 {
-    app_wq_wait_for_all_tasks(app->per_frame_work_queue);
+    wq_wait_for_all_tasks(app->per_frame_work_queue);
 }

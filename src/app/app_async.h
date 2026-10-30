@@ -17,8 +17,8 @@ struct app_AsyncScanArgs {
     scan_Comparison cmp;
 };
 
-void app_async_get_running_processes(app_TaskID, void *data);
-void app_async_update_address_table_entry_value(app_TaskID, void *data);
-void app_async_update_result_table_entry(app_TaskID, void *data);
-void app_async_run_first_scan(app_TaskID, void *data);
-void app_async_run_next_scan(app_TaskID, void *data);
+void app_async_get_running_processes(TaskID, void *data);
+void app_async_update_address_table_entry_value(TaskID, void *data);
+void app_async_update_result_table_entry(TaskID, void *data);
+void app_async_run_first_scan(TaskID, void *data);
+void app_async_run_next_scan(TaskID, void *data);
