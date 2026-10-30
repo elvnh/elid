@@ -144,6 +144,7 @@ DEFINE_MAYBE_TYPE(usize);
 #define TB(n) (GB(n) * 1024u)
 #define THOUSAND(n) ((n) * 1000)
 #define MILLION(n) (THOUSAND(n) * THOUSAND(1))
+#define BILLION(n) (THOUSAND(n) * MILLION(1))
 #define ptr_byte_offset(ptr, count) (TYPEOF(ptr))(((u8 *)(ptr) + (count)))
 #define SWAP(a, b)                              \
     do {                                        \

@@ -244,13 +244,6 @@ void cond_var_wait(ConditionVariable cond_var, Mutex mutex)
     ASSERT_ALWAYS(wait_result == 0);
 }
 
-void sleep_ms(u32 ms)
-{
-    struct timespec ts = {};
-    ts.tv_nsec = ms * 1000 * 1000;
-
-    nanosleep(&ts, 0);
-}
 
 u64 get_monotonic_clock_ns(void)
 {
@@ -258,7 +251,7 @@ u64 get_monotonic_clock_ns(void)
     int gettime_result = clock_gettime(CLOCK_MONOTONIC, &ts);
     ASSERT_ALWAYS(gettime_result == 0);
 
-    u64 result = (u64)ts.tv_nsec;
+    u64 result = (u64)ts.tv_nsec + (u64)ts.tv_sec * BILLION(1);
 
     return result;
 }
@@ -266,7 +259,7 @@ u64 get_monotonic_clock_ns(void)
 u64 get_monotonic_clock_ms(void)
 {
     u64 ns = get_monotonic_clock_ns();
-    u64 result = ns_to_ms(ns);
+    u64 result = ns / MILLION(1);
 
     return result;
 }
