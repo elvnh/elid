@@ -35,11 +35,34 @@ usize get_system_page_size(void)
 struct ThreadCreationArgs {
     ThreadEntryPoint entry_point;
     void *user_data;
+
+    u64 thread_id_result;
+
+    Semaphore args_struct_done_sema;
 };
+
+static ThreadCreationArgs *thread__creation_args_create(ThreadEntryPoint entry_point, void *user_data)
+{
+    ThreadCreationArgs *result = (ThreadCreationArgs *)calloc(1, sizeof(ThreadCreationArgs));
+    result->entry_point = entry_point;
+    result->user_data = user_data;
+    result->args_struct_done_sema = sema_create(0);
+
+    return result;
+}
+
+static void thread__creation_args_destroy(ThreadCreationArgs *args)
+{
+    ASSERT(sema_get(args->args_struct_done_sema) == 0);
+
+    sema_destroy(args->args_struct_done_sema);
+    free(args);
+}
 
 // TODO: Solve this circular dependency properly
 struct ThreadContext;
 ThreadContext  *thread_ctx_init();
+u64             thread_ctx_get_id();
 void            thread_ctx_destroy();
 
 void *thread__setup_and_teardown(void *data)
@@ -51,13 +74,16 @@ void *thread__setup_and_teardown(void *data)
     ThreadEntryPoint entry_point = args->entry_point;
     void *user_data = args->user_data;
 
-    // We no longer need the args struct, so we can free it before calling into the thread entry point.
-    free(args);
+    // The thread that spawned us will want to read our thread id and is waiting for us to fill it in.
+    args->thread_id_result = thread_ctx_get_id();
+
+    // After we have incremented the semaphore, the thread that spawned us may free it and we can't
+    // read or write from the args struct anymore.
+    sema_inc(args->args_struct_done_sema);
 
     entry_point(user_data);
 
-    // Initializing thread context will performs allocations, so destroy it after thread is done to
-    // avoid leaking memory.
+    // Initializing thread context will performs allocations, so destroy it after thread is done.
     thread_ctx_destroy();
 
     return 0;
@@ -67,14 +93,20 @@ Thread thread_create(ThreadEntryPoint entry_point, void *user_data)
 {
     pthread_t thread = 0;
 
-    ThreadCreationArgs *args = (ThreadCreationArgs *)calloc(1, sizeof(ThreadCreationArgs));
-    args->entry_point = entry_point;
-    args->user_data = user_data;
+    ThreadCreationArgs *args = thread__creation_args_create(entry_point, user_data);
 
     int create_result = pthread_create(&thread, 0, thread__setup_and_teardown, args);
     ASSERT_ALWAYS(create_result == 0);
 
-    Thread result = {(u64)thread};
+    // Wait until the thread that spawned us has read and written everything it needs from/to the args struct.
+    // Afterwards, we may read the thread ID that it filled in for us and then free the struct.
+    sema_dec(args->args_struct_done_sema);
+
+    Thread result = {};
+    result.data = (u64)thread;
+    result.id = args->thread_id_result;
+
+    thread__creation_args_destroy(args);
 
     return result;
 }

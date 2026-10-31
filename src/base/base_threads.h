@@ -4,7 +4,8 @@
 typedef void *(*ThreadEntryPoint)(void *user_data);
 
 struct Thread {
-    u64 data;
+    u64 data;  // Platform-specific data.
+    u64 id;    // The ID of the newly created thread, as found in its ThreadContext.
 };
 
 Thread thread_create(ThreadEntryPoint entry_point, void *user_data);
