@@ -16,6 +16,8 @@ struct ThreadContext {
 
     rng_State rng;
 
+    struct wq__ThreadWorkQueue *private_work_queue;
+
     b32 initialized;
 };
 

@@ -235,13 +235,28 @@ static b32 wq__task_is_finished(TaskID id, wq__Task *task)
     return result;
 }
 
+static wq__ThreadWorkQueue *wq__get_private_work_queue()
+{
+    wq__ThreadWorkQueue *result = thread_ctx_get()->private_work_queue;
+
+    return result;
+}
+
 void wq_wait_for_task(TaskID id)
 {
     wq__Task *task = wq__task_from_id(id);
-    wq__ThreadWorkQueue *queue = task->from_queue;
+    wq__ThreadWorkQueue *task_queue = task->from_queue;
+
+    // If this thread is a member of a thread queue, it will try to work on its own tasks first.
+    wq__ThreadWorkQueue *private_queue = wq__get_private_work_queue();
+
+    // If this thread is not a member of a thread queue, it will simply pick a thread queue at random to focus on.
+    if (!private_queue) {
+        private_queue = wq__get_random_thread_queue(task_queue->parent_queue);
+    }
 
     while (!wq__task_is_finished(id, task)) {
-        wq__Task *task_to_do_while_waiting = wq__try_get_task(queue);
+        wq__Task *task_to_do_while_waiting = wq__try_get_task(private_queue);
 
         if (task_to_do_while_waiting && !wq__task_is_finished(id, task)) {
             wq__execute_task(task_to_do_while_waiting);
@@ -250,10 +265,11 @@ void wq_wait_for_task(TaskID id)
             // and the task finishing. We also check the generation again before going to sleep,
             // since it may have changed since last check. It won't change after acquiring lock
             // though, as the lock is always acquired before increasing it.
-            ScopedLock lock = scoped_lock(queue->queue_mutex);
+            // TODO: we should wake up when a task arrives in any other queue as well
+            ScopedLock lock = scoped_lock(task_queue->queue_mutex);
 
             if (!wq__task_is_finished(id, task)) {
-                cond_var_wait(queue->task_available_or_finished_cond_var, queue->queue_mutex);
+                cond_var_wait(task_queue->task_available_or_finished_cond_var, task_queue->queue_mutex);
             }
         }
     }
@@ -262,6 +278,8 @@ void wq_wait_for_task(TaskID id)
 static void *wq__thread_loop(void *user_data)
 {
     wq__ThreadWorkQueue *queue = (wq__ThreadWorkQueue *)user_data;
+
+    thread_ctx_get()->private_work_queue = queue;
 
     WorkQueue *wq = queue->parent_queue;
 
