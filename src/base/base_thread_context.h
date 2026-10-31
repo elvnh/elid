@@ -12,7 +12,7 @@ struct ThreadContext {
     Arena *first_scratch_arena;
 
     // For reading memory to scan and then discard.
-    Arena *per_scan_scratch_arena;
+    Arena *per_scan_scratch_arena; // TODO: move into scan_RemoteScanArgs
 
     rng_State rng;
 
@@ -21,4 +21,4 @@ struct ThreadContext {
 
 ThreadContext  *thread_ctx_init();
 void            thread_ctx_destroy();
-ThreadContext  *thread_ctx_get(void);
+ThreadContext  *thread_ctx_get();

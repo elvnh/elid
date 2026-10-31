@@ -68,7 +68,6 @@ void scan__result_view_sort(scan_ResultView *results)
 
 scan_ResultView scan_result_make_view(Arena *arena, scan_Result scan_result)
 {
-    // TODO: sort by address
     ASSERT((scan_result.total_match_count < 50000) && "Only call this with a reasonable number of matches");
 
     scan_ResultView result = {};

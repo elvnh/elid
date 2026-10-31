@@ -30,6 +30,7 @@ struct scan_MatchList {
     usize total_match_count; // Total number of matches in chain.
 
     // TODO: pack list node members into struct
+    // TODO: singly linked?
     scan_MatchList *next;
     scan_MatchList *first;
     scan_MatchList *last;
@@ -45,7 +46,7 @@ struct scan_RegionMatches {
 
     usize match_count_in_region;
 
-    scan_MatchList *head;
+    scan_MatchList *head; // TODO: the first member doesn't need to be a pointer?
     scan_RegionMatches *next;
 };
 
@@ -58,6 +59,7 @@ struct scan_Result {
     memmi_Process       scanned_process;
     proc_ObjectList     process_objects;
 
+    // TODO: pack into struct
     scan_RegionMatches *first;
     scan_RegionMatches *last;
     usize               list_node_count;
