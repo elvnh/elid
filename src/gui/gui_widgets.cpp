@@ -452,7 +452,8 @@ void gui_scan_progress_bar(gui_State *gui, app_State *app)
     // Don't interpolate when resetting progress bar to 0.
     if (progress >= gui->previous_progress_bar_value) {
         // TODO: interpolate more properly
-        f32 t = ImGui::GetIO().DeltaTime / 0.1f;
+        f32 t = MIN(1.0f, ImGui::GetIO().DeltaTime / 0.1f);
+
         progress = lerp(gui->previous_progress_bar_value, progress, t);
     }
 

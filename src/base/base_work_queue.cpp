@@ -175,13 +175,26 @@ static void wq__finish_task(wq__Task *task)
 {
     wq__ThreadWorkQueue *queue = task->from_queue;
 
-    s32 new_unfinished_count = atomic_dec_s32(&task->unfinished_task_count);
-    ASSERT(new_unfinished_count >= 0);
+    // Acquire the lock before decrementing the task count. Threads that are waiting for a task to
+    // finish will acquire the mutex, check the task count, and then go to sleep if the count is not
+    // 0. If we don't lock the mutex before decrementing, we might change the task count inbetween
+    // the waiting thread checking the count and going to sleep.
+
+    // TODO: do we need to lock two separate times or can it all be done in one go? We don't want to
+    // keep the lock when calling wq__finish_task, as we might then lock another threads mutex,
+    // which is a potential order inversion. But we might be able to call wq__finish_task AFTER
+    // marking this one as finished, or could that be a problem?
+    s32 new_unfinished_count = 0;
+    {
+        ScopedLock lock = scoped_lock(queue->queue_mutex);
+
+        // TODO: do we even need for this variable to be atomic anymore?
+        new_unfinished_count = atomic_dec_s32(&task->unfinished_task_count);
+        ASSERT(new_unfinished_count >= 0);
+    }
 
     if (new_unfinished_count == 0) {
-        // printf("unfinished count reached 0, finishing task...\n");
         if (task->parent) {
-            // printf("recursively finishing parent task...\n");
             wq__finish_task(task->parent);
         }
 
@@ -193,15 +206,6 @@ static void wq__finish_task(wq__Task *task)
             // waiting for work to do, but as threads in wq_wait_for_task will check for work while
             // waiting for a specific task to finish, this is necessary.
             cond_var_broadcast(queue->task_available_or_finished_cond_var);
-
-
-            #if DEBUG_BUILD // TODO: remove
-            for (wq__Task *t = list_head(&queue->queued_tasks); t; t = list_next(t)) {
-                if (t == task) {
-                    ASSERT(0 && "Task exists as a task in flight and a queued task at the same time");
-                }
-            }
-            #endif
 
             task->next = queue->first_free_task;
             queue->first_free_task = task;
@@ -390,6 +394,7 @@ TaskID wq__create_task_impl(WorkQueue *wq, TaskFunction fn, TaskID parent, const
         }
         #endif
 
+        ScopedLock lock = scoped_lock(task->parent->from_queue->queue_mutex);
         atomic_inc_s32(&task->parent->unfinished_task_count);
     }
 
