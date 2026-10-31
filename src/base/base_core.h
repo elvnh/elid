@@ -36,7 +36,7 @@ typedef double f64;
 #define U64_MAX UINT64_MAX
 
 #define S_SIZE_MAX PTRDIFF_MAX
-#define U_SIZE_MAX SIZE_T_MAX
+#define U_SIZE_MAX SIZE_MAX
 
 #define MIN_VALUE_OF(t) (IS_SIGNED(t) ? MIN_VALUE_OF_SIGNED(t) : 0)
 #define MIN_VALUE_OF_SIGNED(t) (-MAX_VALUE_OF_SIGNED(t) - 1)
