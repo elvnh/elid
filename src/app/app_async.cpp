@@ -86,10 +86,11 @@ void app_async_run_first_scan(TaskID, void *data)
     app->result_list = scan_remote_memory_first(
         app->scan_result_arena, app->open_process_handle, args.settings, args.cmp, progress);
 
-    atomic_store_s32(&app->scan_in_progress, false);
-    atomic_store_s32(&app->scanner_state, APP_SCANNER_STATE_NEXT_SCAN_READY);
 
     app_async__maybe_push_scan_error(app, app->result_list.errors);
+
+    atomic_store_s32(&app->scanner_state, APP_SCANNER_STATE_NEXT_SCAN_READY);
+    atomic_store_s32(&app->scan_in_progress, false);
 }
 
 void app_async_run_next_scan(TaskID, void *data)
