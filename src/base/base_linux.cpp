@@ -48,13 +48,17 @@ void *thread__setup_and_teardown(void *data)
 
     thread_ctx_init();
 
-    args->entry_point(args->user_data);
+    ThreadEntryPoint entry_point = args->entry_point;
+    void *user_data = args->user_data;
+
+    // We no longer need the args struct, so we can free it before calling into the thread entry point.
+    free(args);
+
+    entry_point(user_data);
 
     // Initializing thread context will performs allocations, so destroy it after thread is done to
     // avoid leaking memory.
     thread_ctx_destroy();
-
-    free(args);
 
     return 0;
 }
