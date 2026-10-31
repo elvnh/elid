@@ -1,15 +1,20 @@
 #include "base_thread_context.h"
 
 thread_global ThreadContext g__thread_context;
+global u64 next_thread_id;
 
 ThreadContext *thread_ctx_init()
 {
-    g__thread_context.first_scratch_arena = arena_create(THREAD_SCRATCH_ARENA_SIZE);
-    g__thread_context.per_scan_scratch_arena = arena_create(THREAD_SCAN_SCRATCH_ARENA_SIZE);
+    if (ALWAYS(!g__thread_context.initialized)) {
+        g__thread_context.first_scratch_arena = arena_create(THREAD_SCRATCH_ARENA_SIZE);
+        g__thread_context.per_scan_scratch_arena = arena_create(THREAD_SCAN_SCRATCH_ARENA_SIZE);
 
-    rng_seed(&g__thread_context.rng, get_monotonic_clock_ms());
+        rng_seed(&g__thread_context.rng, get_monotonic_clock_ms());
 
-    g__thread_context.initialized = true;
+        g__thread_context.id = atomic_inc_post_u64(&next_thread_id);
+
+        g__thread_context.initialized = true;
+    }
 
     ThreadContext *result = thread_ctx_get();
 
