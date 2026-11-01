@@ -36,8 +36,7 @@ struct ThreadCreationArgs {
     ThreadEntryPoint entry_point;
     void *user_data;
 
-    u64 thread_id_result;
-
+    // Incremented by newly spawned thread when all members have been read from this struct.
     Semaphore args_struct_done_sema;
 };
 
@@ -100,7 +99,6 @@ Thread thread_create(ThreadEntryPoint entry_point, void *user_data)
 
     Thread result = {};
     result.data = (u64)thread;
-    result.id = args->thread_id_result;
 
     thread__creation_args_destroy(args);
 
