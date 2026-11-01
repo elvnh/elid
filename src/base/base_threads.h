@@ -75,6 +75,7 @@ void              cond_var_wait(ConditionVariable cond_var, Mutex mutex);
 #    define atomic_inc_s32(ptr)           __atomic_add_fetch((ptr), 1, __ATOMIC_SEQ_CST)
 #    define atomic_inc_post_s32(ptr)      __atomic_fetch_add((ptr), 1, __ATOMIC_SEQ_CST)
 #    define atomic_dec_s32(ptr)           __atomic_sub_fetch((ptr), 1, __ATOMIC_SEQ_CST)
+#    define atomic_or_s32(ptr, val)       __atomic_or_fetch((ptr), (val), __ATOMIC_SEQ_CST)
 #    define atomic_exchange_s32(ptr, val) __atomic_exchange_n((ptr), (val), __ATOMIC_SEQ_CST)
 #    define atomic_compare_exchange_s32(ptr, expect, desired)           \
     __atomic_compare_exchange_n((ptr), (expect), (desired), false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST)
@@ -86,6 +87,7 @@ void              cond_var_wait(ConditionVariable cond_var, Mutex mutex);
 #    define atomic_inc_u32(ptr)           __atomic_add_fetch((ptr), 1, __ATOMIC_SEQ_CST)
 #    define atomic_inc_post_u32(ptr)      __atomic_fetch_add((ptr), 1, __ATOMIC_SEQ_CST)
 #    define atomic_dec_u32(ptr)           __atomic_sub_fetch((ptr), 1, __ATOMIC_SEQ_CST)
+#    define atomic_or_u32(ptr, val)       __atomic_or_fetch((ptr), (val), __ATOMIC_SEQ_CST)
 #    define atomic_exchange_u32(ptr, val) __atomic_exchange_n((ptr), (val), __ATOMIC_SEQ_CST)
 #    define atomic_compare_exchange_u32(ptr, expect, desired)         \
     __atomic_compare_exchange_n((ptr), (expect), (desired), false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST)
@@ -97,6 +99,7 @@ void              cond_var_wait(ConditionVariable cond_var, Mutex mutex);
 #    define atomic_inc_u64(ptr)           __atomic_add_fetch((ptr), 1, __ATOMIC_SEQ_CST)
 #    define atomic_inc_post_u64(ptr)      __atomic_fetch_add((ptr), 1, __ATOMIC_SEQ_CST)
 #    define atomic_dec_u64(ptr)           __atomic_sub_fetch((ptr), 1, __ATOMIC_SEQ_CST)
+#    define atomic_or_u64(ptr, val)       __atomic_or_fetch((ptr), (val), __ATOMIC_SEQ_CST)
 #    define atomic_exchange_u64(ptr, val) __atomic_exchange_n((ptr), (val), __ATOMIC_SEQ_CST)
 #    define atomic_compare_exchange_u64(ptr, expect, desired)           \
     __atomic_compare_exchange_n((ptr), (expect), (desired), false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST)
@@ -108,6 +111,7 @@ void              cond_var_wait(ConditionVariable cond_var, Mutex mutex);
 #    define atomic_inc_ptr(ptr)           __atomic_add_fetch((ptr), 1, __ATOMIC_SEQ_CST)
 #    define atomic_inc_post_ptr(ptr)      __atomic_fetch_add((ptr), 1, __ATOMIC_SEQ_CST)
 #    define atomic_dec_ptr(ptr)           __atomic_sub_fetch((ptr), 1, __ATOMIC_SEQ_CST)
+#    define atomic_or_ptr(ptr, val)       __atomic_or_fetch((ptr), (val), __ATOMIC_SEQ_CST)
 #    define atomic_exchange_ptr(ptr, val) __atomic_exchange_n((ptr), (val), __ATOMIC_SEQ_CST)
 #    define atomic_compare_exchange_ptr(ptr, expect, desired)         \
     __atomic_compare_exchange_n((ptr), (expect), (desired), false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST)
@@ -119,6 +123,7 @@ void              cond_var_wait(ConditionVariable cond_var, Mutex mutex);
 #    define atomic_inc_usize(ptr)           __atomic_add_fetch((ptr), 1, __ATOMIC_SEQ_CST)
 #    define atomic_inc_post_usize(ptr)      __atomic_fetch_add((ptr), 1, __ATOMIC_SEQ_CST)
 #    define atomic_dec_usize(ptr)           __atomic_sub_fetch((ptr), 1, __ATOMIC_SEQ_CST)
+#    define atomic_or_usize(ptr, val)       __atomic_or_fetch((ptr), (val), __ATOMIC_SEQ_CST)
 #    define atomic_exchange_usize(ptr, val) __atomic_exchange_n((ptr), (val), __ATOMIC_SEQ_CST)
 #    define atomic_compare_exchange_usize(ptr, expect, desired)         \
     __atomic_compare_exchange_n((ptr), (expect), (desired), false, __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST)
