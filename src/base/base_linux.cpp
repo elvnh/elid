@@ -62,7 +62,6 @@ static void thread__creation_args_destroy(ThreadCreationArgs *args)
 // TODO: Solve this circular dependency properly
 struct ThreadContext;
 ThreadContext  *thread_ctx_init();
-u64             thread_ctx_get_id();
 void            thread_ctx_destroy();
 
 void *thread__setup_and_teardown(void *data)
@@ -74,11 +73,8 @@ void *thread__setup_and_teardown(void *data)
     ThreadEntryPoint entry_point = args->entry_point;
     void *user_data = args->user_data;
 
-    // The thread that spawned us will want to read our thread id and is waiting for us to fill it in.
-    args->thread_id_result = thread_ctx_get_id();
-
-    // After we have incremented the semaphore, the thread that spawned us may free it and we can't
-    // read or write from the args struct anymore.
+    // After we have incremented the semaphore, the thread that spawned us may free it the args
+    // struct and we can't read or write from it anymore.
     sema_inc(args->args_struct_done_sema);
 
     entry_point(user_data);
@@ -98,8 +94,8 @@ Thread thread_create(ThreadEntryPoint entry_point, void *user_data)
     int create_result = pthread_create(&thread, 0, thread__setup_and_teardown, args);
     ASSERT_ALWAYS(create_result == 0);
 
-    // Wait until the thread that spawned us has read and written everything it needs from/to the args struct.
-    // Afterwards, we may read the thread ID that it filled in for us and then free the struct.
+    // Wait until the thread that spawned us has read everything it needs from/to the args struct.
+    // Afterwards, we can free the struct.
     sema_dec(args->args_struct_done_sema);
 
     Thread result = {};

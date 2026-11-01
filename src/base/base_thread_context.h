@@ -8,8 +8,6 @@
 
 // All thread-local variables should go here.
 struct ThreadContext {
-    u64 id;
-
     // Chain of scratch arenas.
     Arena *first_scratch_arena;
 
@@ -26,4 +24,3 @@ struct ThreadContext {
 ThreadContext  *thread_ctx_init();
 void            thread_ctx_destroy();
 ThreadContext  *thread_ctx_get();
-u64             thread_ctx_get_id();
