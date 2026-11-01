@@ -113,6 +113,16 @@ proc_Object proc_object_from_memmi_object(Arena *arena, memmi_Object object)
     return result;
 }
 
+proc_Object proc_object_copy(Arena *arena, proc_Object object)
+{
+    proc_Object result = {};
+    result.name = str_clone(arena, object.name);
+    result.base_address = object.base_address;
+    result.size = object.size;
+
+    return result;
+}
+
 proc_ObjectList proc_object_list_from_memmi_object_list(Arena *arena, memmi_ObjectList objects)
 {
     proc_ObjectList result = {};

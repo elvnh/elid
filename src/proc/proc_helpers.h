@@ -61,6 +61,7 @@ proc_Object_Maybe     proc_get_object_address_is_contained_in(proc_ObjectList ob
 memmi_Allocator       proc_memmi_allocator_from_arena(Arena *arena);
 String                proc_copy_memmi_string(Arena *arena, memmi_String string);
 proc_Object           proc_object_from_memmi_object(Arena *arena, memmi_Object object);
+proc_Object           proc_object_copy(Arena *arena, proc_Object object);
 proc_ObjectList       proc_object_list_from_memmi_object_list(Arena *arena, memmi_ObjectList objects);
 b32                   proc_object_has_unique_filename(proc_Object object, proc_ObjectList objects);
 proc_ObjectList       proc_get_loaded_objects(Arena *arena, memmi_Process proc);

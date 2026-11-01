@@ -1,5 +1,8 @@
 #include "app_async.h"
 
+// TODO: come up with a good default and make it customizable
+#define APP_DEFAULT_MAX_BYTES_TO_SCAN_PER_THREAD MB(2)
+
 void app_async_get_running_processes(TaskID, void *data)
 {
     app_State *app = *(app_State **)data;
@@ -91,13 +94,13 @@ void app_async_run_first_scan(TaskID, void *data)
     #if defined(SINGLE_THREADED_SCANS)
     {
         app->result_list = scan_remote_memory_first(
-            app->current_per_thread_scan_result_arenas[0]->open_process_handle, args.settings, args.cmp, progress);
+            app->current_per_thread_scan_result_arenas[0], app->open_process_handle, args.settings, args.cmp, progress);
     }
     #else
     {
         scan_MultithreadArgs mt_args = {};
         mt_args.work_queue = app->multi_frame_work_queue;
-        mt_args.max_bytes_to_scan_per_thread = MB(2);
+        mt_args.max_bytes_to_scan_per_thread = APP_DEFAULT_MAX_BYTES_TO_SCAN_PER_THREAD;
 
         app->result_list = scan_remote_memory_first_new(
             app->current_per_thread_scan_result_arenas, app->open_process_handle, args.settings, args.cmp, progress, mt_args);
@@ -119,14 +122,28 @@ void app_async_run_next_scan(TaskID, void *data)
     progress.bytes_to_scan_ptr = &app->bytes_to_scan;
     progress.bytes_scanned_ptr = &app->bytes_scanned;
 
-    TODO("Swap result arenas");
+    SWAP(app->current_per_thread_scan_result_arenas, app->previous_per_thread_scan_result_arenas);
 
     app__reset_current_per_thread_scan_result_arenas(app);
 
-    TODO("Pass in result arenas");
-    Arena *arena = app->current_per_thread_scan_result_arenas[0];
-    app->result_list = scan_remote_memory_next(
-        arena, app->open_process_handle, args.settings, args.cmp, app->result_list, progress);
+    #if defined(SINGLE_THREADED_SCANS)
+    {
+        app->result_list = scan_remote_memory_next(
+            app->current_per_thread_scan_result_arenas[0],
+            app->open_process_handle, args.settings, args.cmp, app->result_list, progress);
+    }
+    #else
+    {
+        scan_MultithreadArgs mt_args = {};
+        mt_args.work_queue = app->multi_frame_work_queue;
+        mt_args.max_bytes_to_scan_per_thread = APP_DEFAULT_MAX_BYTES_TO_SCAN_PER_THREAD;
+
+        app->result_list = scan_remote_memory_next_new(
+            app->current_per_thread_scan_result_arenas,
+            app->open_process_handle, args.settings, args.cmp, app->result_list, progress, mt_args);
+
+    }
+    #endif
 
     app_async__maybe_push_scan_error(app, app->result_list.errors);
 

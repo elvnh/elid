@@ -13,8 +13,9 @@ struct scan_Progress {
 
 scan_Result scan_remote_memory_first_new(Arena **per_thread_result_arenas, memmi_Process proc,
     scan_Settings settings, scan_Comparison cmp, scan_Progress progress, scan_MultithreadArgs mt_args);
-scan_Result scan_remote_memory_next_new(Arena *arena, memmi_Process proc, scan_Settings settings, scan_Comparison cmp,
-    scan_Result prev_results, scan_Progress progress, scan_MultithreadArgs mt_args);
+scan_Result scan_remote_memory_next_new(Arena **per_thread_result_arenas, memmi_Process proc, scan_Settings settings,
+    scan_Comparison cmp, scan_Result prev_results, scan_Progress progress, scan_MultithreadArgs mt_args);
+
 
 scan_Result scan_remote_memory_first(Arena *arena, memmi_Process proc, scan_Settings settings, scan_Comparison cmp,
                                     scan_Progress progress);
