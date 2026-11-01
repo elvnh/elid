@@ -342,8 +342,6 @@ WorkQueue *wq_create(Arena *arena, s32 thread_count)
     for (s32 i = 0; i < thread_count; ++i) {
         wq__ThreadWorkQueue *queue = &result->thread_queues[i];
         queue->thread = thread_create(wq__thread_loop, queue);
-
-        result->minimum_thread_id = MIN(result->minimum_thread_id, queue->thread.id);
     }
 
     return result;
@@ -463,19 +461,16 @@ usize wq_get_thread_count(WorkQueue *wq)
     return result;
 }
 
-usize wq_thread_id_to_index()
+usize wq_get_thread_index()
 {
-    ThreadContext *thread_ctx = thread_ctx_get();
+    wq__ThreadWorkQueue *private_queue = thread_ctx_get()->private_work_queue;
+    ASSERT(private_queue && "Called wq_get_thread_index() on a thread that is not member of a work queue");
 
-    u64 thread_id = thread_ctx->id;
-    wq__ThreadWorkQueue *private_queue = thread_ctx->private_work_queue;
     WorkQueue *wq = private_queue->parent_queue;
 
-    ASSERT(thread_id == private_queue->thread.id);
-    ASSERT(thread_id >= wq->minimum_thread_id);
-    ASSERT(thread_id <= (u64)U_SIZE_MAX);
+    ASSERT((private_queue >= wq->thread_queues) && (private_queue < (wq->thread_queues + wq->thread_count)));
 
-    usize result = thread_id - wq->minimum_thread_id;
+    usize result = ssize_to_usize(private_queue - wq->thread_queues);
 
     return result;
 }

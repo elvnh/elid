@@ -21,10 +21,6 @@ struct WorkQueue {
     s32 thread_count;
     b32 should_terminate;   // Atomic
 
-    // The lowest of all thread ID's in this work queue. Can be used to use thread ID's
-    // as index into an array by subtracting this from a thread ID.
-    u64 minimum_thread_id;
-
     Mutex active_task_count_mutex;
     ConditionVariable task_finished_cond_var;
     // TODO: can this be made atomic instead?
@@ -46,4 +42,4 @@ void       wq_wait_for_task(TaskID id);
 void       wq_wait_for_all_tasks(WorkQueue *wq);
 usize      wq_get_active_task_count(WorkQueue *wq);
 usize      wq_get_thread_count(WorkQueue *wq);
-usize      wq_thread_id_to_index();
+usize      wq_get_thread_index();

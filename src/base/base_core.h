@@ -192,6 +192,7 @@ s32   s64_to_s32(s64 from);
 
 u32   s32_to_u32(s32 from);
 usize s32_to_usize(s32 from);
+usize ssize_to_usize(ssize from);
 
 s32   u32_to_s32(u32 from);
 s32   usize_to_s32(usize from);
