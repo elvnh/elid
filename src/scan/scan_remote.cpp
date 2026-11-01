@@ -461,6 +461,12 @@ scan_Result scan_remote_memory_next_new(Arena **per_thread_result_arenas, memmi_
         result.total_match_count += r->match_count_in_region;
     }
 
+    if (at_least_one_read_succeeded && !(result.errors & PROC_STATUS_NO_SUCH_PROCESS)) {
+        // Some reads failing is to be expected, for example a region could be unmapped during the
+        // scan. As long as we managed to read at least one region, we'll count it as a success.
+        result.errors = PROC_STATUS_OK;
+    }
+
     u64 t2 = get_monotonic_clock_ns();
 
     u64 elapsed_ms = (t2 - t1) / MILLION(1);
