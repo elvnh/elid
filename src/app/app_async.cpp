@@ -70,6 +70,13 @@ static void app_async__maybe_push_scan_error(app_State *app, proc_Status status)
     }
 }
 
+static void app__reset_current_per_thread_scan_result_arenas(app_State *app)
+{
+    for (usize i = 0; i < wq_get_thread_count(app->multi_frame_work_queue); ++i) {
+        arena_reset(app->current_per_thread_scan_result_arenas[i]);
+    }
+}
+
 void app_async_run_first_scan(TaskID, void *data)
 {
     app_AsyncScanArgs args = *(app_AsyncScanArgs *)data;
@@ -79,12 +86,7 @@ void app_async_run_first_scan(TaskID, void *data)
     progress.bytes_to_scan_ptr = &app->bytes_to_scan;
     progress.bytes_scanned_ptr = &app->bytes_scanned;
 
-    arena_reset(app->scan_result_arena);
-    arena_reset(app->previous_scan_result_arena);
-
-    // TODO: multithread scans
-    app->result_list = scan_remote_memory_first(
-        app->scan_result_arena, app->open_process_handle, args.settings, args.cmp, progress);
+    app__reset_current_per_thread_scan_result_arenas(app);
 
 
     app_async__maybe_push_scan_error(app, app->result_list.errors);
@@ -102,12 +104,14 @@ void app_async_run_next_scan(TaskID, void *data)
     progress.bytes_to_scan_ptr = &app->bytes_to_scan;
     progress.bytes_scanned_ptr = &app->bytes_scanned;
 
-    SWAP(app->scan_result_arena, app->previous_scan_result_arena);
+    TODO("Swap result arenas");
 
-    arena_reset(app->scan_result_arena);
+    app__reset_current_per_thread_scan_result_arenas(app);
 
+    TODO("Pass in result arenas");
+    Arena *arena = app->current_per_thread_scan_result_arenas[0];
     app->result_list = scan_remote_memory_next(
-        app->scan_result_arena, app->open_process_handle, args.settings, args.cmp, app->result_list, progress);
+        arena, app->open_process_handle, args.settings, args.cmp, app->result_list, progress);
 
     app_async__maybe_push_scan_error(app, app->result_list.errors);
 

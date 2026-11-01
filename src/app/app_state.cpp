@@ -3,6 +3,7 @@
 #define APP_PERMANENT_ARENA_SIZE     MB(32)
 #define APP_PROCESS_LIST_ARENA_SIZE  MB(4)
 #define APP_SCAN_RESULT_ARENA_SIZE   sizeof(scan_Match) * THOUSAND(100)
+#define APP_PER_THREAD_SCAN_RESULT_ARENA_SIZE sizeof(scan_Match) * THOUSAND(10)
 #define APP_WATCH_POOL_SIZE          4
 
 b32 app_init(app_State *app)
@@ -11,23 +12,29 @@ b32 app_init(app_State *app)
 
     app->permanent_arena = arena_create(APP_PERMANENT_ARENA_SIZE);
     app->process_list_arena = arena_create(APP_PROCESS_LIST_ARENA_SIZE);
-    app->scan_result_arena = arena_create(APP_SCAN_RESULT_ARENA_SIZE);
-    app->previous_scan_result_arena = arena_create(APP_SCAN_RESULT_ARENA_SIZE);
     app->watch_pool = pool_create(app->permanent_arena, app_Watch, APP_WATCH_POOL_SIZE);
     app->error_list = app_error_list_create();
 
     // TODO: check number of cores on system
     // TODO: come up with a good distribution of number of threads between the different work queues
-    s32 thread_count = 16;
-    app->per_frame_work_queue = wq_create(app->permanent_arena, thread_count);
-    app->multi_frame_work_queue = wq_create(app->permanent_arena, thread_count);
+    usize thread_count = 2;
+    app->per_frame_work_queue = wq_create(app->permanent_arena, (s32)thread_count);
+    app->multi_frame_work_queue = wq_create(app->permanent_arena, (s32)thread_count);
+
+    app->current_per_thread_scan_result_arenas  = arena_alloc_array(app->permanent_arena, Arena *, thread_count);
+    app->previous_per_thread_scan_result_arenas = arena_alloc_array(app->permanent_arena, Arena *, thread_count);
+
+    for (usize i = 0; i < wq_get_thread_count(app->multi_frame_work_queue); ++i) {
+        app->current_per_thread_scan_result_arenas[i]  = arena_create(APP_PER_THREAD_SCAN_RESULT_ARENA_SIZE);
+        app->previous_per_thread_scan_result_arenas[i] = arena_create(APP_PER_THREAD_SCAN_RESULT_ARENA_SIZE);
+    }
 
     result = (app->permanent_arena != 0)
         && (app->process_list_arena != 0)
-        && (app->scan_result_arena != 0)
-        && (app->previous_scan_result_arena != 0)
         && (app->per_frame_work_queue != 0)
-        && (app->multi_frame_work_queue != 0);
+        && (app->multi_frame_work_queue != 0)
+        && (app->current_per_thread_scan_result_arenas != 0)
+        && (app->previous_per_thread_scan_result_arenas != 0);
 
     if (result) {
         result = app_addr_table_init(app->permanent_arena, &app->address_table);

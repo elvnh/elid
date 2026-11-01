@@ -75,9 +75,6 @@ void app_action_reset_scan_results(app_State *app)
 {
     ASSERT(app->scanner_state != APP_SCANNER_STATE_FIRST_SCAN_READY);
 
-    arena_reset(app->scan_result_arena);
-    arena_reset(app->previous_scan_result_arena);
-
     app->scanner_state = APP_SCANNER_STATE_FIRST_SCAN_READY;
     app->result_list = {};
 

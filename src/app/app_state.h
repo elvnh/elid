@@ -10,8 +10,11 @@ struct app_State {
     // TODO: pack members into anonymous structs, similar to gui_State
     Arena *permanent_arena; // For allocations that live for the entire program.
     Arena *process_list_arena;
-    Arena *scan_result_arena;
-    Arena *previous_scan_result_arena;
+
+    // Array of arenas for storing scan results. Has a capacity equal to the number of threads in
+    // multi_frame_work_queue and can be indexed into using wq_get_thread_index().
+    Arena **current_per_thread_scan_result_arenas;
+    Arena **previous_per_thread_scan_result_arenas;
 
     WorkQueue *per_frame_work_queue;
     WorkQueue *multi_frame_work_queue;
