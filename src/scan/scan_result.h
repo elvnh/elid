@@ -53,7 +53,7 @@ struct scan_RegionMatches {
 struct scan_Result {
     scan_Mode           scan_mode;
     scan_ValueType      value_type;
-    proc_Status         errors;
+    proc_Status         errors; // TODO: rename to error_bitset
     usize               total_match_count;
 
     memmi_Process       scanned_process;

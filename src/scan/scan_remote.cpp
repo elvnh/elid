@@ -42,6 +42,7 @@ static scan_RegionMatches *scan__make_region_matches(Arena *arena,
     return result;
 }
 
+// TODO: rename and move elsewhere
 struct scan_RemoteScanArgs {
     memmi_Process proc;
     scan_Settings settings;
@@ -50,7 +51,10 @@ struct scan_RemoteScanArgs {
     scan_MultithreadArgs mt_args;
     scan_RegionMatches *new_region_matches;
     scan_RegionMatches *previous_region_matches;
-    Arena **per_thread_result_arena_array; // Index into this using wq_get_thread_index().
+
+    Arena **per_thread_result_arena_array; // Can be indexed into using wq_get_thread_index().
+    proc_Status *errors_bitset_ptr;
+    b32 *at_least_one_read_succeeded_ptr;
 };
 
 static Arena *scan__get_thread_result_arena(Arena **arenas)
@@ -84,8 +88,11 @@ void scan__remote_first_single_region_async(TaskID task, void *data)
         proc, region_memory, region->region_base_address, region->region_size);
 
     if (read_mem_result.status != MEMMI_OK) {
-        // TODO("Report error");
+        proc_Status status = proc_status_from_memmi_status(read_mem_result.status);
+        atomic_or_s32(args.errors_bitset_ptr, status);
     } else {
+        atomic_store_s32(args.at_least_one_read_succeeded_ptr, true);
+
         // TODO: use stride provided by caller
         // TODO: local memory scan just advances by stride each step.
         // Make sure we compensate if the region provided is not aligned
@@ -134,12 +141,11 @@ void scan__remote_next_single_region_async(TaskID task, void *data)
         proc, region_memory, new_region->region_base_address, new_region->region_size);
 
     if (read_mem_result.status != MEMMI_OK) {
-        // TODO("Report error");
+        proc_Status status = proc_status_from_memmi_status(read_mem_result.status);
+        atomic_or_s32(args.errors_bitset_ptr, status);
     } else {
-        // TODO: use stride provided by caller
-        // TODO: local memory scan just advances by stride each step.
-        // Make sure we compensate if the region provided is not aligned
-        // by aligning forwards the first step.
+        atomic_store_s32(args.at_least_one_read_succeeded_ptr, true);
+
         scan_MatchList *prev_matches_in_region = prev_region->head;
 
         scan_MatchList *new_matches_in_region =
@@ -191,6 +197,7 @@ scan_Result scan_remote_memory_first_new(Arena **per_thread_result_arenas, memmi
 
     memmi_MemoryRegions memory_regions = memmi_get_process_memory_regions(proc, temp_allocator);
 
+    b32 at_least_one_read_succeeded = false;
     usize total_memory_region_size = 0;
 
     if (memory_regions.status != MEMMI_OK) {
@@ -244,6 +251,8 @@ scan_Result scan_remote_memory_first_new(Arena **per_thread_result_arenas, memmi
                 args.mt_args = mt_args;
                 args.new_region_matches = region_matches;
                 args.per_thread_result_arena_array = per_thread_result_arenas;
+                args.at_least_one_read_succeeded_ptr = &at_least_one_read_succeeded;
+                args.errors_bitset_ptr = &result.errors;
 
                 wq_push_task_as_child(mt_args.work_queue, scan__remote_first_single_region_async, args, root_task);
             }
@@ -256,6 +265,12 @@ scan_Result scan_remote_memory_first_new(Arena **per_thread_result_arenas, memmi
         for (scan_RegionMatches *r = result.first; r; r = list_next(r)) {
             result.total_match_count += r->match_count_in_region;
         }
+    }
+
+    if (at_least_one_read_succeeded && !(result.errors & PROC_STATUS_NO_SUCH_PROCESS)) {
+        // Some reads failing is to be expected, for example a region could be unmapped during the
+        // scan. As long as we managed to read at least one region, we'll count it as a success.
+        result.errors = PROC_STATUS_OK;
     }
 
     u64 t2 = get_monotonic_clock_ns();
@@ -400,6 +415,8 @@ scan_Result scan_remote_memory_next_new(Arena **per_thread_result_arenas, memmi_
     result.scanned_process = proc;
     result.process_objects = proc_get_loaded_objects(result_arena, proc);
 
+    b32 at_least_one_read_succeeded = false;
+
     // Get the total number of bytes we need to scan so the progress bar can show our progress.
     usize bytes_to_scan = 0;
     for (scan_RegionMatches *region = list_head(&prev_results); region; region = list_next(region)) {
@@ -431,6 +448,8 @@ scan_Result scan_remote_memory_next_new(Arena **per_thread_result_arenas, memmi_
         args.new_region_matches = new_region;
         args.previous_region_matches = prev_region;
         args.per_thread_result_arena_array = per_thread_result_arenas;
+        args.at_least_one_read_succeeded_ptr = &at_least_one_read_succeeded;
+        args.errors_bitset_ptr = &result.errors;
 
         wq_push_task_as_child(mt_args.work_queue, scan__remote_next_single_region_async, args, root_task);
     }
