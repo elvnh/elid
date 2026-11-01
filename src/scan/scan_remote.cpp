@@ -25,6 +25,190 @@ static void scan__push_region_matches(Arena *arena, scan_Result *result, scan_Ma
     }
 }
 
+static scan_RegionMatches *scan__make_region_matches(Arena *arena,
+    uintptr_t region_address, usize region_size, proc_Object_Maybe containing_object)
+{
+    scan_RegionMatches *result = arena_alloc_struct(arena, scan_RegionMatches);
+    result->region_base_address = region_address;
+    result->region_size = region_size;
+    result->containing_object = containing_object;
+    // result->head = arena_alloc_struct(arena, scan_MatchList);
+
+    return result;
+}
+
+struct scan_RemoteScanArgs {
+    memmi_Process proc;
+    scan_Settings settings;
+    scan_Comparison cmp;
+    scan_Progress progress;
+    scan_MultithreadArgs mt_args;
+    scan_RegionMatches *region_matches;
+    Arena **per_thread_result_arena_array; // Index into this using wq_get_thread_index().
+};
+
+static Arena *scan__get_thread_result_arena(Arena **arenas)
+{
+    usize index = wq_get_thread_index();
+    Arena *result = arenas[index];
+
+    return result;
+}
+
+void scan__remote_first_single_region_async(TaskID task, void *data)
+{
+    scan_RemoteScanArgs args = *(scan_RemoteScanArgs *)data;
+
+    memmi_Process proc = args.proc;
+    scan_Settings settings = args.settings;
+    scan_Comparison cmp = args.cmp;
+    scan_Progress progress = args.progress;
+    scan_MultithreadArgs mt_args = args.mt_args;
+    scan_RegionMatches *region = args.region_matches;
+    Arena *result_arena = scan__get_thread_result_arena(args.per_thread_result_arena_array);
+
+    // For temporarily storing the memory of a region during the scan of it.
+    Arena *scan_scratch_arena = thread_ctx_get()->per_scan_scratch_arena;
+    arena_reset(scan_scratch_arena);
+
+    // TODO: don't zero out allocation, as we'll just overwrite it when reading in region
+    u8 *region_memory = arena_alloc_array(scan_scratch_arena, u8, region->region_size);
+
+    memmi_ReadMemory read_mem_result = memmi_read_memory(
+        proc, region_memory, region->region_base_address, region->region_size);
+
+    if (read_mem_result.status != MEMMI_OK) {
+        // TODO("Report error");
+    } else {
+        // TODO: use stride provided by caller
+        // TODO: local memory scan just advances by stride each step.
+        // Make sure we compensate if the region provided is not aligned
+        // by aligning forwards the first step.
+        scan_MatchList *matches_in_region =
+            scan_local_memory_first(result_arena, region_memory,
+                read_mem_result.bytes_read, region->region_base_address,
+                cmp, settings.required_alignment);
+
+        ASSERT(region->match_count_in_region == 0);
+        ASSERT(!region->head);
+
+        region->head = matches_in_region;
+        region->match_count_in_region = matches_in_region->total_match_count;
+    }
+
+    // TODO: do we want to update progress bar with higher granularity than region?
+    // Consider the region as scanned with regards to the progress bar whether it failed or succeeded.
+    atomic_add_usize(progress.bytes_scanned_ptr, region->region_size);
+}
+
+scan_Result scan_remote_memory_first_new(Arena **per_thread_result_arenas, memmi_Process proc,
+    scan_Settings settings, scan_Comparison cmp, scan_Progress progress, scan_MultithreadArgs mt_args)
+{
+    #if DEBUG_BUILD
+    {
+        for (usize i = 0; i < wq_get_thread_count(mt_args.work_queue); ++i) {
+            ASSERT((arena_get_memory_usage(per_thread_result_arenas[i]) == 0)
+                && "All arenas should have been reset before call to this function.");
+        }
+    }
+    #endif
+
+    u64 t1 = get_monotonic_clock_ns();
+
+    Arena *result_arena = scan__get_thread_result_arena(per_thread_result_arenas);
+
+    scan_Result result = {};
+    result.value_type = cmp.value_type;
+    result.scan_mode = cmp.mode;
+    result.scanned_process = proc;
+    result.process_objects = proc_get_loaded_objects(result_arena, proc);
+
+    ASSERT(result.process_objects.status == PROC_STATUS_OK);
+
+    usize value_type_size = scan_val_type_get_size(cmp.value_type);
+
+    // For allocations that need to live for entire lifetime of function.
+    ScratchArena scratch = scratch_begin();
+    memmi_Allocator temp_allocator = proc_memmi_allocator_from_arena(scratch.arena);
+
+    memmi_MemoryRegions memory_regions = memmi_get_process_memory_regions(proc, temp_allocator);
+
+    usize total_memory_region_size = 0;
+
+    if (memory_regions.status != MEMMI_OK) {
+        result.errors = proc_status_from_memmi_status(memory_regions.status);
+    } else {
+        // Calculate total size of memory regions so that progress bar can track scan progress.
+        {
+            for (usize i = 0; i < memory_regions.count; ++i) {
+                // TODO: this check is repeated further down
+                memmi_MemoryRegion region = memory_regions.data[i];
+
+                b32 should_skip_region =
+                    !(region.permissions & MEMMI_REGION_PERMISSION_READ)
+                    || (region.kind == MEMMI_REGION_MAPPED_FILE)
+                    || (region.size >= SCAN_SKIP_REGION_SIZE_THRESHOLD);
+
+                if (!should_skip_region) {
+                    total_memory_region_size += region.size;
+                }
+            }
+
+            atomic_store_usize(progress.bytes_to_scan_ptr, total_memory_region_size);
+        }
+
+        TaskID root_task = wq_create_task(mt_args.work_queue, wq_null_function, wq_null_arg);
+
+        for (usize i = 0; i < memory_regions.count; ++i) {
+            memmi_MemoryRegion region = memory_regions.data[i];
+
+            // TODO: allow user to scan through memory mapped files
+            b32 should_skip_region =
+                !(region.permissions & MEMMI_REGION_PERMISSION_READ)
+                || (region.kind == MEMMI_REGION_MAPPED_FILE)
+                || (region.size >= SCAN_SKIP_REGION_SIZE_THRESHOLD);
+
+            if (!should_skip_region) {
+                proc_Object_Maybe containing_object =
+                    proc_get_object_address_is_contained_in(
+                        result.process_objects, region.base_address, value_type_size);
+
+                scan_RegionMatches *region_matches = scan__make_region_matches(
+                    result_arena, region.base_address, region.size, containing_object);
+
+                sll_push_back(&result, region_matches);
+
+                scan_RemoteScanArgs args = {};
+                args.proc = proc;
+                args.settings = settings;
+                args.cmp = cmp;
+                args.progress = progress;
+                args.mt_args = mt_args;
+                args.region_matches = region_matches;
+                args.per_thread_result_arena_array = per_thread_result_arenas;
+
+                wq_push_task_as_child(mt_args.work_queue, scan__remote_first_single_region_async, args, root_task);
+            }
+        }
+
+        // Wait for all regions to finish scanning.
+        wq_run_task(root_task);
+        wq_wait_for_task(root_task);
+
+        for (scan_RegionMatches *r = result.first; r; r = list_next(r)) {
+            result.total_match_count += r->match_count_in_region;
+        }
+    }
+
+    u64 t2 = get_monotonic_clock_ns();
+
+    u64 elapsed_ms = (t2 - t1) / MILLION(1);
+
+    printf("Scanned %zu bytes in %" PRIu64 " milliseconds\n", total_memory_region_size, elapsed_ms);
+
+    return result;
+}
+
 scan_Result scan_remote_memory_first(Arena *arena, memmi_Process proc, scan_Settings settings,
     scan_Comparison cmp, scan_Progress progress)
 {
@@ -44,7 +228,6 @@ scan_Result scan_remote_memory_first(Arena *arena, memmi_Process proc, scan_Sett
     Arena *scan_scratch_arena = thread_ctx_get()->per_scan_scratch_arena;
 
     // For allocations that need to live for entire lifetime of function.
-
     ScratchArena scratch = scratch_begin();
     memmi_Allocator temp_allocator = proc_memmi_allocator_from_arena(scratch.arena);
 

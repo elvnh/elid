@@ -88,6 +88,21 @@ void app_async_run_first_scan(TaskID, void *data)
 
     app__reset_current_per_thread_scan_result_arenas(app);
 
+    #if defined(SINGLE_THREADED_SCANS)
+    {
+        app->result_list = scan_remote_memory_first(
+            app->current_per_thread_scan_result_arenas[0]->open_process_handle, args.settings, args.cmp, progress);
+    }
+    #else
+    {
+        scan_MultithreadArgs mt_args = {};
+        mt_args.work_queue = app->multi_frame_work_queue;
+        mt_args.max_bytes_to_scan_per_thread = MB(2);
+
+        app->result_list = scan_remote_memory_first_new(
+            app->current_per_thread_scan_result_arenas, app->open_process_handle, args.settings, args.cmp, progress, mt_args);
+    }
+    #endif
 
     app_async__maybe_push_scan_error(app, app->result_list.errors);
 
