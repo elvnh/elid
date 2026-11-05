@@ -1,23 +1,5 @@
 #include "scan_result.h"
 
-#if DEBUG_BUILD
-#    define SCAN_DBG_ASSERT_VIEW_IS_SORTED(v)                           \
-    do {                                                                \
-        if ((v).count > 0) {                                            \
-            for (usize i = 0; i < (v).count - 1; ++i) {                 \
-                uintptr_t DBG_this_addr =                               \
-                    scan_address_from_match_details((v).data[i]);       \
-                uintptr_t DBG_next_addr =                               \
-                    scan_address_from_match_details((v).data[i + 1]);   \
-                                                                        \
-                ASSERT(DBG_this_addr < DBG_next_addr);                  \
-            }                                                           \
-        }                                                               \
-    } while (0)
-#else
-#    define SCAN_DBG_ASSERT_VIEW_IS_SORTED(v)
-#endif
-
 // Used when constructing scan_ResultView from scan_MatchList, when region is unknown.
 global scan_RegionMatches g__dummy_region;
 
@@ -64,6 +46,22 @@ void scan__result_view_sort(scan_ResultView *results)
         ASSERT(results->data);
         qsort(results->data, results->count, sizeof(*results->data), scan__result_view_sort_cmp);
     }
+
+    #if DEBUG_BUILD
+    {
+        if (results->count > 0) {
+            for (usize i = 0; i < results->count - 1; ++i) {
+                uintptr_t this_addr =
+                    scan_address_from_match_details(results->data[i]);
+                uintptr_t next_addr =
+                    scan_address_from_match_details(results->data[i + 1]);
+
+                ASSERT((this_addr != next_addr) && "Duplicate address found");
+                ASSERT(this_addr < next_addr);
+            }
+        }
+    }
+    #endif
 }
 
 scan_ResultView scan_result_make_view(Arena *arena, scan_Result scan_result)
@@ -87,8 +85,6 @@ scan_ResultView scan_result_make_view(Arena *arena, scan_Result scan_result)
 
     scan__result_view_sort(&result);
 
-    SCAN_DBG_ASSERT_VIEW_IS_SORTED(result);
-
     return result;
 }
 
@@ -104,8 +100,6 @@ scan_ResultView scan_match_list_make_view(Arena *arena, scan_MatchList *matches)
     }
 
     scan__result_view_sort(&result);
-
-    SCAN_DBG_ASSERT_VIEW_IS_SORTED(result);
 
     return result;
 }

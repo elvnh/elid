@@ -52,9 +52,12 @@ struct scan_RemoteScanArgs {
     scan_RegionMatches *new_region_matches;
     scan_RegionMatches *previous_region_matches;
 
-    Arena **per_thread_result_arena_array; // Can be indexed into using wq_get_thread_index().
     proc_Status *errors_bitset_ptr;
     b32 *at_least_one_read_succeeded_ptr;
+
+    // Per-thread data, can be indexed into using wq_get_thread_index().
+    Arena **per_thread_result_arena_array;
+    scan_MatchList *per_thread_match_list_array; // Per thread, per region
 };
 
 static Arena *scan__get_thread_result_arena(Arena **arenas)
@@ -67,6 +70,8 @@ static Arena *scan__get_thread_result_arena(Arena **arenas)
 
 void scan__remote_first_single_region_async(TaskID task, void *data)
 {
+    // TODO: Clean up this function
+
     scan_RemoteScanArgs args = *(scan_RemoteScanArgs *)data;
 
     memmi_Process proc = args.proc;
@@ -76,6 +81,16 @@ void scan__remote_first_single_region_async(TaskID task, void *data)
     scan_MultithreadArgs mt_args = args.mt_args;
     scan_RegionMatches *region = args.new_region_matches;
     Arena *result_arena = scan__get_thread_result_arena(args.per_thread_result_arena_array);
+
+    // Pre-allocate a match list for each thread to use. Later we'll connect them in a linked list.
+    usize thread_count = wq_get_thread_count(mt_args.work_queue);
+    args.per_thread_match_list_array = arena_alloc_array(result_arena, scan_MatchList, thread_count);
+
+    for (usize i = 0; i < thread_count; ++i) {
+        scan_MatchList *match_list = &args.per_thread_match_list_array[i];
+        match_list->first = match_list;
+        match_list->last = match_list;
+    }
 
     // For temporarily storing the memory of a region during the scan of it.
     Arena *scan_scratch_arena = thread_ctx_get()->per_scan_scratch_arena;
@@ -93,21 +108,69 @@ void scan__remote_first_single_region_async(TaskID task, void *data)
     } else {
         atomic_store_s32(args.at_least_one_read_succeeded_ptr, true);
 
+        mt_args.parent_task = task;
+
         // TODO: use stride provided by caller
         // TODO: local memory scan just advances by stride each step.
         // Make sure we compensate if the region provided is not aligned
         // by aligning forwards the first step.
-        scan_MatchList *matches_in_region =
-            scan_local_memory_first(result_arena, region_memory,
-                read_mem_result.bytes_read, region->region_base_address,
-                cmp, settings.required_alignment);
+
+        scan_local_memory_first_new(
+            args.per_thread_result_arena_array,
+            args.per_thread_match_list_array,
+            region_memory,
+            read_mem_result.bytes_read,
+            region->region_base_address,
+            cmp,
+            settings.required_alignment,
+            mt_args,
+            0);
 
         ASSERT(region->match_count_in_region == 0);
         ASSERT(!region->head);
-
-        region->head = matches_in_region;
-        region->match_count_in_region = matches_in_region->total_match_count;
     }
+
+    // All threads have independently pushed to their respective match lists,
+    // now we'll concatenate all the lists into one.
+    #if 0
+    for (usize i = 0; i < thread_count; ++i) {
+        scan_MatchList *thread_match_list = &args.per_thread_match_list_array[i];
+        scan_MatchList *next_thread_match_list =
+            (i < (thread_count - 1))
+            ? &args.per_thread_match_list_array[i + 1]
+            : 0;
+
+        if (next_thread_match_list) {
+            ASSERT(!thread_match_list->last);
+
+            thread_match_list->last->next = next_thread_match_list;
+            thread_match_list->last = next_thread_match_list;
+        }
+
+        // The first node in the list should hold the sum of the  match count of all nodes in the list.
+        scan_MatchList *first_match_list = &args.per_thread_match_list_array[0];
+        if (thread_match_list != first_match_list) {
+            first_match_list->total_match_count += thread_match_list->total_match_count;
+        }
+    }
+    #else
+    for (usize i = 0; 1 < thread_count; ++i) {
+        scan_MatchList *thread_match_list = &args.per_thread_match_list_array[i];
+
+        for (scan_MatchList *m = thread_match_list; m; m = list_next(m)) {
+            for (usize j = 0; j < m->count; ++j) {
+
+                scan__push_match(result_arena, &args.per_thread_match_list_array[0], m->match_data[j], m->match_history_data[j]);
+            }
+
+        }
+    }
+    #endif
+
+    // The first node in the linked list will hold the total match count of all nodes in the list.
+    scan_MatchList *first_match_list = &args.per_thread_match_list_array[0];
+    region->match_count_in_region = first_match_list->total_match_count;
+    region->head = first_match_list;
 
     // TODO: do we want to update progress bar with higher granularity than region?
     // Consider the region as scanned with regards to the progress bar whether it failed or succeeded.

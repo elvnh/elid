@@ -30,7 +30,6 @@ struct scan_MatchList {
     usize total_match_count; // Total number of matches in chain.
 
     // TODO: pack list node members into struct
-    // TODO: singly linked?
     scan_MatchList *next;
     scan_MatchList *first;
     scan_MatchList *last;

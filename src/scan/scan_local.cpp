@@ -40,6 +40,110 @@ static void scan__push_match(Arena *arena, scan_MatchList *list, scan_Match matc
     ++list->total_match_count;
 }
 
+struct scan_LocalScanArgs {
+    void *memory;
+    usize memory_size;
+    Arena **per_thread_result_arenas;
+    scan_MatchList *per_thread_match_lists;
+    uintptr_t base_address;
+    scan_Comparison cmp;
+    usize alignment;
+    scan_MultithreadArgs mt_args;
+    usize local_offset; // TODO: remove
+};
+
+static void scan__local_memory_first_async(TaskID task, void *data)
+{
+    scan_LocalScanArgs args = *(scan_LocalScanArgs *)data;
+
+    args.mt_args.parent_task = task;
+
+    scan_local_memory_first_new(
+        args.per_thread_result_arenas,
+        args.per_thread_match_lists,
+        args.memory,
+        args.memory_size,
+        args.base_address,
+        args.cmp,
+        args.alignment,
+        args.mt_args,
+        args.local_offset);
+}
+
+void scan_local_memory_first_new(Arena **per_thread_result_arenas, scan_MatchList *per_thread_match_lists,
+    void *mem, usize mem_size, uintptr_t base_address, scan_Comparison cmp, usize alignment, scan_MultithreadArgs mt_args,
+    usize local_offset /* TODO: remove */)
+{
+    if (mem_size > mt_args.max_bytes_to_scan_per_thread) {
+        printf("splitting\n");
+        ASSERT(mem_size > 0);
+
+        WorkQueue *wq = mt_args.work_queue;
+
+        usize value_size = scan_val_type_get_size(cmp.value_type);
+        usize sz = mem_size / 2;
+
+        ASSERT(sz > 0);
+
+        // TODO: make sure these are aligned
+        scan_LocalScanArgs left_half_args = {};
+        left_half_args.memory = mem;
+        left_half_args.memory_size = sz + value_size - 1;
+        left_half_args.per_thread_result_arenas = per_thread_result_arenas;
+        left_half_args.per_thread_match_lists = per_thread_match_lists;
+        left_half_args.base_address = 0;
+        left_half_args.cmp = cmp;
+        left_half_args.alignment = alignment;
+        left_half_args.mt_args = mt_args;
+
+        scan__local_memory_first_async({}, &left_half_args);
+
+        scan_LocalScanArgs right_half_args = left_half_args;
+        right_half_args.memory = ptr_byte_offset(mem, sz);
+        right_half_args.memory_size = mem_size - sz;
+        right_half_args.base_address = base_address + sz;
+        right_half_args.local_offset = sz;
+
+        scan__local_memory_first_async({}, &right_half_args);
+    } else {
+        Arena *arena = per_thread_result_arenas[wq_get_thread_index()];
+        scan_MatchList *match_list = &per_thread_match_lists[wq_get_thread_index()];
+
+        // TODO: now that we're providing the base address, we may as well store the
+        // absolute address in scan_Match
+
+        ASSERT(!scan_mode_is_comparative(cmp.mode));
+        ASSERT(is_pow2(alignment)); // TODO: don't require pow2 alignment
+
+        ASSERT_ALWAYS(is_aligned(base_address, alignment));
+
+        usize type_size = scan_val_type_get_size(cmp.value_type);
+
+        usize offset = 0;
+
+        while ((offset + type_size) <= mem_size) {
+            void *local_address = ptr_byte_offset(mem, offset);
+
+            scan_Value value_at_address = scan__load_value_at_address(local_address, cmp.value_type);
+
+            if (scan_cmp_match(value_at_address, cmp)) {
+                scan_Match match = {};
+                match.value = value_at_address;
+                match.offset_from_base = offset + local_offset;
+
+                // There is no history yet as this is the first scan.
+                scan_MatchHistory match_history = {};
+                match_history.first_value = match.value;
+                match_history.previous_value = match.value;
+
+                scan__push_match(arena, match_list, match, match_history);
+            }
+
+            offset += alignment;
+        }
+    }
+}
+
 scan_MatchList *scan_local_memory_first(Arena *arena, void *mem, usize mem_size, uintptr_t base_address,
     scan_Comparison cmp, usize alignment)
 {
