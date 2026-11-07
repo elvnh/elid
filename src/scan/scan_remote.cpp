@@ -92,12 +92,15 @@ void scan__remote_first_single_region_async(TaskID task, void *data)
         match_list->last = match_list;
     }
 
-    // For temporarily storing the memory of a region during the scan of it.
-    Arena *scan_scratch_arena = thread_ctx_get()->per_scan_scratch_arena;
-    arena_reset(scan_scratch_arena);
+    // For temporarily storing the memory of a region during the scan of it. We can't use a single
+    // arena per thread, since we will create child tasks that scan this region, and when we're
+    // waiting for them to finish, this thread might start executing some other task in the
+    // meantime. If that task happens to be this same function but for another region, we will reset
+    // the arena again, and the child tasks that we were waiting for will scan invalid memory.
+    ScratchArena scan_scratch_arena = scratch_begin();
 
     // TODO: don't zero out allocation, as we'll just overwrite it when reading in region
-    u8 *region_memory = arena_alloc_array(scan_scratch_arena, u8, region->region_size);
+    u8 *region_memory = arena_alloc_array(scan_scratch_arena.arena, u8, region->region_size);
 
     memmi_ReadMemory read_mem_result = memmi_read_memory(
         proc, region_memory, region->region_base_address, region->region_size);
@@ -132,7 +135,7 @@ void scan__remote_first_single_region_async(TaskID task, void *data)
 
     // All threads have independently pushed to their respective match lists,
     // now we'll concatenate all the lists into one.
-    #if 0
+    #if 1
     for (usize i = 0; i < thread_count; ++i) {
         scan_MatchList *thread_match_list = &args.per_thread_match_list_array[i];
         scan_MatchList *next_thread_match_list =
@@ -141,8 +144,6 @@ void scan__remote_first_single_region_async(TaskID task, void *data)
             : 0;
 
         if (next_thread_match_list) {
-            ASSERT(!thread_match_list->last);
-
             thread_match_list->last->next = next_thread_match_list;
             thread_match_list->last = next_thread_match_list;
         }
@@ -159,7 +160,6 @@ void scan__remote_first_single_region_async(TaskID task, void *data)
 
         for (scan_MatchList *m = thread_match_list; m; m = list_next(m)) {
             for (usize j = 0; j < m->count; ++j) {
-
                 scan__push_match(result_arena, &args.per_thread_match_list_array[0], m->match_data[j], m->match_history_data[j]);
             }
 
@@ -194,11 +194,12 @@ void scan__remote_next_single_region_async(TaskID task, void *data)
     ASSERT(prev_region->region_size == new_region->region_size);
 
     // For temporarily storing the memory of a region during the scan of it.
-    Arena *scan_scratch_arena = thread_ctx_get()->per_scan_scratch_arena;
-    arena_reset(scan_scratch_arena);
+    // See the comment in scan__remote_first_single_region_async for why we can't
+    // reuse the same thread-local arena each time we scan a region.
+    ScratchArena scan_scratch_arena = scratch_begin();
 
     // TODO: don't zero out allocation, as we'll just overwrite it when reading in region
-    u8 *region_memory = arena_alloc_array(scan_scratch_arena, u8, new_region->region_size);
+    u8 *region_memory = arena_alloc_array(scan_scratch_arena.arena, u8, new_region->region_size);
 
     memmi_ReadMemory read_mem_result = memmi_read_memory(
         proc, region_memory, new_region->region_base_address, new_region->region_size);
@@ -361,7 +362,7 @@ scan_Result scan_remote_memory_first(Arena *arena, memmi_Process proc, scan_Sett
     usize value_type_size = scan_val_type_get_size(cmp.value_type);
 
     // For temporarily storing the memory of a region during the scan of it.
-    Arena *scan_scratch_arena = thread_ctx_get()->per_scan_scratch_arena;
+    ScratchArena scan_scratch_arena = scratch_begin();
 
     // For allocations that need to live for entire lifetime of function.
     ScratchArena scratch = scratch_begin();
@@ -405,10 +406,10 @@ scan_Result scan_remote_memory_first(Arena *arena, memmi_Process proc, scan_Sett
             if (!should_skip_region) {
                 // Reset the arena before reading each regions memory, as we only need it during the
                 // scan of that region.
-                arena_reset(scan_scratch_arena);
+                arena_reset(scan_scratch_arena.arena);
 
                 // TODO: don't zero out allocation
-                char *region_memory = arena_alloc_array(scan_scratch_arena, char, region.size);
+                char *region_memory = arena_alloc_array(scan_scratch_arena.arena, char, region.size);
 
                 memmi_ReadMemory read_mem_result = memmi_read_memory(
                     proc, region_memory, region.base_address, region.size);
@@ -468,7 +469,7 @@ scan_Result scan_remote_memory_next_new(Arena **per_thread_result_arenas, memmi_
     u64 t1 = get_monotonic_clock_ns();
 
     // For temporarily storing the memory of a region during the scan of it.
-    Arena *scan_scratch_arena = thread_ctx_get()->per_scan_scratch_arena;
+    ScratchArena scan_scratch_arena = scratch_begin();
 
     Arena *result_arena = scan__get_thread_result_arena(per_thread_result_arenas);
 
@@ -550,7 +551,7 @@ scan_Result scan_remote_memory_next(Arena *arena, memmi_Process proc, scan_Setti
     result.process_objects = proc_get_loaded_objects(arena, proc);
 
     // For temporarily storing the memory of a region during the scan of it.
-    Arena *scan_scratch_arena = thread_ctx_get()->per_scan_scratch_arena;
+    ScratchArena scan_scratch_arena = scratch_begin();
 
     b32 at_least_one_read_succeeded = false;
 
@@ -566,9 +567,9 @@ scan_Result scan_remote_memory_next(Arena *arena, memmi_Process proc, scan_Setti
     for (scan_RegionMatches *match_list = list_head(&prev_results); match_list; match_list = list_next(match_list)) {
         // Reset the arena before reading each regions memory, as we only need it during the scan of
         // that region.
-        arena_reset(scan_scratch_arena);
+        arena_reset(scan_scratch_arena.arena);
 
-        char *region_memory = arena_alloc_array(scan_scratch_arena, char, match_list->region_size);
+        char *region_memory = arena_alloc_array(scan_scratch_arena.arena, char, match_list->region_size);
 
         memmi_ReadMemory read_mem_result =
             memmi_read_memory(proc, region_memory, match_list->region_base_address, match_list->region_size);

@@ -140,7 +140,6 @@ void wq_run_task(TaskID id)
 
 }
 
-// TODO: wq__ -> wq__
 static wq__Task *wq__try_get_task(wq__ThreadWorkQueue *queue)
 {
     wq__Task *result = 0;

@@ -49,7 +49,7 @@ struct scan_LocalScanArgs {
     scan_Comparison cmp;
     usize alignment;
     scan_MultithreadArgs mt_args;
-    usize local_offset; // TODO: remove
+    usize local_offset; // TODO: remove, unneccessary if we store absolute address in scan_Match
 };
 
 static void scan__local_memory_first_async(TaskID task, void *data)
@@ -88,23 +88,28 @@ void scan_local_memory_first_new(Arena **per_thread_result_arenas, scan_MatchLis
         // TODO: make sure these are aligned
         scan_LocalScanArgs left_half_args = {};
         left_half_args.memory = mem;
-        left_half_args.memory_size = sz + value_size - 1;
+        left_half_args.memory_size = sz; // TODO: these regions should overlap
         left_half_args.per_thread_result_arenas = per_thread_result_arenas;
         left_half_args.per_thread_match_lists = per_thread_match_lists;
-        left_half_args.base_address = 0;
+        left_half_args.base_address = base_address;
         left_half_args.cmp = cmp;
         left_half_args.alignment = alignment;
         left_half_args.mt_args = mt_args;
-
-        scan__local_memory_first_async({}, &left_half_args);
 
         scan_LocalScanArgs right_half_args = left_half_args;
         right_half_args.memory = ptr_byte_offset(mem, sz);
         right_half_args.memory_size = mem_size - sz;
         right_half_args.base_address = base_address + sz;
-        right_half_args.local_offset = sz;
+        right_half_args.local_offset = local_offset + sz;
 
-        scan__local_memory_first_async({}, &right_half_args);
+        ASSERT(left_half_args.base_address != right_half_args.base_address);
+
+        // TODO: create a root task instead
+        TaskID left_half_task = wq_push_task_as_child(wq, scan__local_memory_first_async, left_half_args, mt_args.parent_task);
+        TaskID right_half_task = wq_push_task_as_child(wq, scan__local_memory_first_async, right_half_args, mt_args.parent_task);
+
+        wq_wait_for_task(left_half_task);
+        wq_wait_for_task(right_half_task);
     } else {
         Arena *arena = per_thread_result_arenas[wq_get_thread_index()];
         scan_MatchList *match_list = &per_thread_match_lists[wq_get_thread_index()];

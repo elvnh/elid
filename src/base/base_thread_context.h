@@ -1,18 +1,12 @@
 #pragma once
 
+// TODO: reduce the size of this, use other chain of arenas for scan scratch arenas
 #define THREAD_SCRATCH_ARENA_SIZE MB(4)
-
-// NOTE: This is only used to store a regions memory at a time,
-// so it doesn't need to be too large
-#define THREAD_SCAN_SCRATCH_ARENA_SIZE MB(32)
 
 // All thread-local variables should go here.
 struct ThreadContext {
     // Chain of scratch arenas.
     Arena *first_scratch_arena;
-
-    // For reading memory to scan and then discard.
-    Arena *per_scan_scratch_arena; // TODO: move into scan_RemoteScanArgs
 
     rng_State rng;
 
