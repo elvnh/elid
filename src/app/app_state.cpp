@@ -17,8 +17,8 @@ b32 app_init(app_State *app)
 
     // TODO: check number of cores on system
     // TODO: come up with a good distribution of number of threads between the different work queues
-    usize thread_count = 2;
-    app->per_frame_work_queue = wq_create(app->permanent_arena, (s32)thread_count);
+    usize thread_count = 16;
+    app->per_frame_work_queue = wq_create(app->permanent_arena, 2);
     app->multi_frame_work_queue = wq_create(app->permanent_arena, (s32)thread_count);
 
     app->current_per_thread_scan_result_arenas  = arena_alloc_array(app->permanent_arena, Arena *, thread_count);

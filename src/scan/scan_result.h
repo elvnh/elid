@@ -1,7 +1,7 @@
 #pragma once
 
 // TODO: come up with a good size for this
-#define SCAN_MATCH_LIST_SIZE 2
+#define SCAN_MATCH_LIST_SIZE 512
 
 struct scan_Match {
     scan_Value value;

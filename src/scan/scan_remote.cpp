@@ -463,6 +463,11 @@ scan_Result scan_remote_memory_first(Arena *arena, memmi_Process proc, scan_Sett
     return result;
 }
 
+/* TODO: Split memory regions into separate scan tasks if too large. This has some benefits:
+ * - Next scan workload will be more evenly distributed, instead of rescanning an entire region per thread
+ * - We don't have to multithread local scans
+ * - Reading region into memory will always fit, provided we make the scan scratch arena size match the max size per thread
+ */
 scan_Result scan_remote_memory_next_new(Arena **per_thread_result_arenas, memmi_Process proc, scan_Settings settings,
     scan_Comparison cmp, scan_Result prev_results, scan_Progress progress, scan_MultithreadArgs mt_args)
 {
