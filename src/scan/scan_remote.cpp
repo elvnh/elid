@@ -97,7 +97,7 @@ void scan__remote_first_single_region_async(TaskID task, void *data)
     // waiting for them to finish, this thread might start executing some other task in the
     // meantime. If that task happens to be this same function but for another region, we will reset
     // the arena again, and the child tasks that we were waiting for will scan invalid memory.
-    ScratchArena scan_scratch_arena = scratch_begin();
+    ScratchArena scan_scratch_arena = scratch_begin_using(SCRATCH_ARENA_CATEGORY_PER_SCAN);
 
     // TODO: don't zero out allocation, as we'll just overwrite it when reading in region
     u8 *region_memory = arena_alloc_array(scan_scratch_arena.arena, u8, region->region_size);
@@ -193,10 +193,10 @@ void scan__remote_next_single_region_async(TaskID task, void *data)
     ASSERT(prev_region->region_base_address == new_region->region_base_address);
     ASSERT(prev_region->region_size == new_region->region_size);
 
-    // For temporarily storing the memory of a region during the scan of it.
-    // See the comment in scan__remote_first_single_region_async for why we can't
-    // reuse the same thread-local arena each time we scan a region.
-    ScratchArena scan_scratch_arena = scratch_begin();
+    // For temporarily storing the memory of a region during the scan of it. See the comment in
+    // scan__remote_first_single_region_async for why we can't reuse the same thread-local arena
+    // each time we scan a region.
+    ScratchArena scan_scratch_arena = scratch_begin_using(SCRATCH_ARENA_CATEGORY_PER_SCAN);
 
     // TODO: don't zero out allocation, as we'll just overwrite it when reading in region
     u8 *region_memory = arena_alloc_array(scan_scratch_arena.arena, u8, new_region->region_size);
