@@ -1,7 +1,7 @@
 #include "app_async.h"
 
 // TODO: come up with a good default and make it customizable
-#define APP_DEFAULT_MAX_BYTES_TO_SCAN_PER_THREAD MB(2)
+#define APP_DEFAULT_MAX_BYTES_TO_SCAN_PER_THREAD MB(1)
 
 void app_async_get_running_processes(TaskID, void *data)
 {
@@ -104,6 +104,24 @@ void app_async_run_first_scan(TaskID, void *data)
 
         app->result_list = scan_remote_memory_first_new(
             app->current_per_thread_scan_result_arenas, app->open_process_handle, args.settings, args.cmp, progress, mt_args);
+
+        #if DEBUG_BUILD
+        {
+            scan_Progress prog = {};
+            usize dummy = 0;
+            prog.bytes_to_scan_ptr = &dummy;
+            prog.bytes_scanned_ptr = &dummy;
+
+            scan_Result result_old = scan_remote_memory_first(
+                app->current_per_thread_scan_result_arenas[0], app->open_process_handle, args.settings, args.cmp, prog);
+
+            ScratchArena scratch = scratch_begin();
+            scan_ResultView view_new = scan_result_make_view(scratch.arena, app->result_list);
+            scan_ResultView view_old = scan_result_make_view(scratch.arena, result_old);
+
+            ASSERT(scan_view_eq(view_new, view_old));
+        }
+        #endif
     }
     #endif
 
@@ -142,6 +160,24 @@ void app_async_run_next_scan(TaskID, void *data)
             app->current_per_thread_scan_result_arenas,
             app->open_process_handle, args.settings, args.cmp, app->result_list, progress, mt_args);
 
+        #if DEBUG_BUILD
+        {
+            scan_Progress prog = {};
+            usize dummy = 0;
+            prog.bytes_to_scan_ptr = &dummy;
+            prog.bytes_scanned_ptr = &dummy;
+
+            scan_Result result_old = scan_remote_memory_next(
+                app->current_per_thread_scan_result_arenas[0],
+                app->open_process_handle, args.settings, args.cmp, app->result_list, prog);
+
+            ScratchArena scratch = scratch_begin();
+            scan_ResultView view_new = scan_result_make_view(scratch.arena, app->result_list);
+            scan_ResultView view_old = scan_result_make_view(scratch.arena, result_old);
+
+            ASSERT(scan_view_eq(view_new, view_old));
+        }
+        #endif
     }
     #endif
 

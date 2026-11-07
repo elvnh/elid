@@ -53,8 +53,8 @@ struct scan_Result {
     scan_Mode           scan_mode;
     scan_ValueType      value_type;
     proc_Status         errors; // TODO: rename to error_bitset
-    usize               total_match_count;
 
+    usize               total_match_count;
     memmi_Process       scanned_process;
     proc_ObjectList     process_objects;
 
@@ -69,6 +69,9 @@ struct scan_ResultView {
     usize count;
 };
 
+// TODO: scan_view_from_result
 scan_ResultView scan_result_make_view(Arena *arena, scan_Result scan_result);
 uintptr_t       scan_address_from_match_details(scan_MatchDetails details);
+// TODO: scan_view_from_match_list
 scan_ResultView scan_match_list_make_view(Arena *arena, scan_MatchList *matches);
+b32             scan_view_eq(scan_ResultView lhs, scan_ResultView rhs);

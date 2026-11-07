@@ -6,6 +6,7 @@ struct scan_Settings {
     usize required_alignment;
 };
 
+// TODO: move elsewhere
 struct scan_Progress {
     usize *bytes_to_scan_ptr;
     usize *bytes_scanned_ptr;

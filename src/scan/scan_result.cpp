@@ -66,7 +66,7 @@ void scan__result_view_sort(scan_ResultView *results)
 
 scan_ResultView scan_result_make_view(Arena *arena, scan_Result scan_result)
 {
-    ASSERT((scan_result.total_match_count < 50000) && "Only call this with a reasonable number of matches");
+    // ASSERT((scan_result.total_match_count < 50000) && "Only call this with a reasonable number of matches");
 
     scan_ResultView result = {};
     result.data = arena_alloc_array(arena, scan_MatchDetails, scan_result.total_match_count);
@@ -100,6 +100,23 @@ scan_ResultView scan_match_list_make_view(Arena *arena, scan_MatchList *matches)
     }
 
     scan__result_view_sort(&result);
+
+    return result;
+}
+
+b32 scan_view_eq(scan_ResultView lhs, scan_ResultView rhs)
+{
+    b32 result = lhs.count == rhs.count;
+
+    for (usize i = 0; (i < lhs.count) && result; ++i) {
+        scan_MatchDetails a = lhs.data[i];
+        scan_MatchDetails b = rhs.data[i];
+
+        result = (a.match->offset_from_base == b.match->offset_from_base)
+            && scan_val_eq(SCAN_VALUE_TYPE_INT32, a.match->value, b.match->value)
+            && scan_val_eq(SCAN_VALUE_TYPE_INT32, a.history->previous_value, b.history->previous_value)
+            && scan_val_eq(SCAN_VALUE_TYPE_INT32, a.history->first_value, b.history->first_value);
+    }
 
     return result;
 }
