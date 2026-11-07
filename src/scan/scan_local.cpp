@@ -95,16 +95,13 @@ void scan_local_memory_first_new(Arena **per_thread_result_arenas, scan_MatchLis
         left_half_args.cmp = cmp;
         left_half_args.alignment = alignment;
         left_half_args.mt_args = mt_args;
+        left_half_args.local_offset = local_offset;
 
         scan_LocalScanArgs right_half_args = left_half_args;
         right_half_args.memory = ptr_byte_offset(mem, sz);
         right_half_args.memory_size = mem_size - sz;
-        right_half_args.base_address = base_address + sz;
         right_half_args.local_offset = local_offset + sz;
 
-        ASSERT(left_half_args.base_address != right_half_args.base_address);
-
-        // TODO: create a root task instead
         TaskID left_half_task = wq_push_task_as_child(wq, scan__local_memory_first_async, left_half_args, mt_args.parent_task);
         TaskID right_half_task = wq_push_task_as_child(wq, scan__local_memory_first_async, right_half_args, mt_args.parent_task);
 
