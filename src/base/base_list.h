@@ -144,6 +144,17 @@
 
 #define sll_insert(list, node, after) sll_insert_nfl((list), (node), (after), next, first, last)
 
+// TODO: unit test this
+#define sll_concat(a, b)                                        \
+    (list_is_empty(b) ? 0 :                                     \
+        ((list_is_empty(a)                                      \
+            ? (((a)->first = (b)->first),                       \
+                ((a)->last = (b)->last))                        \
+            : (((a)->last->next = (b)->first),                  \
+                ((a)->last = (b)->last))),                      \
+            ((a)->list_node_count += (b)->list_node_count)))
+
+
 /* Stacks */
 #define stack_push_nh_no_count(stack, node, next, head) \
     (((node)->next = (stack)->head),                    \
@@ -151,8 +162,7 @@
 
 #define stack_push_nh(stack, node, next, head)          \
     (stack_push_nh_no_count(stack, node, next, head),   \
-        (++(stack)->list_node_count)                   \
-    )
+        (++(stack)->list_node_count))
 
 #define stack_push(stack, node) stack_push_nh((stack), (node), next, head)
 #define stack_push_no_count(stack, node) stack_push_nh((stack), (node), next, head)
@@ -166,7 +176,6 @@
 #define stack_pop_nh(stack, next, head)                  \
     (((stack)->head ? (--(stack)->list_node_count) : 0), \
     stack_pop_nh_no_count(stack, next, head))
-
 
 #define stack_pop(stack) stack_pop_nh((stack), next, head)
 
