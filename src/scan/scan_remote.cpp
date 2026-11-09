@@ -42,7 +42,12 @@ static scan_RegionMatches *scan__make_region_matches(Arena *arena,
 // TODO: rename and move elsewhere
 struct scan_RemoteScanThreadResult {
     // TODO: use properlist
-    scan_RegionMatches *first_region;
+    struct {
+        scan_RegionMatches *first;
+        scan_RegionMatches *last;
+        usize list_node_count;
+    } regions;
+
     usize match_count;
 };
 
@@ -157,13 +162,8 @@ void scan__remote_first_single_region_async(TaskID task, void *data)
                 region->match_count_in_region = matches_in_region->total_match_count;
 
                 scan_RemoteScanThreadResult *thread_result = &args.per_thread_scan_results[wq_get_thread_index()];
+                sll_push_back(&thread_result->regions, region);
 
-                if (thread_result->first_region) {
-                    region->next = thread_result->first_region;
-                    region->last = thread_result->first_region->last;
-                }
-
-                thread_result->first_region = region;
                 thread_result->match_count += region->match_count_in_region;
             }
         }
@@ -321,25 +321,13 @@ scan_Result scan_remote_memory_first_new(Arena **per_thread_result_arenas, memmi
         wq_run_task(root_task);
         wq_wait_for_task(root_task);
 
-        // All threads have pushed their region results to their own lists, now we'll concatenate
-        // those lists.
+        // All threads have pushed their region results to their own lists, now we'll concatenate them.
         for (usize i = 0; i < thread_count; ++i) {
-            scan_RegionMatches *region = per_thread_scan_results[i].first_region;
+            scan_RemoteScanThreadResult *thread_result = &per_thread_scan_results[i];
 
-            if (region) {
-                if (result.last) {
-                    ASSERT(!result.last->next);
-                    result.last->next = region;
-                } else {
-                    ASSERT(!result.first);
+            sll_concat(&result, &thread_result->regions);
 
-                    result.first = region;
-                }
-
-                result.last = region->last;
-            }
-
-            result.total_match_count += per_thread_scan_results[i].match_count;
+            result.total_match_count += thread_result->match_count;
         }
     }
 
