@@ -4,7 +4,7 @@
 // TODO: can this be done in a better way?
 // TODO: this is not necessary for 32 bit
 #define SCAN_SKIP_REGION_SIZE_THRESHOLD TB(13)
-#define SCAN_MAX_RECURSION_DEPTH 128
+#define SCAN_MAX_RECURSION_DEPTH 8
 
 static void scan__push_region_matches(Arena *arena, scan_Result *result, scan_MatchList *matches,
     uintptr_t region_address, usize region_size, proc_Object_Maybe containing_object)
