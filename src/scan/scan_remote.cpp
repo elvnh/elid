@@ -92,7 +92,7 @@ void scan__remote_first_single_region_async(TaskID task, void *data)
         WorkQueue *wq = mt_args.work_queue;
 
         usize value_size = scan_val_type_get_size(cmp.value_type);
-        usize sz = args.region_size / 2;
+        usize sz = align_pow2(args.region_size / 2, settings.required_alignment);
 
         ASSERT(sz > 0);
 
