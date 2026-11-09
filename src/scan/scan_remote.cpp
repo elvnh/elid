@@ -58,7 +58,6 @@ struct scan_RemoteScanArgs {
 
     // Per-thread data, can be indexed into using wq_get_thread_index().
     Arena **per_thread_result_arena_array;
-    scan_MatchList *per_thread_match_list_array; // Per thread, per region, TODO: remove
     scan_RegionMatches **per_thread_region_lists;
 
     usize depth;
@@ -84,21 +83,19 @@ void scan__remote_first_single_region_async(TaskID task, void *data)
     Arena *result_arena = scan__get_thread_result_arena(args.per_thread_result_arena_array);
 
     if ((args.region_size > args.mt_args.max_bytes_to_scan_per_thread) && (args.depth < SCAN_MAX_RECURSION_DEPTH)) {
-        printf("splitting %zu\n", args.depth);
         ASSERT(args.region_size > 0);
 
         ++args.depth;
 
         WorkQueue *wq = mt_args.work_queue;
 
-        usize value_size = scan_val_type_get_size(cmp.value_type);
         usize sz = align_pow2(args.region_size / 2, settings.required_alignment);
 
         ASSERT(sz > 0);
 
-        // TODO: make sure these are aligned
+        // TODO: these regions should overlap so values spanning both two regions can be found
         scan_RemoteScanArgs left_half_args = args;
-        left_half_args.region_size = sz; // TODO: these regions should overlap
+        left_half_args.region_size = sz;
         left_half_args.cmp = cmp;
 
         scan_RemoteScanArgs right_half_args = left_half_args;
@@ -170,15 +167,13 @@ void scan__remote_first_single_region_async(TaskID task, void *data)
     }
 }
 
-void scan__remote_next_single_region_async(TaskID task, void *data)
+void scan__remote_next_single_region_async(TaskID, void *data)
 {
     scan_RemoteScanArgs args = *(scan_RemoteScanArgs *)data;
 
     memmi_Process proc = args.proc;
-    scan_Settings settings = args.settings;
     scan_Comparison cmp = args.cmp;
     scan_Progress progress = args.progress;
-    scan_MultithreadArgs mt_args = args.mt_args;
     scan_RegionMatches *new_region = args.new_region_matches;
     scan_RegionMatches *prev_region = args.previous_region_matches;
     Arena *result_arena = scan__get_thread_result_arena(args.per_thread_result_arena_array);
