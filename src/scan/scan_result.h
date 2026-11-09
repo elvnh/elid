@@ -45,8 +45,11 @@ struct scan_RegionMatches {
 
     usize match_count_in_region;
 
+    // TODO: rename
     scan_MatchList *head; // TODO: the first member doesn't need to be a pointer?
+
     scan_RegionMatches *next;
+    scan_RegionMatches *last;
 };
 
 struct scan_Result {

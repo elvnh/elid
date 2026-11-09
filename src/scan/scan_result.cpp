@@ -69,14 +69,19 @@ scan_ResultView scan_result_make_view(Arena *arena, scan_Result scan_result)
     // ASSERT((scan_result.total_match_count < 50000) && "Only call this with a reasonable number of matches");
 
     scan_ResultView result = {};
-    result.data = arena_alloc_array(arena, scan_MatchDetails, scan_result.total_match_count);
 
-    for (scan_RegionMatches *region = list_head(&scan_result); region; region = list_next(region)) {
-        for (scan_MatchList *matches = region->head; matches; matches = list_next(matches)) {
-            for (usize i = 0; i < matches->count; ++i) {
-                scan_MatchDetails details = scan__match_details_from_match(matches, region, i);
+    if (scan_result.total_match_count > 0) {
+        result.data = arena_alloc_array(arena, scan_MatchDetails, scan_result.total_match_count);
 
-                result.data[result.count++] = details;
+        for (scan_RegionMatches *region = list_head(&scan_result); region; region = list_next(region)) {
+            for (scan_MatchList *matches = region->head; matches; matches = list_next(matches)) {
+                for (usize i = 0; i < matches->count; ++i) {
+                    scan_MatchDetails details = scan__match_details_from_match(matches, region, i);
+
+                    ASSERT(result.count < scan_result.total_match_count);
+
+                    result.data[result.count++] = details;
+                }
             }
         }
     }
@@ -112,7 +117,7 @@ b32 scan_view_eq(scan_ResultView lhs, scan_ResultView rhs)
         scan_MatchDetails a = lhs.data[i];
         scan_MatchDetails b = rhs.data[i];
 
-        result = (a.match->offset_from_base == b.match->offset_from_base)
+        result = (scan_address_from_match_details(a) == scan_address_from_match_details(b))
             && scan_val_eq(SCAN_VALUE_TYPE_INT32, a.match->value, b.match->value)
             && scan_val_eq(SCAN_VALUE_TYPE_INT32, a.history->previous_value, b.history->previous_value)
             && scan_val_eq(SCAN_VALUE_TYPE_INT32, a.history->first_value, b.history->first_value);
