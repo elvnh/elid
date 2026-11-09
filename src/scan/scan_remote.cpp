@@ -77,115 +77,6 @@ static Arena *scan__get_thread_result_arena(Arena **arenas)
 void scan__remote_first_single_region_async(TaskID task, void *data)
 {
     // TODO: Clean up this function
-
-    scan_RemoteScanArgs args = *(scan_RemoteScanArgs *)data;
-
-    memmi_Process proc = args.proc;
-    scan_Settings settings = args.settings;
-    scan_Comparison cmp = args.cmp;
-    scan_Progress progress = args.progress;
-    scan_MultithreadArgs mt_args = args.mt_args;
-    scan_RegionMatches *region = args.new_region_matches;
-    Arena *result_arena = scan__get_thread_result_arena(args.per_thread_result_arena_array);
-
-    // Pre-allocate a match list for each thread to use. Later we'll connect them in a linked list.
-    usize thread_count = wq_get_thread_count(mt_args.work_queue);
-    args.per_thread_match_list_array = arena_alloc_array(result_arena, scan_MatchList, thread_count);
-
-    for (usize i = 0; i < thread_count; ++i) {
-        scan_MatchList *match_list = &args.per_thread_match_list_array[i];
-        match_list->first = match_list;
-        match_list->last = match_list;
-    }
-
-    // For temporarily storing the memory of a region during the scan of it. We can't use a single
-    // arena per thread, since we will create child tasks that scan this region, and when we're
-    // waiting for them to finish, this thread might start executing some other task in the
-    // meantime. If that task happens to be this same function but for another region, we will reset
-    // the arena again, and the child tasks that we were waiting for will scan invalid memory.
-    ScratchArena scan_scratch_arena = scratch_begin_using(SCRATCH_ARENA_CATEGORY_PER_SCAN);
-
-    // TODO: don't zero out allocation, as we'll just overwrite it when reading in region
-    u8 *region_memory = arena_alloc_array(scan_scratch_arena.arena, u8, region->region_size);
-
-    memmi_ReadMemory read_mem_result = memmi_read_memory(
-        proc, region_memory, region->region_base_address, region->region_size);
-
-    if (read_mem_result.status != MEMMI_OK) {
-        proc_Status status = proc_status_from_memmi_status(read_mem_result.status);
-        atomic_or_s32(args.errors_bitset_ptr, status);
-    } else {
-        atomic_store_s32(args.at_least_one_read_succeeded_ptr, true);
-
-        mt_args.parent_task = task;
-
-        // TODO: use stride provided by caller
-        // TODO: local memory scan just advances by stride each step.
-        // Make sure we compensate if the region provided is not aligned
-        // by aligning forwards the first step.
-
-        scan_local_memory_first_new(
-            args.per_thread_result_arena_array,
-            args.per_thread_match_list_array,
-            region_memory,
-            read_mem_result.bytes_read,
-            region->region_base_address,
-            cmp,
-            settings.required_alignment,
-            mt_args,
-            0);
-
-        ASSERT(region->match_count_in_region == 0);
-        ASSERT(!region->head);
-    }
-
-    // All threads have independently pushed to their respective match lists,
-    // now we'll concatenate all the lists into one.
-    #if 1
-    for (usize i = 0; i < thread_count; ++i) {
-        scan_MatchList *thread_match_list = &args.per_thread_match_list_array[i];
-        scan_MatchList *next_thread_match_list =
-            (i < (thread_count - 1))
-            ? &args.per_thread_match_list_array[i + 1]
-            : 0;
-
-        if (next_thread_match_list) {
-            thread_match_list->last->next = next_thread_match_list;
-            thread_match_list->last = next_thread_match_list;
-        }
-
-        // The first node in the list should hold the sum of the  match count of all nodes in the list.
-        scan_MatchList *first_match_list = &args.per_thread_match_list_array[0];
-        if (thread_match_list != first_match_list) {
-            first_match_list->total_match_count += thread_match_list->total_match_count;
-        }
-    }
-    #else
-    for (usize i = 0; 1 < thread_count; ++i) {
-        scan_MatchList *thread_match_list = &args.per_thread_match_list_array[i];
-
-        for (scan_MatchList *m = thread_match_list; m; m = list_next(m)) {
-            for (usize j = 0; j < m->count; ++j) {
-                scan__push_match(result_arena, &args.per_thread_match_list_array[0], m->match_data[j], m->match_history_data[j]);
-            }
-
-        }
-    }
-    #endif
-
-    // The first node in the linked list will hold the total match count of all nodes in the list.
-    scan_MatchList *first_match_list = &args.per_thread_match_list_array[0];
-    region->match_count_in_region = first_match_list->total_match_count;
-    region->head = first_match_list;
-
-    // TODO: do we want to update progress bar with higher granularity than region?
-    // Consider the region as scanned with regards to the progress bar whether it failed or succeeded.
-    atomic_add_usize(progress.bytes_scanned_ptr, region->region_size);
-}
-
-void scan__remote_first_single_region_async_new(TaskID task, void *data)
-{
-    // TODO: Clean up this function
     scan_RemoteScanArgs args = *(scan_RemoteScanArgs *)data;
     memmi_Process proc = args.proc;
     scan_Settings settings = args.settings;
@@ -214,10 +105,10 @@ void scan__remote_first_single_region_async_new(TaskID task, void *data)
         right_half_args.region_address = args.region_address + sz;
         right_half_args.region_size = args.region_size - sz;
 
-        TaskID left_half_task = wq_push_task_as_child(wq, scan__remote_first_single_region_async_new,
-            left_half_args, mt_args.parent_task);
-        TaskID right_half_task = wq_push_task_as_child(wq, scan__remote_first_single_region_async_new,
-            right_half_args, mt_args.parent_task);
+        TaskID left_half_task = wq_push_task_as_child(wq, scan__remote_first_single_region_async,
+            left_half_args, task);
+        TaskID right_half_task = wq_push_task_as_child(wq, scan__remote_first_single_region_async,
+            right_half_args, task);
 
         wq_wait_for_task(left_half_task);
         wq_wait_for_task(right_half_task);
@@ -421,7 +312,7 @@ scan_Result scan_remote_memory_first_new(Arena **per_thread_result_arenas, memmi
                 args.object_containing_region = containing_object;
                 args.per_thread_region_lists = per_thread_region_lists;
 
-                wq_push_task_as_child(mt_args.work_queue, scan__remote_first_single_region_async_new, args, root_task);
+                wq_push_task_as_child(mt_args.work_queue, scan__remote_first_single_region_async, args, root_task);
             }
         }
 
@@ -586,11 +477,6 @@ scan_Result scan_remote_memory_first(Arena *arena, memmi_Process proc, scan_Sett
     return result;
 }
 
-/* TODO: Split memory regions into separate scan tasks if too large. This has some benefits:
- * - Next scan workload will be more evenly distributed, instead of rescanning an entire region per thread
- * - We don't have to multithread local scans
- * - Reading region into memory will always fit, provided we make the scan scratch arena size match the max size per thread
- */
 scan_Result scan_remote_memory_next_new(Arena **per_thread_result_arenas, memmi_Process proc, scan_Settings settings,
     scan_Comparison cmp, scan_Result prev_results, scan_Progress progress, scan_MultithreadArgs mt_args)
 {
@@ -643,6 +529,8 @@ scan_Result scan_remote_memory_next_new(Arena **per_thread_result_arenas, memmi_
         args.at_least_one_read_succeeded_ptr = &at_least_one_read_succeeded;
         args.errors_bitset_ptr = &result.errors;
 
+        // NOTE: Since the first scan divided the regions into manageable sizes, the next scan
+        // workload should be fairly evenly distributed if we simply scan through one region per thread.
         wq_push_task_as_child(mt_args.work_queue, scan__remote_next_single_region_async, args, root_task);
     }
 
