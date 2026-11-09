@@ -4,11 +4,7 @@
 // TODO: can this be done in a better way?
 // TODO: this is not necessary for 32 bit
 #define SCAN_SKIP_REGION_SIZE_THRESHOLD TB(13)
-
-/*
-  TODO:
-  - Report errors when in multithreaded scans
- */
+#define SCAN_MAX_RECURSION_DEPTH 128
 
 static void scan__push_region_matches(Arena *arena, scan_Result *result, scan_MatchList *matches,
     uintptr_t region_address, usize region_size, proc_Object_Maybe containing_object)
@@ -64,6 +60,8 @@ struct scan_RemoteScanArgs {
     Arena **per_thread_result_arena_array;
     scan_MatchList *per_thread_match_list_array; // Per thread, per region, TODO: remove
     scan_RegionMatches **per_thread_region_lists;
+
+    usize depth;
 };
 
 static Arena *scan__get_thread_result_arena(Arena **arenas)
@@ -85,9 +83,11 @@ void scan__remote_first_single_region_async(TaskID task, void *data)
     scan_MultithreadArgs mt_args = args.mt_args;
     Arena *result_arena = scan__get_thread_result_arena(args.per_thread_result_arena_array);
 
-    if (args.region_size > args.mt_args.max_bytes_to_scan_per_thread) {
-        printf("splitting\n");
+    if ((args.region_size > args.mt_args.max_bytes_to_scan_per_thread) && (args.depth < SCAN_MAX_RECURSION_DEPTH)) {
+        printf("splitting %zu\n", args.depth);
         ASSERT(args.region_size > 0);
+
+        ++args.depth;
 
         WorkQueue *wq = mt_args.work_queue;
 
