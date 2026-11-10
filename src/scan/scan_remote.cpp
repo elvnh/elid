@@ -6,6 +6,66 @@
 #define SCAN_SKIP_REGION_SIZE_THRESHOLD TB(13)
 #define SCAN_MAX_RECURSION_DEPTH 8
 
+struct scan_RemoteScanThreadContext {
+    Arena *result_arena;
+
+    struct {
+        scan_RegionMatches *first;
+        scan_RegionMatches *last;
+        usize list_node_count;
+    } region_matches;
+
+    usize match_count;
+};
+
+struct scan_RemoteScanArgs {
+    memmi_Process proc;
+    scan_Settings settings;
+    scan_Comparison cmp;
+    scan_Progress progress;
+    scan_MultithreadArgs mt_args;
+    scan_RegionMatches *new_region_matches; // TODO: remove
+    scan_RegionMatches *previous_region_matches;
+
+    proc_Status *errors_bitset_ptr;
+    b32 *at_least_one_read_succeeded_ptr;
+
+    uintptr_t region_address;
+    usize region_size;
+    proc_Object_Maybe object_containing_region;
+
+    usize depth; // TODO: rename to recursion_depth
+
+    // Per-thread data, can be indexed into using wq_get_thread_index().
+    scan_RemoteScanThreadContext *thread_contexts;
+};
+
+static scan_RemoteScanThreadContext *scan__alloc_thread_contexts(Arena **per_thread_arenas, usize thread_count)
+{
+    ASSERT(thread_count > 0);
+
+    // Arbitrarily use the first threads arena to allocate the array.
+    scan_RemoteScanThreadContext *result = arena_alloc_array(
+        *per_thread_arenas, scan_RemoteScanThreadContext, thread_count);
+
+    for (usize i = 0; i < thread_count; ++i) {
+        scan_RemoteScanThreadContext *context = &result[i];
+        context->result_arena = per_thread_arenas[i];
+    }
+
+    return result;
+}
+
+static scan_RemoteScanThreadContext *scan__get_thread_context(scan_RemoteScanThreadContext *contexts)
+{
+    usize index = wq_get_thread_index();
+
+    scan_RemoteScanThreadContext *result = &contexts[index];
+
+    return result;
+}
+
+// TODO: get rid of this
 static void scan__push_region_matches(Arena *arena, scan_Result *result, scan_MatchList *matches,
     uintptr_t region_address, usize region_size, proc_Object_Maybe containing_object)
 {
@@ -39,49 +99,6 @@ static scan_RegionMatches *scan__make_region_matches(Arena *arena,
     return result;
 }
 
-// TODO: rename and move elsewhere
-struct scan_RemoteScanThreadResult {
-    // TODO: use properlist
-    struct {
-        scan_RegionMatches *first;
-        scan_RegionMatches *last;
-        usize list_node_count;
-    } regions;
-
-    usize match_count;
-};
-
-struct scan_RemoteScanArgs {
-    memmi_Process proc;
-    scan_Settings settings;
-    scan_Comparison cmp;
-    scan_Progress progress;
-    scan_MultithreadArgs mt_args;
-    scan_RegionMatches *new_region_matches;
-    scan_RegionMatches *previous_region_matches;
-
-    proc_Status *errors_bitset_ptr;
-    b32 *at_least_one_read_succeeded_ptr;
-
-    uintptr_t region_address;
-    usize region_size;
-    proc_Object_Maybe object_containing_region;
-
-    // Per-thread data, can be indexed into using wq_get_thread_index().
-    Arena **per_thread_result_arena_array;
-    scan_RemoteScanThreadResult *per_thread_scan_results;
-
-    usize depth;
-};
-
-static Arena *scan__get_thread_result_arena(Arena **arenas)
-{
-    usize index = wq_get_thread_index();
-    Arena *result = arenas[index];
-
-    return result;
-}
-
 void scan__remote_first_single_region_async(TaskID task, void *data)
 {
     // TODO: Clean up this function
@@ -91,7 +108,8 @@ void scan__remote_first_single_region_async(TaskID task, void *data)
     scan_Comparison cmp = args.cmp;
     scan_Progress progress = args.progress;
     scan_MultithreadArgs mt_args = args.mt_args;
-    Arena *result_arena = scan__get_thread_result_arena(args.per_thread_result_arena_array);
+
+    scan_RemoteScanThreadContext *thread_context = scan__get_thread_context(args.thread_contexts);
 
     if ((args.region_size > args.mt_args.max_bytes_to_scan_per_thread) && (args.depth < SCAN_MAX_RECURSION_DEPTH)) {
         ASSERT(args.region_size > 0);
@@ -105,6 +123,7 @@ void scan__remote_first_single_region_async(TaskID task, void *data)
         ASSERT(sz > 0);
 
         // TODO: these regions should overlap so values spanning both two regions can be found
+        // TODO: function for splitting
         scan_RemoteScanArgs left_half_args = args;
         left_half_args.region_size = sz;
         left_half_args.cmp = cmp;
@@ -148,7 +167,7 @@ void scan__remote_first_single_region_async(TaskID task, void *data)
             // Make sure we compensate if the region provided is not aligned
             // by aligning forwards the first step.
             scan_MatchList *matches_in_region = scan_local_memory_first(
-                result_arena,
+                thread_context->result_arena,
                 region_memory,
                 read_mem_result.bytes_read,
                 args.region_address,
@@ -157,14 +176,13 @@ void scan__remote_first_single_region_async(TaskID task, void *data)
 
             if (matches_in_region->total_match_count > 0) {
                 scan_RegionMatches *region = scan__make_region_matches(
-                    result_arena, args.region_address, args.region_size, args.object_containing_region);
+                    thread_context->result_arena, args.region_address, args.region_size, args.object_containing_region);
                 region->head = matches_in_region;
                 region->match_count_in_region = matches_in_region->total_match_count;
 
-                scan_RemoteScanThreadResult *thread_result = &args.per_thread_scan_results[wq_get_thread_index()];
-                sll_push_back(&thread_result->regions, region);
+                sll_push_back(&thread_context->region_matches, region);
 
-                thread_result->match_count += region->match_count_in_region;
+                thread_context->match_count += region->match_count_in_region;
             }
         }
 
@@ -181,7 +199,7 @@ void scan__remote_next_single_region_async(TaskID, void *data)
     scan_Progress progress = args.progress;
     scan_RegionMatches *new_region = args.new_region_matches;
     scan_RegionMatches *prev_region = args.previous_region_matches;
-    Arena *result_arena = scan__get_thread_result_arena(args.per_thread_result_arena_array);
+    Arena *result_arena = scan__get_thread_context(args.thread_contexts)->result_arena;
 
     ASSERT(prev_region->region_base_address == new_region->region_base_address);
     ASSERT(prev_region->region_size == new_region->region_size);
@@ -236,7 +254,11 @@ scan_Result scan_remote_memory_first_new(Arena **per_thread_result_arenas, memmi
 
     u64 t1 = get_monotonic_clock_ns();
 
-    Arena *result_arena = scan__get_thread_result_arena(per_thread_result_arenas);
+    usize thread_count = wq_get_thread_count(mt_args.work_queue);
+    scan_RemoteScanThreadContext *thread_context_array =
+        scan__alloc_thread_contexts(per_thread_result_arenas, thread_count);
+
+    Arena *result_arena = scan__get_thread_context(thread_context_array)->result_arena;
 
     scan_Result result = {};
     result.value_type = cmp.value_type;
@@ -257,14 +279,11 @@ scan_Result scan_remote_memory_first_new(Arena **per_thread_result_arenas, memmi
     b32 at_least_one_read_succeeded = false;
     usize total_memory_region_size = 0;
 
-    usize thread_count = wq_get_thread_count(mt_args.work_queue);
-    scan_RemoteScanThreadResult *per_thread_scan_results =
-        arena_alloc_array(result_arena, scan_RemoteScanThreadResult, thread_count);
-
     if (memory_regions.status != MEMMI_OK) {
         result.errors = proc_status_from_memmi_status(memory_regions.status);
     } else {
         // Calculate total size of memory regions so that progress bar can track scan progress.
+        // TODO: pull out into function
         {
             for (usize i = 0; i < memory_regions.count; ++i) {
                 // TODO: this check is repeated further down
@@ -305,8 +324,7 @@ scan_Result scan_remote_memory_first_new(Arena **per_thread_result_arenas, memmi
                 args.cmp = cmp;
                 args.progress = progress;
                 args.mt_args = mt_args;
-                args.per_thread_result_arena_array = per_thread_result_arenas;
-                args.per_thread_scan_results = per_thread_scan_results;
+                args.thread_contexts = thread_context_array;
                 args.at_least_one_read_succeeded_ptr = &at_least_one_read_succeeded;
                 args.errors_bitset_ptr = &result.errors;
                 args.region_address = region.base_address;
@@ -323,11 +341,11 @@ scan_Result scan_remote_memory_first_new(Arena **per_thread_result_arenas, memmi
 
         // All threads have pushed their region results to their own lists, now we'll concatenate them.
         for (usize i = 0; i < thread_count; ++i) {
-            scan_RemoteScanThreadResult *thread_result = &per_thread_scan_results[i];
+            scan_RemoteScanThreadContext *thread_context = &thread_context_array[i];
 
-            sll_concat(&result, &thread_result->regions);
+            sll_concat(&result, &thread_context->region_matches);
 
-            result.total_match_count += thread_result->match_count;
+            result.total_match_count += thread_context->match_count;
         }
     }
 
@@ -471,7 +489,11 @@ scan_Result scan_remote_memory_next_new(Arena **per_thread_result_arenas, memmi_
     // For temporarily storing the memory of a region during the scan of it.
     ScratchArena scan_scratch_arena = scratch_begin();
 
-    Arena *result_arena = scan__get_thread_result_arena(per_thread_result_arenas);
+    usize thread_count = wq_get_thread_count(mt_args.work_queue);
+    scan_RemoteScanThreadContext *thread_context_array =
+        scan__alloc_thread_contexts(per_thread_result_arenas, thread_count);
+
+    Arena *result_arena = scan__get_thread_context(thread_context_array)->result_arena;
 
     scan_Result result = {};
     result.value_type = cmp.value_type;
@@ -511,7 +533,7 @@ scan_Result scan_remote_memory_next_new(Arena **per_thread_result_arenas, memmi_
         args.mt_args = mt_args;
         args.new_region_matches = new_region;
         args.previous_region_matches = prev_region;
-        args.per_thread_result_arena_array = per_thread_result_arenas;
+        args.thread_contexts = thread_context_array;
         args.at_least_one_read_succeeded_ptr = &at_least_one_read_succeeded;
         args.errors_bitset_ptr = &result.errors;
 
