@@ -190,13 +190,8 @@ void scan__remote_first_single_region_async(TaskID task, void *data)
         right_half_args.region_address = args.region_address + sz;
         right_half_args.region_size = args.region_size - sz;
 
-        TaskID left_half_task = wq_push_task_as_child(wq, scan__remote_first_single_region_async,
-            left_half_args, task);
-        TaskID right_half_task = wq_push_task_as_child(wq, scan__remote_first_single_region_async,
-            right_half_args, task);
-
-        wq_wait_for_task(left_half_task);
-        wq_wait_for_task(right_half_task);
+        wq_push_task_as_child(wq, scan__remote_first_single_region_async, left_half_args, task);
+        wq_push_task_as_child(wq, scan__remote_first_single_region_async, right_half_args, task);
     } else {
         // Base case: region is small enough, scan it as normal.
 
