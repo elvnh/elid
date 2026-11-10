@@ -123,6 +123,38 @@ static proc_Status scan__interpret_scan_result_status(proc_Status status, b32 at
     return result;
 }
 
+static scan_RemoteScanArgs scan__make_remote_scan_args(
+    memmi_Process proc,
+    uintptr_t region_address,
+    usize region_size,
+    proc_Object_Maybe object_containing_region,
+    scan_Comparison cmp,
+    scan_Settings settings,
+    scan_MultithreadArgs mt_args,
+    scan_RemoteScanThreadContext *thread_contexts,
+    scan_Progress progress,
+    b32 *at_least_one_read_succeeded_ptr,
+    proc_Status *errors_bitset_ptr,
+    scan_RegionMatches *previous_region_matches
+)
+{
+    scan_RemoteScanArgs result = {};
+    result.proc = proc;
+    result.settings = settings;
+    result.cmp = cmp;
+    result.progress = progress;
+    result.mt_args = mt_args;
+    result.thread_contexts = thread_contexts;
+    result.at_least_one_read_succeeded_ptr = at_least_one_read_succeeded_ptr;
+    result.errors_bitset_ptr = errors_bitset_ptr;
+    result.region_address = region_address;
+    result.region_size = region_size;
+    result.object_containing_region = object_containing_region;
+    result.previous_region_matches = previous_region_matches;
+
+    return result;
+}
+
 void scan__remote_first_single_region_async(TaskID task, void *data)
 {
     // TODO: Clean up this function
@@ -269,6 +301,9 @@ scan_Result scan_remote_memory_first(Arena **per_thread_result_arenas, memmi_Pro
 
     u64 t1 = get_monotonic_clock_ns();
 
+    // For allocations that need to live for entire lifetime of function.
+    ScratchArena scratch = scratch_begin();
+
     usize thread_count = wq_get_thread_count(mt_args.work_queue);
     scan_RemoteScanThreadContext *thread_context_array =
         scan__alloc_thread_contexts(per_thread_result_arenas, thread_count);
@@ -282,11 +317,6 @@ scan_Result scan_remote_memory_first(Arena **per_thread_result_arenas, memmi_Pro
     result.process_objects = proc_get_loaded_objects(result_arena, proc);
 
     ASSERT(result.process_objects.status == PROC_STATUS_OK);
-
-    usize value_type_size = scan_val_type_get_size(cmp.value_type);
-
-    // For allocations that need to live for entire lifetime of function.
-    ScratchArena scratch = scratch_begin();
 
     proc_MemoryRegionList memory_regions = scan__get_memory_regions_to_scan(scratch.arena, proc);
     atomic_store_usize(progress.bytes_to_scan_ptr, memory_regions.total_regions_size);
@@ -305,27 +335,18 @@ scan_Result scan_remote_memory_first(Arena **per_thread_result_arenas, memmi_Pro
             ASSERT(region.kind != PROC_REGION_KIND_MAPPED_FILE);
             ASSERT(region.size <= SCAN_SKIP_REGION_SIZE_THRESHOLD);
 
-            proc_Object_Maybe containing_object =
+            usize value_type_size = scan_val_type_get_size(cmp.value_type);
+            proc_Object_Maybe object_containing_region =
                 proc_get_object_address_is_contained_in(
                     result.process_objects, region.address, value_type_size);
 
-            scan_RemoteScanArgs args = {};
-            args.proc = proc;
-            args.settings = settings;
-            args.cmp = cmp;
-            args.progress = progress;
-            args.mt_args = mt_args;
-            args.thread_contexts = thread_context_array;
-            args.at_least_one_read_succeeded_ptr = &at_least_one_read_succeeded;
-            args.errors_bitset_ptr = &result.errors;
-            args.region_address = region.address;
-            args.region_size = region.size;
-            args.object_containing_region = containing_object;
+            scan_RemoteScanArgs args = scan__make_remote_scan_args(
+                proc, region.address, region.size, object_containing_region, cmp, settings, mt_args,
+                thread_context_array, progress, &at_least_one_read_succeeded, &result.errors, 0);
 
             wq_push_task_as_child(mt_args.work_queue, scan__remote_first_single_region_async, args, root_task);
         }
 
-        // Wait for all regions to finish scanning.
         wq_run_task(root_task);
         wq_wait_for_task(root_task);
 
@@ -379,26 +400,17 @@ scan_Result scan_remote_memory_next(Arena **per_thread_result_arenas, memmi_Proc
     TaskID root_task = wq_create_task(mt_args.work_queue, wq_null_function, wq_null_arg);
 
     for (scan_RegionMatches *prev_region = list_head(&prev_results); prev_region; prev_region = list_next(prev_region)) {
-        proc_Object_Maybe containing_object = {};
+        proc_Object_Maybe object_containing_region = {};
 
         if (prev_region->containing_object.ok) {
             // proj_Object contains a string allocated in the previous result arena, so we'll have to copy it.
-            containing_object = SOME(proc_object_copy(result_arena, prev_region->containing_object.value));
+            object_containing_region = SOME(proc_object_copy(result_arena, prev_region->containing_object.value));
         }
 
-        scan_RemoteScanArgs args = {};
-        args.proc = proc;
-        args.settings = settings;
-        args.cmp = cmp;
-        args.progress = progress;
-        args.mt_args = mt_args;
-        args.previous_region_matches = prev_region;
-        args.thread_contexts = thread_context_array;
-        args.at_least_one_read_succeeded_ptr = &at_least_one_read_succeeded;
-        args.errors_bitset_ptr = &result.errors;
-        args.region_address = prev_region->region_base_address;
-        args.region_size = prev_region->region_size;
-        args.object_containing_region = containing_object;
+        scan_RemoteScanArgs args = scan__make_remote_scan_args(
+            proc, prev_region->region_base_address, prev_region->region_size,
+            object_containing_region, cmp, settings, mt_args, thread_context_array,
+            progress, &at_least_one_read_succeeded, &result.errors, prev_region);
 
         // NOTE: Since the first scan divided the regions into manageable sizes, the next scan
         // workload should be fairly evenly distributed if we simply scan through one region per thread.
