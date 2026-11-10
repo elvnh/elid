@@ -102,7 +102,7 @@ void app_async_run_first_scan(TaskID, void *data)
         mt_args.work_queue = app->multi_frame_work_queue;
         mt_args.max_bytes_to_scan_per_thread = APP_DEFAULT_MAX_BYTES_TO_SCAN_PER_THREAD;
 
-        app->result_list = scan_remote_memory_first_new(
+        app->result_list = scan_remote_memory_first(
             app->current_per_thread_scan_result_arenas, app->open_process_handle, args.settings, args.cmp, progress, mt_args);
 
         #if DEBUG_BUILD
@@ -112,8 +112,9 @@ void app_async_run_first_scan(TaskID, void *data)
             prog.bytes_to_scan_ptr = &dummy;
             prog.bytes_scanned_ptr = &dummy;
 
-            scan_Result result_old = scan_remote_memory_first(
-                app->current_per_thread_scan_result_arenas[0], app->open_process_handle, args.settings, args.cmp, prog);
+            scan_Result result_old = scan_remote_memory_first_single_threaded(
+                app->current_per_thread_scan_result_arenas[0], app->open_process_handle,
+                args.settings, args.cmp, prog);
 
             ScratchArena scratch = scratch_begin();
             scan_ResultView view_new = scan_result_make_view(scratch.arena, app->result_list);
@@ -157,7 +158,7 @@ void app_async_run_next_scan(TaskID, void *data)
         mt_args.max_bytes_to_scan_per_thread = APP_DEFAULT_MAX_BYTES_TO_SCAN_PER_THREAD;
 
         scan_Result previous_results = app->result_list;
-        app->result_list = scan_remote_memory_next_new(
+        app->result_list = scan_remote_memory_next(
             app->current_per_thread_scan_result_arenas,
             app->open_process_handle, args.settings, args.cmp, previous_results, progress, mt_args);
 
@@ -168,7 +169,7 @@ void app_async_run_next_scan(TaskID, void *data)
             prog.bytes_to_scan_ptr = &dummy;
             prog.bytes_scanned_ptr = &dummy;
 
-            scan_Result result_old = scan_remote_memory_next(
+            scan_Result result_old = scan_remote_memory_next_single_threaded(
                 app->current_per_thread_scan_result_arenas[0],
                 app->open_process_handle, args.settings, args.cmp, previous_results, prog);
 

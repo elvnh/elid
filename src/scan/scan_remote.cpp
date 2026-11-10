@@ -71,7 +71,6 @@ static scan_RemoteScanThreadContext *scan__get_thread_context(scan_RemoteScanThr
 static void scan__push_matches_to_thread_context(scan_RemoteScanThreadContext *context, scan_MatchList *matches,
     uintptr_t region_address, usize region_size, proc_Object_Maybe object_containing_region)
 {
-    // TODO: code duplication
     if (matches->total_match_count > 0) {
         scan_RegionMatches *region = arena_alloc_struct(context->result_arena, scan_RegionMatches);
         region->region_base_address = region_address;
@@ -164,7 +163,6 @@ void scan__remote_first_single_region_async(TaskID task, void *data)
         } else {
             atomic_store_s32(args.at_least_one_read_succeeded_ptr, true);
 
-            // TODO: use stride provided by caller
             // TODO: local memory scan just advances by stride each step.
             // Make sure we compensate if the region provided is not aligned
             // by aligning forwards the first step.
@@ -229,12 +227,11 @@ void scan__remote_next_single_region_async(TaskID, void *data)
             args.region_size, args.object_containing_region);
     }
 
-    // TODO: do we want to update progress bar with higher granularity than region?
     // Consider the region as scanned with regards to the progress bar whether it failed or succeeded.
     atomic_add_usize(progress.bytes_scanned_ptr, args.region_size);
 }
 
-scan_Result scan_remote_memory_first_new(Arena **per_thread_result_arenas, memmi_Process proc,
+scan_Result scan_remote_memory_first(Arena **per_thread_result_arenas, memmi_Process proc,
     scan_Settings settings, scan_Comparison cmp, scan_Progress progress, scan_MultithreadArgs mt_args)
 {
     #if DEBUG_BUILD
@@ -353,7 +350,7 @@ scan_Result scan_remote_memory_first_new(Arena **per_thread_result_arenas, memmi
     return result;
 }
 
-scan_Result scan_remote_memory_next_new(Arena **per_thread_result_arenas, memmi_Process proc, scan_Settings settings,
+scan_Result scan_remote_memory_next(Arena **per_thread_result_arenas, memmi_Process proc, scan_Settings settings,
     scan_Comparison cmp, scan_Result prev_results, scan_Progress progress, scan_MultithreadArgs mt_args)
 {
     #if DEBUG_BUILD
@@ -470,7 +467,7 @@ static void scan__push_region_matches(Arena *arena, scan_Result *result, scan_Ma
     }
 }
 
-scan_Result scan_remote_memory_first(Arena *arena, memmi_Process proc, scan_Settings settings,
+scan_Result scan_remote_memory_first_single_threaded(Arena *arena, memmi_Process proc, scan_Settings settings,
     scan_Comparison cmp, scan_Progress progress)
 {
     u64 t1 = get_monotonic_clock_ns();
@@ -587,7 +584,7 @@ scan_Result scan_remote_memory_first(Arena *arena, memmi_Process proc, scan_Sett
     return result;
 }
 
-scan_Result scan_remote_memory_next(Arena *arena, memmi_Process proc, scan_Settings settings,
+scan_Result scan_remote_memory_next_single_threaded(Arena *arena, memmi_Process proc, scan_Settings settings,
     scan_Comparison cmp, scan_Result prev_results, scan_Progress progress)
 {
     u64 t1 = get_monotonic_clock_ns();
