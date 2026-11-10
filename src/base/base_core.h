@@ -92,6 +92,7 @@ DEFINE_MAYBE_TYPE(usize);
 #    define INVALID_CASE(c) case c: { ASSERT_FAIL("INVALID_CASE(" #c ")"); } break
 #else
 #    define ASSERT(e) ((void)(e))
+#    define ASSERT_FAIL(str) release_build_no_op()
 #    define ASSERT_AND_THEN(check, e) (e)
 #    define ALWAYS(e) (e)
 #    define NEVER(e)  (e)
@@ -129,6 +130,8 @@ DEFINE_MAYBE_TYPE(usize);
 #define eval_print_u64(e) printf(#e" = %" PRIu64 "\n", e);
 
 #define print_string(s) printf("%.*s\n", (int)(s).count, (s).data);
+
+int release_build_no_op() { return 0; }
 
 /* Preprocessor */
 #if COMPILER_GCC

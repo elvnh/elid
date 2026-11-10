@@ -33,6 +33,7 @@ CXXFLAGS="-Werror
     -Wsign-conversion
     -Wtype-limits
     -Wundef
+    -Wno-null-dereference
     -Werror=missing-braces
     -Wno-error=unused-parameter
     -Wno-error=unused-function
