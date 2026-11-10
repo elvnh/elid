@@ -335,8 +335,7 @@ scan_Result scan_remote_memory_first(Arena **per_thread_result_arenas, memmi_Pro
 
             usize value_type_size = scan_val_type_get_size(cmp.value_type);
             proc_Object_Maybe object_containing_region =
-                proc_get_object_address_is_contained_in(
-                    result.process_objects, region.address, value_type_size);
+                proc_get_object_containing_address(result.process_objects, region.address, value_type_size);
 
             scan_RemoteScanArgs args = scan__make_remote_scan_args(
                 proc, region.address, region.size, object_containing_region, cmp, settings, mt_args,
@@ -543,8 +542,7 @@ scan_Result scan_remote_memory_first_single_threaded(Arena *arena, memmi_Process
                     ASSERT(matches);
 
                     proc_Object_Maybe containing_object =
-                        proc_get_object_address_is_contained_in(
-                            result.process_objects, region.base_address, value_type_size);
+                        proc_get_object_containing_address(result.process_objects, region.base_address, value_type_size);
 
                     scan__push_region_matches(arena, &result, matches, region.base_address,
                         region.size, containing_object);
