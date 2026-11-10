@@ -297,6 +297,7 @@ scan_Result scan_remote_memory_first(Arena **per_thread_result_arenas, memmi_Pro
     }
     #endif
 
+    // TODO: benchmarking macro to reduce clutter
     u64 t1 = get_monotonic_clock_ns();
 
     // For allocations that need to live for entire lifetime of function.
@@ -355,7 +356,7 @@ scan_Result scan_remote_memory_first(Arena **per_thread_result_arenas, memmi_Pro
 
     u64 t2 = get_monotonic_clock_ns();
 
-    u64 elapsed_ms = (t2 - t1) / MILLION(1);
+    u64 elapsed_ms = ns_to_ms(t2 - t1);
 
     printf("Scanned %zu bytes in %" PRIu64 " milliseconds\n", memory_regions.total_regions_size, elapsed_ms);
 
@@ -424,7 +425,7 @@ scan_Result scan_remote_memory_next(Arena **per_thread_result_arenas, memmi_Proc
 
     u64 t2 = get_monotonic_clock_ns();
 
-    u64 elapsed_ms = (t2 - t1) / MILLION(1);
+    u64 elapsed_ms = ns_to_ms(t2 - t1);
     printf("Scanned %zu bytes in %" PRIu64 " milliseconds\n", prev_results.matching_regions_size_sum, elapsed_ms);
 
     return result;
