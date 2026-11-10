@@ -110,6 +110,19 @@ static proc_MemoryRegionList scan__get_memory_regions_to_scan(Arena *arena, memm
     return result;
 }
 
+static proc_Status scan__interpret_scan_result_status(proc_Status status, b32 at_least_one_read_succeeded)
+{
+    proc_Status result = status;
+
+    if (at_least_one_read_succeeded && !(result & PROC_STATUS_NO_SUCH_PROCESS)) {
+        // Some reads failing is to be expected, for example a region could be unmapped during the
+        // scan. As long as we managed to read at least one region, we'll count it as a success.
+        result = PROC_STATUS_OK;
+    }
+
+    return result;
+}
+
 void scan__remote_first_single_region_async(TaskID task, void *data)
 {
     // TODO: Clean up this function
@@ -319,12 +332,7 @@ scan_Result scan_remote_memory_first(Arena **per_thread_result_arenas, memmi_Pro
         scan__collect_thread_results(&result, thread_context_array, thread_count);
     }
 
-    if (at_least_one_read_succeeded && !(result.errors & PROC_STATUS_NO_SUCH_PROCESS)) {
-        // Some reads failing is to be expected, for example a region could be unmapped during the
-        // scan. As long as we managed to read at least one region, we'll count it as a success.
-        result.errors = PROC_STATUS_OK;
-    }
-
+    result.errors = scan__interpret_scan_result_status(result.errors, at_least_one_read_succeeded);
 
     u64 t2 = get_monotonic_clock_ns();
 
@@ -400,14 +408,9 @@ scan_Result scan_remote_memory_next(Arena **per_thread_result_arenas, memmi_Proc
     wq_run_task(root_task);
     wq_wait_for_task(root_task);
 
-    // // All threads have pushed their region results to their own lists, now we'll concatenate them.
     scan__collect_thread_results(&result, thread_context_array, thread_count);
 
-    if (at_least_one_read_succeeded && !(result.errors & PROC_STATUS_NO_SUCH_PROCESS)) {
-        // Some reads failing is to be expected, for example a region could be unmapped during the
-        // scan. As long as we managed to read at least one region, we'll count it as a success.
-        result.errors = PROC_STATUS_OK;
-    }
+    result.errors = scan__interpret_scan_result_status(result.errors, at_least_one_read_succeeded);
 
     u64 t2 = get_monotonic_clock_ns();
 
