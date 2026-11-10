@@ -135,39 +135,40 @@ static scan_RemoteScanArgs scan__make_remote_scan_args(
     scan_Progress progress,
     b32 *at_least_one_read_succeeded_ptr,
     proc_Status *errors_bitset_ptr,
-    scan_RegionMatches *previous_region_matches
-)
+    scan_RegionMatches *previous_region_matches)
 {
     scan_RemoteScanArgs result = {};
-    result.proc = proc;
-    result.settings = settings;
-    result.cmp = cmp;
-    result.progress = progress;
-    result.mt_args = mt_args;
-    result.thread_contexts = thread_contexts;
+    result.proc                            = proc;
+    result.settings                        = settings;
+    result.cmp                             = cmp;
+    result.progress                        = progress;
+    result.mt_args                         = mt_args;
+    result.thread_contexts                 = thread_contexts;
     result.at_least_one_read_succeeded_ptr = at_least_one_read_succeeded_ptr;
-    result.errors_bitset_ptr = errors_bitset_ptr;
-    result.region_address = region_address;
-    result.region_size = region_size;
-    result.object_containing_region = object_containing_region;
-    result.previous_region_matches = previous_region_matches;
+    result.errors_bitset_ptr               = errors_bitset_ptr;
+    result.region_address                  = region_address;
+    result.region_size                     = region_size;
+    result.object_containing_region        = object_containing_region;
+    result.previous_region_matches         = previous_region_matches;
 
     return result;
 }
 
 void scan__remote_first_single_region_async(TaskID task, void *data)
 {
-    // TODO: Clean up this function
-    scan_RemoteScanArgs args = *(scan_RemoteScanArgs *)data;
-    memmi_Process proc = args.proc;
-    scan_Settings settings = args.settings;
-    scan_Comparison cmp = args.cmp;
-    scan_Progress progress = args.progress;
+    scan_RemoteScanArgs args     = *(scan_RemoteScanArgs *)data;
+
+    memmi_Process proc           = args.proc;
+    scan_Settings settings       = args.settings;
+    scan_Comparison cmp          = args.cmp;
+    scan_Progress progress       = args.progress;
     scan_MultithreadArgs mt_args = args.mt_args;
 
     scan_RemoteScanThreadContext *thread_context = scan__get_thread_context(args.thread_contexts);
 
     if ((args.region_size > args.mt_args.max_bytes_to_scan_per_thread)
+        // Recursive case: region is too large, split it in half and scan those recursively.
+
         && (args.recursion_depth < SCAN_MAX_RECURSION_DEPTH)) {
         ASSERT(args.region_size > 0);
 
@@ -197,6 +198,8 @@ void scan__remote_first_single_region_async(TaskID task, void *data)
         wq_wait_for_task(left_half_task);
         wq_wait_for_task(right_half_task);
     } else {
+        // Base case: region is small enough, scan it as normal.
+
         ASSERT(is_pow2(args.settings.required_alignment));
         ASSERT(is_aligned_pow2(args.region_address, args.settings.required_alignment));
 
@@ -242,17 +245,17 @@ void scan__remote_next_single_region_async(TaskID, void *data)
 {
     scan_RemoteScanArgs args = *(scan_RemoteScanArgs *)data;
 
-    memmi_Process proc = args.proc;
-    scan_Comparison cmp = args.cmp;
-    scan_Progress progress = args.progress;
+    memmi_Process proc              = args.proc;
+    scan_Comparison cmp             = args.cmp;
+    scan_Progress progress          = args.progress;
     scan_RegionMatches *prev_region = args.previous_region_matches;
-
-    scan_RemoteScanThreadContext *thread_context = scan__get_thread_context(args.thread_contexts);
 
     ASSERT(args.region_address > 0);
     ASSERT(args.region_size > 0);
     ASSERT(prev_region->region_base_address == args.region_address);
     ASSERT(prev_region->region_size == args.region_size);
+
+    scan_RemoteScanThreadContext *thread_context = scan__get_thread_context(args.thread_contexts);
 
     // For temporarily storing the memory of a region during the scan of it. See the comment in
     // scan__remote_first_single_region_async for why we can't reuse the same thread-local arena
