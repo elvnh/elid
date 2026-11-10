@@ -60,7 +60,7 @@ char *str_clone_cstr(Arena *arena, const char *str)
     usize length = strlen(str);
 
     char *result = arena_alloc_array(arena, char, length + 1);
-    strncpy(result, str, length);
+    memcpy(result, str, length + 1);
 
     return result;
 }

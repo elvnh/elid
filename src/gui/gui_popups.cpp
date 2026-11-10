@@ -46,7 +46,7 @@ void gui_popup_edit_value(gui_State *gui, scan_ValueType type, uintptr_t address
 
     strncpy(gui->edit_value_popup.value_textbox,
         value_str,
-        array_capacity(gui->edit_value_popup.value_textbox));
+        array_capacity(gui->edit_value_popup.value_textbox) - 1);
 
     gui__popup_open(gui, GUI_POPUP_EDIT_VALUE);
 }
@@ -58,8 +58,9 @@ void gui_popup_edit_address_table_entry(gui_State *gui, app_AddressTableEntry *o
         gui->edit_address_table_entry_popup.edited_entry = optional_entry;
 
         char *address_str = str_format_cstr(gui->frame_arena, "%" PRIxPTR, optional_entry->address);
-        usize textbox_length = array_capacity(gui->edit_address_table_entry_popup.address_textbox);
-        strncpy(gui->edit_address_table_entry_popup.address_textbox, address_str, textbox_length);
+        strncpy(gui->edit_address_table_entry_popup.address_textbox,
+            address_str,
+            array_capacity(gui->edit_address_table_entry_popup.address_textbox) - 1);
     } else {
         zero_mem(&gui->edit_address_table_entry_popup, sizeof(gui->edit_address_table_entry_popup));
     }
