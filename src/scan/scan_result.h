@@ -57,9 +57,13 @@ struct scan_Result {
     scan_ValueType      value_type;
     proc_Status         errors; // TODO: rename to error_bitset
 
-    usize               total_match_count;
     memmi_Process       scanned_process;
     proc_ObjectList     process_objects;
+
+    usize               total_match_count;
+
+    // The sum of the sizes of all regions in which at least one match was found.
+    usize               matching_regions_size_sum;
 
     // TODO: pack into struct
     scan_RegionMatches *first;
