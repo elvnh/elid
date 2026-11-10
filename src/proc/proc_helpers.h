@@ -2,6 +2,7 @@
 
 // This file defines functions and types for interacting with other processes.
 // TODO: wrap all memmi functions and types
+// TODO: this file should be split into multiple
 
 enum proc_Status {
     PROC_STATUS_OK                       = 0,
@@ -28,16 +29,24 @@ enum proc_RegionPermission {
     PROC_PERMISSION_WRITE   = (1u << 1u),
     PROC_PERMISSION_EXECUTE = (1u << 2u),
 };
+
+enum proc_RegionKind {
+    PROC_REGION_KIND_NORMAL,
+    PROC_REGION_KIND_MAPPED_FILE,
+};
+
 struct proc_MemoryRegion {
+    proc_RegionKind       kind;
     uintptr_t             address;
     usize                 size;
     proc_RegionPermission permissions;
 };
 
 struct proc_MemoryRegionList {
-    proc_Status status;
-    proc_MemoryRegion *data;
-    usize count;
+    proc_Status         status;
+    proc_MemoryRegion  *data;
+    usize               count;
+    usize               total_regions_size;
 };
 
 struct proc_MemoryRegionContents {
@@ -65,5 +74,13 @@ proc_Object           proc_object_copy(Arena *arena, proc_Object object);
 proc_ObjectList       proc_object_list_from_memmi_object_list(Arena *arena, memmi_ObjectList objects);
 b32                   proc_object_has_unique_filename(proc_Object object, proc_ObjectList objects);
 proc_ObjectList       proc_get_loaded_objects(Arena *arena, memmi_Process proc);
-proc_MemoryRegionList proc_get_memory_regions_with_permissions(Arena *arena, memmi_Process proc, proc_RegionPermission perms);
+
+// TODO: replace the bool parameter
+proc_MemoryRegionList proc_get_memory_regions_where(
+    Arena *arena,
+    memmi_Process proc,
+    proc_RegionPermission required_permissions,
+    b32 allow_memory_mapped_files,
+    usize max_size);
+
 proc_MemoryRegionContentsList proc_get_contents_of_memory_regions(Arena *arena, proc_MemoryRegionList regions);

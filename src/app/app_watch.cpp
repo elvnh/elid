@@ -160,8 +160,8 @@ proc_Status app_watch_poll_events(app_Watch *watch)
 
     proc_RegionPermission permissions = (proc_RegionPermission)((s32)PROC_PERMISSION_EXECUTE | (s32)PROC_PERMISSION_READ);
 
-    proc_MemoryRegionList executable_regions = proc_get_memory_regions_with_permissions(
-        scratch.arena, watch->process, permissions);
+    proc_MemoryRegionList executable_regions = proc_get_memory_regions_where(
+        scratch.arena, watch->process, permissions, true, U_SIZE_MAX);
 
     if (executable_regions.status != PROC_STATUS_OK) {
         // TODO: why is this triggered?

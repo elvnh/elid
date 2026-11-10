@@ -214,7 +214,33 @@ proc_RegionPermission proc_permissions_from_memmi_permissions(memmi_MemoryRegion
     return result;
 }
 
-proc_MemoryRegionList proc_get_memory_regions_with_permissions(Arena *arena, memmi_Process proc, proc_RegionPermission perms)
+proc_RegionKind proc_region_kind_from_memmi_kind(memmi_MemoryRegionKind kind)
+{
+    proc_RegionKind result = {};
+
+    BEGIN_EXHAUSTIVE_SWITCH;
+    switch (kind) {
+        case MEMMI_REGION_NORMAL: {
+            result = PROC_REGION_KIND_NORMAL;
+        } break;
+
+        case MEMMI_REGION_MAPPED_FILE: {
+            result = PROC_REGION_KIND_MAPPED_FILE;
+        } break;
+
+        INVALID_DEFAULT_CASE;
+    }
+    END_EXHAUSTIVE_SWITCH;
+
+    return result;
+}
+
+proc_MemoryRegionList proc_get_memory_regions_where(
+    Arena *arena,
+    memmi_Process proc,
+    proc_RegionPermission required_permissions,
+    b32 allow_memory_mapped_files,
+    usize max_size)
 {
     proc_MemoryRegionList result = {};
 
@@ -223,7 +249,7 @@ proc_MemoryRegionList proc_get_memory_regions_with_permissions(Arena *arena, mem
 
     memmi_MemoryRegions regions = memmi_get_process_memory_regions(proc, temp_allocator);
 
-    memmi_MemoryRegionPermission memmi_perms = proc_permissions_to_memmi_permissions(perms);
+    memmi_MemoryRegionPermission memmi_perms = proc_permissions_to_memmi_permissions(required_permissions);
 
     if (regions.status != MEMMI_OK) {
         result.status = proc_status_from_memmi_status(regions.status);
@@ -233,13 +259,20 @@ proc_MemoryRegionList proc_get_memory_regions_with_permissions(Arena *arena, mem
         for (usize i = 0; i < regions.count; ++i) {
             memmi_MemoryRegion memmi_region = regions.data[i];
 
-            if ((memmi_region.permissions & memmi_perms) == memmi_perms) {
+            b32 region_should_be_added =
+                (memmi_region.permissions & memmi_perms) == memmi_perms
+                && ((memmi_region.kind == MEMMI_REGION_NORMAL) || (allow_memory_mapped_files))
+                && (memmi_region.size <= max_size);
+
+            if (region_should_be_added) {
                 proc_MemoryRegion region = {};
                 region.address = memmi_region.base_address;
                 region.size = memmi_region.size;
                 region.permissions = proc_permissions_from_memmi_permissions(memmi_region.permissions);
+                region.kind = proc_region_kind_from_memmi_kind(memmi_region.kind);
 
                 result.data[result.count++] = region;
+                result.total_regions_size += region.size;
             }
         }
     }
