@@ -131,8 +131,17 @@ DEFINE_MAYBE_TYPE(usize);
 #define print_string(s) printf("%.*s\n", (int)(s).count, (s).data);
 
 /* Preprocessor */
+#if COMPILER_GCC
+#    define COUNTER __COUNTER__
+#elif COMPILER_MSVC
+#    define COUNTER __COUNTER__
+#else
+#    error COUNTER not defined for this compiler
+#endif
+
 #define CONCAT(a, b) CONCAT_(a, b)
-#define CONCAT_() a ## b
+#define CONCAT_(a, b) a ## b
+#define ANONYMOUS_VARIABLE CONCAT(ANONYMOUS__VAR__DONT_TOUCH__, COUNTER)
 
 /* General utilities */
 #define MAX(a, b) ((a) > (b) ? (a) : (b))

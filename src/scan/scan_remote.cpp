@@ -288,6 +288,8 @@ void scan__remote_next_single_region_async(TaskID, void *data)
 scan_Result scan_remote_memory_first(Arena **per_thread_result_arenas, memmi_Process proc,
     scan_Settings settings, scan_Comparison cmp, scan_Progress progress, scan_MultithreadArgs mt_args)
 {
+    TIMED_FUNCTION();
+
     #if DEBUG_BUILD
     {
         for (usize i = 0; i < wq_get_thread_count(mt_args.work_queue); ++i) {
@@ -296,9 +298,6 @@ scan_Result scan_remote_memory_first(Arena **per_thread_result_arenas, memmi_Pro
         }
     }
     #endif
-
-    // TODO: benchmarking macro to reduce clutter
-    u64 t1 = get_monotonic_clock_ns();
 
     // For allocations that need to live for entire lifetime of function.
     ScratchArena scratch = scratch_begin();
@@ -354,18 +353,14 @@ scan_Result scan_remote_memory_first(Arena **per_thread_result_arenas, memmi_Pro
 
     result.errors = scan__interpret_scan_result_status(result.errors, at_least_one_read_succeeded);
 
-    u64 t2 = get_monotonic_clock_ns();
-
-    u64 elapsed_ms = ns_to_ms(t2 - t1);
-
-    printf("Scanned %zu bytes in %" PRIu64 " milliseconds\n", memory_regions.total_regions_size, elapsed_ms);
-
     return result;
 }
 
 scan_Result scan_remote_memory_next(Arena **per_thread_result_arenas, memmi_Process proc, scan_Settings settings,
     scan_Comparison cmp, scan_Result prev_results, scan_Progress progress, scan_MultithreadArgs mt_args)
 {
+    TIMED_FUNCTION();
+
     #if DEBUG_BUILD
     {
         for (usize i = 0; i < wq_get_thread_count(mt_args.work_queue); ++i) {
@@ -374,8 +369,6 @@ scan_Result scan_remote_memory_next(Arena **per_thread_result_arenas, memmi_Proc
         }
     }
     #endif
-
-    u64 t1 = get_monotonic_clock_ns();
 
     // For temporarily storing the memory of a region during the scan of it.
     ScratchArena scan_scratch_arena = scratch_begin();
@@ -423,11 +416,6 @@ scan_Result scan_remote_memory_next(Arena **per_thread_result_arenas, memmi_Proc
 
     result.errors = scan__interpret_scan_result_status(result.errors, at_least_one_read_succeeded);
 
-    u64 t2 = get_monotonic_clock_ns();
-
-    u64 elapsed_ms = ns_to_ms(t2 - t1);
-    printf("Scanned %zu bytes in %" PRIu64 " milliseconds\n", prev_results.matching_regions_size_sum, elapsed_ms);
-
     return result;
 }
 
@@ -469,7 +457,7 @@ static void scan__push_region_matches(Arena *arena, scan_Result *result, scan_Ma
 scan_Result scan_remote_memory_first_single_threaded(Arena *arena, memmi_Process proc, scan_Settings settings,
     scan_Comparison cmp, scan_Progress progress)
 {
-    u64 t1 = get_monotonic_clock_ns();
+    TIMED_FUNCTION();
 
     scan_Result result = {};
     result.value_type = cmp.value_type;
@@ -567,11 +555,6 @@ scan_Result scan_remote_memory_first_single_threaded(Arena *arena, memmi_Process
                 atomic_add_usize(progress.bytes_scanned_ptr, region.size);
             }
         }
-
-        u64 t2 = get_monotonic_clock_ns();
-
-        u64 elapsed_ms = (t2 - t1) / MILLION(1);
-        printf("Scanned %zu bytes in %" PRIu64 " milliseconds\n", total_memory_region_size, elapsed_ms);
     }
 
     if (at_least_one_read_succeeded && !(result.errors & PROC_STATUS_NO_SUCH_PROCESS)) {
@@ -586,7 +569,7 @@ scan_Result scan_remote_memory_first_single_threaded(Arena *arena, memmi_Process
 scan_Result scan_remote_memory_next_single_threaded(Arena *arena, memmi_Process proc, scan_Settings settings,
     scan_Comparison cmp, scan_Result prev_results, scan_Progress progress)
 {
-    u64 t1 = get_monotonic_clock_ns();
+    TIMED_FUNCTION();
 
     scan_Result result = {};
     result.value_type = cmp.value_type;
@@ -635,11 +618,6 @@ scan_Result scan_remote_memory_next_single_threaded(Arena *arena, memmi_Process 
 
         atomic_add_usize(progress.bytes_scanned_ptr, match_list->region_size);
     }
-
-    u64 t2 = get_monotonic_clock_ns();
-
-    u64 elapsed_ms = (t2 - t1) / MILLION(1);
-    printf("Scanned %zu bytes in %" PRIu64 " milliseconds\n", bytes_to_scan, elapsed_ms);
 
     // TODO: reduce code duplication between this and first scan
     if (at_least_one_read_succeeded && !(result.errors & PROC_STATUS_NO_SUCH_PROCESS)) {

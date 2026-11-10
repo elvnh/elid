@@ -20,3 +20,4 @@
 #include "base_scratch.cpp"
 #include "base_path.cpp"
 #include "base_work_queue.cpp"
+#include "base_benchmark.cpp"
