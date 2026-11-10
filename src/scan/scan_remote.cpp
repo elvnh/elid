@@ -99,6 +99,17 @@ static void scan__collect_thread_results(scan_Result *dst, scan_RemoteScanThread
     }
 }
 
+static proc_MemoryRegionList scan__get_memory_regions_to_scan(Arena *arena, memmi_Process proc)
+{
+    // TODO: allow user to customize which regions are considered
+    proc_RegionPermission required_permissions = PROC_PERMISSION_READ;
+
+    proc_MemoryRegionList result = proc_get_memory_regions_where(
+        arena, proc, required_permissions, false, SCAN_SKIP_REGION_SIZE_THRESHOLD);
+
+    return result;
+}
+
 void scan__remote_first_single_region_async(TaskID task, void *data)
 {
     // TODO: Clean up this function
@@ -263,68 +274,42 @@ scan_Result scan_remote_memory_first(Arena **per_thread_result_arenas, memmi_Pro
 
     // For allocations that need to live for entire lifetime of function.
     ScratchArena scratch = scratch_begin();
-    memmi_Allocator temp_allocator = proc_memmi_allocator_from_arena(scratch.arena);
 
-    // TODO: use proc_get_memory_regions
-    memmi_MemoryRegions memory_regions = memmi_get_process_memory_regions(proc, temp_allocator);
+    proc_MemoryRegionList memory_regions = scan__get_memory_regions_to_scan(scratch.arena, proc);
+    atomic_store_usize(progress.bytes_to_scan_ptr, memory_regions.total_regions_size);
 
     b32 at_least_one_read_succeeded = false;
-    usize total_memory_region_size = 0;
 
-    if (memory_regions.status != MEMMI_OK) {
-        result.errors = proc_status_from_memmi_status(memory_regions.status);
+    if (memory_regions.status != PROC_STATUS_OK) {
+        result.errors = memory_regions.status;
     } else {
-        // Calculate total size of memory regions so that progress bar can track scan progress.
-        // TODO: pull out into function
-        {
-            for (usize i = 0; i < memory_regions.count; ++i) {
-                // TODO: this check is repeated further down
-                memmi_MemoryRegion region = memory_regions.data[i];
-
-                b32 should_skip_region =
-                    !(region.permissions & MEMMI_REGION_PERMISSION_READ)
-                    || (region.kind == MEMMI_REGION_MAPPED_FILE)
-                    || (region.size >= SCAN_SKIP_REGION_SIZE_THRESHOLD);
-
-                if (!should_skip_region) {
-                    total_memory_region_size += region.size;
-                }
-            }
-
-            atomic_store_usize(progress.bytes_to_scan_ptr, total_memory_region_size);
-        }
-
         TaskID root_task = wq_create_task(mt_args.work_queue, wq_null_function, wq_null_arg);
 
         for (usize i = 0; i < memory_regions.count; ++i) {
-            memmi_MemoryRegion region = memory_regions.data[i];
+            proc_MemoryRegion region = memory_regions.data[i];
 
-            // TODO: allow user to scan through memory mapped files
-            b32 should_skip_region =
-                !(region.permissions & MEMMI_REGION_PERMISSION_READ)
-                || (region.kind == MEMMI_REGION_MAPPED_FILE)
-                || (region.size >= SCAN_SKIP_REGION_SIZE_THRESHOLD);
+            ASSERT(region.permissions & PROC_PERMISSION_READ);
+            ASSERT(region.kind != PROC_REGION_KIND_MAPPED_FILE);
+            ASSERT(region.size <= SCAN_SKIP_REGION_SIZE_THRESHOLD);
 
-            if (!should_skip_region) {
-                proc_Object_Maybe containing_object =
-                    proc_get_object_address_is_contained_in(
-                        result.process_objects, region.base_address, value_type_size);
+            proc_Object_Maybe containing_object =
+                proc_get_object_address_is_contained_in(
+                    result.process_objects, region.address, value_type_size);
 
-                scan_RemoteScanArgs args = {};
-                args.proc = proc;
-                args.settings = settings;
-                args.cmp = cmp;
-                args.progress = progress;
-                args.mt_args = mt_args;
-                args.thread_contexts = thread_context_array;
-                args.at_least_one_read_succeeded_ptr = &at_least_one_read_succeeded;
-                args.errors_bitset_ptr = &result.errors;
-                args.region_address = region.base_address;
-                args.region_size = region.size;
-                args.object_containing_region = containing_object;
+            scan_RemoteScanArgs args = {};
+            args.proc = proc;
+            args.settings = settings;
+            args.cmp = cmp;
+            args.progress = progress;
+            args.mt_args = mt_args;
+            args.thread_contexts = thread_context_array;
+            args.at_least_one_read_succeeded_ptr = &at_least_one_read_succeeded;
+            args.errors_bitset_ptr = &result.errors;
+            args.region_address = region.address;
+            args.region_size = region.size;
+            args.object_containing_region = containing_object;
 
-                wq_push_task_as_child(mt_args.work_queue, scan__remote_first_single_region_async, args, root_task);
-            }
+            wq_push_task_as_child(mt_args.work_queue, scan__remote_first_single_region_async, args, root_task);
         }
 
         // Wait for all regions to finish scanning.
@@ -345,7 +330,7 @@ scan_Result scan_remote_memory_first(Arena **per_thread_result_arenas, memmi_Pro
 
     u64 elapsed_ms = (t2 - t1) / MILLION(1);
 
-    printf("Scanned %zu bytes in %" PRIu64 " milliseconds\n", total_memory_region_size, elapsed_ms);
+    printf("Scanned %zu bytes in %" PRIu64 " milliseconds\n", memory_regions.total_regions_size, elapsed_ms);
 
     return result;
 }
