@@ -77,7 +77,7 @@ static void scan__push_matches_to_thread_context(scan_RemoteScanThreadContext *c
         region->region_size = region_size;
         region->containing_object = object_containing_region;
         region->last = region;
-        region->head = matches;
+        region->first_match_list = matches;
         region->match_count_in_region = matches->total_match_count;
 
         sll_push_back(&context->region_matches, region);
@@ -92,10 +92,10 @@ static void scan__collect_thread_results(scan_Result *dst, scan_RemoteScanThread
     for (usize i = 0; i < thread_count; ++i) {
         scan_RemoteScanThreadContext *thread_context = &contexts[i];
 
-        sll_concat(dst, &thread_context->region_matches);
+        sll_concat(&dst->regions, &thread_context->region_matches);
 
         dst->total_match_count += thread_context->match_count;
-        dst->matching_regions_size_sum += thread_context->matching_regions_size_sum;
+        dst->regions.matching_regions_size_sum += thread_context->matching_regions_size_sum;
     }
 }
 
@@ -269,7 +269,7 @@ void scan__remote_next_single_region_async(TaskID, void *data)
     } else {
         atomic_store_s32(args.at_least_one_read_succeeded_ptr, true);
 
-        scan_MatchList *prev_matches_in_region = prev_region->head;
+        scan_MatchList *prev_matches_in_region = prev_region->first_match_list;
 
         scan_MatchList *new_matches_in_region =
             scan_local_memory_next(thread_context->result_arena, region_memory,
@@ -369,9 +369,6 @@ scan_Result scan_remote_memory_next(Arena **per_thread_result_arenas, memmi_Proc
     }
     #endif
 
-    // For temporarily storing the memory of a region during the scan of it.
-    ScratchArena scan_scratch_arena = scratch_begin();
-
     usize thread_count = wq_get_thread_count(mt_args.work_queue);
     scan_RemoteScanThreadContext *thread_context_array =
         scan__alloc_thread_contexts(per_thread_result_arenas, thread_count);
@@ -386,11 +383,11 @@ scan_Result scan_remote_memory_next(Arena **per_thread_result_arenas, memmi_Proc
 
     b32 at_least_one_read_succeeded = false;
 
-    atomic_store_usize(progress.bytes_to_scan_ptr, prev_results.matching_regions_size_sum);
+    atomic_store_usize(progress.bytes_to_scan_ptr, prev_results.regions.matching_regions_size_sum);
 
     TaskID root_task = wq_create_task(mt_args.work_queue, wq_null_function, wq_null_arg);
 
-    for (scan_RegionMatches *prev_region = list_head(&prev_results); prev_region; prev_region = list_next(prev_region)) {
+    for (scan_RegionMatches *prev_region = list_head(&prev_results.regions); prev_region; prev_region = list_next(prev_region)) {
         proc_Object_Maybe object_containing_region = {};
 
         if (prev_region->containing_object.ok) {
@@ -440,13 +437,13 @@ static void scan__push_region_matches(Arena *arena, scan_Result *result, scan_Ma
         scan_RegionMatches *region_matches = arena_alloc_struct(arena, scan_RegionMatches);
         region_matches->region_base_address = region_address;
         region_matches->region_size = region_size;
-        region_matches->head = matches;
+        region_matches->first_match_list = matches;
         region_matches->match_count_in_region = matches->total_match_count;
         region_matches->containing_object = containing_object;
 
         result->total_match_count += region_matches->match_count_in_region;
 
-        sll_push_back(result, region_matches);
+        sll_push_back(&result->regions, region_matches);
 
     } else {
         ASSERT(!matches->next);
@@ -582,14 +579,14 @@ scan_Result scan_remote_memory_next_single_threaded(Arena *arena, memmi_Process 
 
     // Get the total number of bytes we need to scan so the progress bar can show our progress.
     usize bytes_to_scan = 0;
-    for (scan_RegionMatches *region = list_head(&prev_results); region; region = list_next(region)) {
+    for (scan_RegionMatches *region = list_head(&prev_results.regions); region; region = list_next(region)) {
         bytes_to_scan += region->region_size;
     }
 
     atomic_store_usize(progress.bytes_to_scan_ptr, bytes_to_scan);
 
     // TODO: rename match_list
-    for (scan_RegionMatches *match_list = list_head(&prev_results); match_list; match_list = list_next(match_list)) {
+    for (scan_RegionMatches *match_list = list_head(&prev_results.regions); match_list; match_list = list_next(match_list)) {
         // Reset the arena before reading each regions memory, as we only need it during the scan of
         // that region.
         arena_reset(scan_scratch_arena.arena);
@@ -607,7 +604,7 @@ scan_Result scan_remote_memory_next_single_threaded(Arena *arena, memmi_Process 
             }
         } else {
             scan_MatchList *matches = scan_local_memory_next(arena, region_memory,
-                read_mem_result.bytes_read, cmp, match_list->head);
+                read_mem_result.bytes_read, cmp, match_list->first_match_list);
             ASSERT(matches);
 
             scan__push_region_matches(arena, &result, matches, match_list->region_base_address,

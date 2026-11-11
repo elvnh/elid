@@ -13,7 +13,6 @@ struct scan_MatchHistory {
     scan_Value first_value;
 };
 
-// TODO: rename
 struct scan_MatchDetails {
     scan_Match         *match;
     scan_MatchHistory  *history;
@@ -33,7 +32,6 @@ struct scan_MatchList {
 };
 
 struct scan_RegionMatches {
-    // TODO: just store proc_Region here?
     usize  region_base_address;
     usize  region_size;
 
@@ -42,29 +40,30 @@ struct scan_RegionMatches {
     usize match_count_in_region;
 
     // TODO: rename
-    scan_MatchList *head;
+    scan_MatchList *first_match_list;
 
     scan_RegionMatches *next;
-    scan_RegionMatches *last;
+    scan_RegionMatches *last; // TODO: why is this needed?
 };
 
 struct scan_Result {
-    scan_Mode           scan_mode;
-    scan_ValueType      value_type;
-    proc_Status         errors; // TODO: rename to error_bitset
+    scan_Mode        scan_mode;
+    scan_ValueType   value_type;
+    proc_Status      errors; // TODO: rename to error_bitset
 
-    memmi_Process       scanned_process;
-    proc_ObjectList     process_objects;
+    memmi_Process    scanned_process;
+    proc_ObjectList  process_objects;
 
-    usize               total_match_count;
+    usize            total_match_count;
 
-    // The sum of the sizes of all regions in which at least one match was found.
-    usize               matching_regions_size_sum;
+    struct {
+        scan_RegionMatches *first;
+        scan_RegionMatches *last;
+        usize               list_node_count;
 
-    // TODO: pack into struct
-    scan_RegionMatches *first;
-    scan_RegionMatches *last;
-    usize               list_node_count;
+        // The sum of the sizes of all regions in which at least one match was found.
+        usize               matching_regions_size_sum;
+    } regions;
 };
 
 struct scan_ResultView {

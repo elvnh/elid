@@ -73,8 +73,8 @@ scan_ResultView scan_result_make_view(Arena *arena, scan_Result scan_result)
     if (scan_result.total_match_count > 0) {
         result.data = arena_alloc_array(arena, scan_MatchDetails, scan_result.total_match_count);
 
-        for (scan_RegionMatches *region = list_head(&scan_result); region; region = list_next(region)) {
-            for (scan_MatchList *matches = region->head; matches; matches = list_next(matches)) {
+        for (scan_RegionMatches *region = list_head(&scan_result.regions); region; region = list_next(region)) {
+            for (scan_MatchList *matches = region->first_match_list; matches; matches = list_next(matches)) {
                 for (usize i = 0; i < matches->count; ++i) {
                     scan_MatchDetails details = scan__match_details_from_match(matches, region, i);
 
