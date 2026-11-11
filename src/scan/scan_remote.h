@@ -33,9 +33,6 @@ scan_Result scan_remote_memory_next(Arena **per_thread_result_arenas,
                                     scan_Progress progress,
                                     scan_MultithreadArgs mt_args);
 
-// TODO: move elsewhere
-scan_Value_Maybe  scan_remote_read_single_value(memmi_Process proc, scan_ValueType value_type, uintptr_t address);
-
 ////////////////////////////////////////////////////////////////////////////////
 // Single-threaded scans, reference implementation
 ////////////////////////////////////////////////////////////////////////////////

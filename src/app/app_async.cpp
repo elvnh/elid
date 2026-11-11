@@ -16,13 +16,25 @@ void app_async_get_running_processes(TaskID, void *data)
     atomic_store_s32(&app->process_list_ready, true);
 }
 
+scan_Value_Maybe app_async__read_single_value_in_process(memmi_Process proc, scan_ValueType value_type, uintptr_t address)
+{
+    scan_Value_Maybe result = {};
+
+    usize size = scan_val_type_get_size(value_type);
+
+    memmi_ReadMemory read_mem_result = memmi_read_memory(proc, &result.value, address, size);
+    result.ok = (read_mem_result.status == MEMMI_OK);
+
+    return result;
+}
+
 void app_async_update_address_table_entry_value(TaskID, void *data)
 {
     app_UpdateAddressTableArgs *args = (app_UpdateAddressTableArgs *)data;
     app_AddressTableEntry *entry = args->entry;
     app_State *app = args->app;
 
-    scan_Value_Maybe value_opt = scan_remote_read_single_value(app->open_process_handle, entry->value_type, entry->address);
+    scan_Value_Maybe value_opt = app_async__read_single_value_in_process(app->open_process_handle, entry->value_type, entry->address);
 
     if (value_opt.ok) {
         scan_val_atomic_store(&entry->current_value, value_opt.value);
@@ -39,7 +51,7 @@ void app_async_update_result_table_entry(TaskID, void *data)
     scan_MatchView details = args->match_details;
 
     uintptr_t address = details.match->address;
-    scan_Value_Maybe value_opt = scan_remote_read_single_value(args->app->open_process_handle, args->value_type, address);
+    scan_Value_Maybe value_opt = app_async__read_single_value_in_process(args->app->open_process_handle, args->value_type, address);
 
     // TODO: display null value if failed to read
     // TODO: don't do this every frame

@@ -414,18 +414,6 @@ scan_Result scan_remote_memory_next(Arena **per_thread_result_arenas, memmi_Proc
     return result;
 }
 
-scan_Value_Maybe scan_remote_read_single_value(memmi_Process proc, scan_ValueType value_type, uintptr_t address)
-{
-    scan_Value_Maybe result = {};
-
-    usize size = scan_val_type_get_size(value_type);
-
-    memmi_ReadMemory read_mem_result = memmi_read_memory(proc, &result.value, address, size);
-    result.ok = (read_mem_result.status == MEMMI_OK);
-
-    return result;
-}
-
 ////////////////////////////////////////////////////////////////////////////////
 // Single-threaded scans, reference implementation
 ////////////////////////////////////////////////////////////////////////////////
