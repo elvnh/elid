@@ -140,7 +140,8 @@ void gui_scan_result_table(gui_State *gui, app_State *app)
 
                         // Right click on row context menu.
                         if (ImGui::BeginPopupContextItem()) {
-                            uintptr_t address = scan_address_from_match_details(match);
+                            // TODO: rename match
+                            uintptr_t address = match.match->address;
                             usize value_type_size = scan_val_type_get_size(app->result_list.value_type);
 
                             if (ImGui::Selectable("Add to table")) {

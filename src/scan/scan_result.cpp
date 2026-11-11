@@ -3,13 +3,6 @@
 // Used when constructing scan_ResultView from scan_MatchList, when region is unknown.
 global scan_RegionMatches g__dummy_region;
 
-uintptr_t scan_address_from_match_details(scan_MatchView details)
-{
-    uintptr_t result = details.region_base_address + details.match->offset_from_base;
-
-    return result;
-}
-
 scan_MatchView scan__match_details_from_match(scan_MatchList *matches, scan_RegionMatches *region, usize index)
 {
     scan_MatchView result = {};
@@ -26,8 +19,8 @@ int scan__result_view_sort_cmp(const void *a, const void *b)
     scan_MatchView details_a = *(scan_MatchView *)a;
     scan_MatchView details_b = *(scan_MatchView *)b;
 
-    uintptr_t address_a = scan_address_from_match_details(details_a);
-    uintptr_t address_b = scan_address_from_match_details(details_b);
+    uintptr_t address_a = details_a.match->address;
+    uintptr_t address_b = details_b.match->address;
 
     int result = 0;
 
@@ -51,10 +44,8 @@ void scan__result_view_sort(scan_ResultView *results)
     {
         if (results->count > 0) {
             for (usize i = 0; i < results->count - 1; ++i) {
-                uintptr_t this_addr =
-                    scan_address_from_match_details(results->data[i]);
-                uintptr_t next_addr =
-                    scan_address_from_match_details(results->data[i + 1]);
+                uintptr_t this_addr = results->data[i].match->address;
+                uintptr_t next_addr = results->data[i + 1].match->address;
 
                 ASSERT((this_addr != next_addr) && "Duplicate address found");
                 ASSERT(this_addr < next_addr);
@@ -117,7 +108,7 @@ b32 scan_result_view_eq(scan_ResultView lhs, scan_ResultView rhs)
         scan_MatchView a = lhs.data[i];
         scan_MatchView b = rhs.data[i];
 
-        result = (scan_address_from_match_details(a) == scan_address_from_match_details(b))
+        result = (a.match->address == b.match->address)
             && scan_val_eq(SCAN_VALUE_TYPE_INT32, a.match->value, b.match->value)
             && scan_val_eq(SCAN_VALUE_TYPE_INT32, a.history->previous_value, b.history->previous_value)
             && scan_val_eq(SCAN_VALUE_TYPE_INT32, a.history->first_value, b.history->first_value);

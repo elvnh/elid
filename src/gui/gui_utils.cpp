@@ -121,7 +121,7 @@ char *gui_cstr_from_match_address(Arena *arena, scan_MatchView match_details, pr
 
     char *result = 0;
 
-    usize match_address = scan_address_from_match_details(match_details);
+    usize match_address = match_details.match->address;
 
     if (match_details.containing_object.ok) {
         // This address is contained in library/executable itself, display as an offset.

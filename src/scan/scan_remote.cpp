@@ -272,7 +272,7 @@ void scan__remote_next_single_region_async(TaskID, void *data)
 
         scan_MatchList *new_matches_in_region =
             scan_local_memory_next(thread_context->result_arena, region_memory,
-                read_mem_result.bytes_read, cmp, prev_matches_in_region);
+                read_mem_result.bytes_read, args.region_address, cmp, prev_matches_in_region);
 
         ASSERT(new_matches_in_region->total_match_count <= prev_matches_in_region->total_match_count);
 
@@ -603,7 +603,7 @@ scan_Result scan_remote_memory_next_single_threaded(Arena *arena, memmi_Process 
             }
         } else {
             scan_MatchList *matches = scan_local_memory_next(arena, region_memory,
-                read_mem_result.bytes_read, cmp, match_list->first_match_list);
+                read_mem_result.bytes_read, match_list->region_base_address, cmp, match_list->first_match_list);
             ASSERT(matches);
 
             scan__push_region_matches(arena, &result, matches, match_list->region_base_address,

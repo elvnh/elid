@@ -5,7 +5,7 @@
 
 struct scan_Match {
     scan_Value value;
-    usize      offset_from_base;
+    uintptr_t  address;
 };
 
 struct scan_MatchHistory {
@@ -62,8 +62,8 @@ struct scan_Result {
 struct scan_MatchView {
     scan_Match         *match;
     scan_MatchHistory  *history;
-    uintptr_t           region_base_address;
-    proc_Object_Maybe   containing_object;
+    uintptr_t           region_base_address; // TODO: remove
+    proc_Object_Maybe   containing_object;   // TODO: remove?
 };
 
 /* A flat array of scan_MatchView, sorted by memory address. */
@@ -75,5 +75,3 @@ struct scan_ResultView {
 scan_ResultView scan_result_view_from_result(Arena *arena, scan_Result scan_result);
 scan_ResultView scan_result_view_from_match_list(Arena *arena, scan_MatchList *matches);
 b32             scan_result_view_eq(scan_ResultView lhs, scan_ResultView rhs);
-
-uintptr_t       scan_address_from_match_details(scan_MatchView details);

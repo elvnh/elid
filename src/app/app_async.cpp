@@ -38,7 +38,7 @@ void app_async_update_result_table_entry(TaskID, void *data)
 
     scan_MatchView details = args->match_details;
 
-    uintptr_t address = scan_address_from_match_details(details);
+    uintptr_t address = details.match->address;
     scan_Value_Maybe value_opt = scan_remote_read_single_value(args->app->open_process_handle, args->value_type, address);
 
     // TODO: display null value if failed to read

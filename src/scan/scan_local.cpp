@@ -59,7 +59,7 @@ scan_MatchList *scan_local_memory_first(Arena *arena, void *mem, usize mem_size,
         if (scan_cmp_match(value_at_address, cmp)) {
             scan_Match match = {};
             match.value = value_at_address;
-            match.offset_from_base = offset;
+            match.address = base_address + offset;
 
             // There is no history yet as this is the first scan.
             scan_MatchHistory match_history = {};
@@ -75,7 +75,7 @@ scan_MatchList *scan_local_memory_first(Arena *arena, void *mem, usize mem_size,
     return result;
 }
 
-scan_MatchList *scan_local_memory_next(Arena *arena, void *mem, usize mem_size, scan_Comparison cmp,
+scan_MatchList *scan_local_memory_next(Arena *arena, void *mem, usize mem_size, uintptr_t base_address, scan_Comparison cmp,
     scan_MatchList *prev_matches)
 {
     scan_MatchList *result = arena_alloc_struct(arena, scan_MatchList);
@@ -86,16 +86,18 @@ scan_MatchList *scan_local_memory_next(Arena *arena, void *mem, usize mem_size, 
             scan_MatchHistory history = match_list->match_history_data[i];
             history.previous_value = prev_match.value;
 
-            ASSERT(prev_match.offset_from_base < mem_size);
+            ASSERT(prev_match.address >= base_address);
+            usize offset_from_base = prev_match.address - base_address;
+            ASSERT(offset_from_base < mem_size);
 
-            void *address = ptr_byte_offset(mem, prev_match.offset_from_base);
+            void *address = ptr_byte_offset(mem, offset_from_base);
             scan_Value current_value = scan__load_value_at_address(address, cmp.value_type);
             scan_Value prev_value = prev_match.value;
 
             if (scan_cmp_match_with_previous(current_value, cmp, prev_value)) {
                 scan_Match new_match = {};
                 new_match.value = current_value;
-                new_match.offset_from_base = prev_match.offset_from_base;
+                new_match.address = prev_match.address;
 
                 scan__push_match(arena, &result, new_match, history);
             }
