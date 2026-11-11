@@ -54,18 +54,19 @@ void app_destroy(app_State *app)
 
     app_error_list_destroy(&app->error_list);
 
-    for (usize i = 0; i < wq_get_thread_count(app->multi_frame_work_queue); ++i) {
-        arena_destroy(app->current_per_thread_scan_result_arenas[i]);
-        arena_destroy(app->previous_per_thread_scan_result_arenas[i]);
-    }
-
     if (app->watch) {
         TODO("app_watch_destroy()");
         // app_watch_destroy(app->watch);
     }
 
+    usize thread_count = wq_get_thread_count(app->multi_frame_work_queue);
     wq_destroy(app->per_frame_work_queue);
     wq_destroy(app->multi_frame_work_queue);
+
+    for (usize i = 0; i < thread_count; ++i) {
+        arena_destroy(app->current_per_thread_scan_result_arenas[i]);
+        arena_destroy(app->previous_per_thread_scan_result_arenas[i]);
+    }
 
     arena_destroy(app->permanent_arena);
     arena_destroy(app->process_list_arena);
