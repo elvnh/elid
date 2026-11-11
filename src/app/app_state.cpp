@@ -47,11 +47,28 @@ b32 app_init(app_State *app)
 
 void app_destroy(app_State *app)
 {
-    (void)app;
-    // app_wq_destroy(app->per_frame_work_queue);
-    // app_wq_destroy(app->multi_frame_work_queue);
+    // TODO: Destroy watches and clear breakpoints
+    if (app_has_opened_process(app)) {
+        memmi_close_process(app->open_process_handle, memmi_default_allocator());
+    }
 
     app_error_list_destroy(&app->error_list);
+
+    for (usize i = 0; i < wq_get_thread_count(app->multi_frame_work_queue); ++i) {
+        arena_destroy(app->current_per_thread_scan_result_arenas[i]);
+        arena_destroy(app->previous_per_thread_scan_result_arenas[i]);
+    }
+
+    if (app->watch) {
+        TODO("app_watch_destroy()");
+        // app_watch_destroy(app->watch);
+    }
+
+    wq_destroy(app->per_frame_work_queue);
+    wq_destroy(app->multi_frame_work_queue);
+
+    arena_destroy(app->permanent_arena);
+    arena_destroy(app->process_list_arena);
 }
 
 void app_push_error(app_State *app, app_Error error)
