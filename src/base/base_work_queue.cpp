@@ -3,6 +3,7 @@
 #define WQ_TASK_USER_DATA_SIZE KB(4)
 #define WQ_INITIAL_FREE_TASK_CAP 16
 #define WQ_THREAD_WORK_QUEUE_ARENA_SIZE WQ_INITIAL_FREE_TASK_CAP * sizeof(wq__Task)
+#define WQ_WAIT_FOR_TASK_TIMEOUT_IN_USEC ms_to_us(1)
 
 // TODO: rename
 struct wq__Task {
@@ -260,15 +261,16 @@ void wq_wait_for_task(TaskID id)
         if (task_to_do_while_waiting && !wq__task_is_finished(id, task)) {
             wq__execute_task(task_to_do_while_waiting);
         } else {
-            // We wait on the queue global cond var as we're both interested in new jobs arriving
-            // and the task finishing. We also check the generation again before going to sleep,
-            // since it may have changed since last check. It won't change after acquiring lock
-            // though, as the lock is always acquired before increasing it.
-            // TODO: we should wake up when a task arrives in any other queue as well
             ScopedLock lock = scoped_lock(task_queue->queue_mutex);
 
             if (!wq__task_is_finished(id, task)) {
-                cond_var_wait(task_queue->task_available_or_finished_cond_var, task_queue->queue_mutex);
+                // We wait with a timeout here, since if we are waiting for a task from within another task,
+                // if some other task gets pushed to our queue, there is a risk it will never be executed.
+                // By waking up periodically to check our own queue, we avoid that problem.
+                cond_var_wait_timed(
+                    task_queue->task_available_or_finished_cond_var,
+                    task_queue->queue_mutex,
+                    WQ_WAIT_FOR_TASK_TIMEOUT_IN_USEC);
             }
         }
     }
@@ -298,6 +300,7 @@ static void *wq__thread_loop(void *user_data)
             ScopedLock lock = scoped_lock(queue->queue_mutex);
 
             if (!atomic_load_s32(&wq->should_terminate) && list_is_empty(&queue->queued_tasks)) {
+                // TODO: should we use timed wait here too?
                 cond_var_wait(queue->task_available_or_finished_cond_var, queue->queue_mutex);
             }
         }
@@ -448,6 +451,7 @@ void wq_wait_for_all_tasks(WorkQueue *wq)
 {
     ScopedLock lock = scoped_lock(wq->active_task_count_mutex);
 
+    // TODO: try to do tasks in the meantime
     while (wq->active_task_count != 0) {
         cond_var_wait(wq->task_finished_cond_var, wq->active_task_count_mutex);
     }
