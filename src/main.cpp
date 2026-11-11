@@ -40,6 +40,8 @@ int main(int argc, char **argv)
         }
 
         gui_run(&gui, &app);
+
+        app_destroy(&app);
     }
 
     return result;
