@@ -109,7 +109,7 @@ b32 thread_join(Thread thread)
 {
     pthread_t handle = (pthread_t)thread.data;
     int join_result = pthread_join(handle, 0);
-    ASSERT(errno == 0);
+    ASSERT(join_result == 0);
 
     b32 result = join_result == 0;
 
