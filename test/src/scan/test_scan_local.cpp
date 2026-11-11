@@ -29,7 +29,7 @@ static test_LocalScanResults test_make_local_scan_results(Arena *arena, scan_Mat
 {
     test_LocalScanResults result = {};
     result.matches = matches;
-    result.view = scan_match_list_make_view(arena, matches);
+    result.view = scan_result_view_from_match_list(arena, matches);
 
     return result;
 }

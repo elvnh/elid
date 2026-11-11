@@ -13,7 +13,7 @@ void app_action_push_address_table_entry(app_State *app, app_AddressTableEntry e
 void app_action_update_address_table_entry_value(app_State *app, app_AddressTableEntry *entry);
 void app_action_edit_address_table_entry(app_State *app, app_AddressTableEntry *entry, app_AddressTableEntry new_entry);
 void app_action_remove_address_table_entry(app_State *app, app_AddressTableEntry *entry);
-void app_action_update_result_table_entry(app_State *app, scan_MatchDetails match);
+void app_action_update_result_table_entry(app_State *app, scan_MatchView match);
 void app_action_begin_watch(app_State *app, uintptr_t address, app_WatchCondition cond, u32 length);
 void app_action_end_watch(app_State *app);
 void app_action_poll_watch_events(app_State *app);

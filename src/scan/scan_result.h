@@ -13,39 +13,31 @@ struct scan_MatchHistory {
     scan_Value first_value;
 };
 
-struct scan_MatchDetails {
-    scan_Match         *match;
-    scan_MatchHistory  *history;
-    uintptr_t           region_base_address;
-    proc_Object_Maybe   containing_object;
-};
-
 // TODO: store exact scan results sparsely
+/* An unrolled linked list of matches. */
 struct scan_MatchList {
     scan_Match        match_data[SCAN_MATCH_LIST_SIZE];
     scan_MatchHistory match_history_data[SCAN_MATCH_LIST_SIZE];
-    usize count; // Number of matches in this list.
+    usize             count; // Number of matches in this list.
 
-    usize total_match_count; // Total number of matches in chain.
+    usize             total_match_count; // Total number of matches in chain.
 
-    scan_MatchList *next;
+    scan_MatchList    *next;
 };
 
+/* The matches that were found in a single region of memory. */
 struct scan_RegionMatches {
-    usize  region_base_address;
-    usize  region_size;
+    usize               region_base_address;
+    usize               region_size;
+    proc_Object_Maybe   object_containing_region;
 
-    proc_Object_Maybe containing_object;
-
-    usize match_count_in_region;
-
-    // TODO: rename
-    scan_MatchList *first_match_list;
+    scan_MatchList     *first_match_list;
+    usize               match_count_in_region;
 
     scan_RegionMatches *next;
-    scan_RegionMatches *last; // TODO: why is this needed?
 };
 
+/* The complete result of a single scan. */
 struct scan_Result {
     scan_Mode        scan_mode;
     scan_ValueType   value_type;
@@ -66,14 +58,22 @@ struct scan_Result {
     } regions;
 };
 
+/* A non-owning view of a single match in a scan_MatchList. */
+struct scan_MatchView {
+    scan_Match         *match;
+    scan_MatchHistory  *history;
+    uintptr_t           region_base_address;
+    proc_Object_Maybe   containing_object;
+};
+
+/* A flat array of scan_MatchView, sorted by memory address. */
 struct scan_ResultView {
-    scan_MatchDetails *data;
+    scan_MatchView *data;
     usize count;
 };
 
-// TODO: scan_view_from_result
-scan_ResultView scan_result_make_view(Arena *arena, scan_Result scan_result);
-uintptr_t       scan_address_from_match_details(scan_MatchDetails details);
-// TODO: scan_view_from_match_list
-scan_ResultView scan_match_list_make_view(Arena *arena, scan_MatchList *matches);
-b32             scan_view_eq(scan_ResultView lhs, scan_ResultView rhs);
+scan_ResultView scan_result_view_from_result(Arena *arena, scan_Result scan_result);
+scan_ResultView scan_result_view_from_match_list(Arena *arena, scan_MatchList *matches);
+b32             scan_result_view_eq(scan_ResultView lhs, scan_ResultView rhs);
+
+uintptr_t       scan_address_from_match_details(scan_MatchView details);

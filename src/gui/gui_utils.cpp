@@ -114,7 +114,7 @@ char *gui_cstr_from_address(Arena *arena, uintptr_t address)
     return result;
 }
 
-char *gui_cstr_from_match_address(Arena *arena, scan_MatchDetails match_details, proc_ObjectList objects)
+char *gui_cstr_from_match_address(Arena *arena, scan_MatchView match_details, proc_ObjectList objects)
 {
     ASSERT(objects.data);
     ASSERT(objects.count);

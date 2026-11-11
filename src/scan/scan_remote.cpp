@@ -75,8 +75,7 @@ static void scan__push_matches_to_thread_context(scan_RemoteScanThreadContext *c
         scan_RegionMatches *region = arena_alloc_struct(context->result_arena, scan_RegionMatches);
         region->region_base_address = region_address;
         region->region_size = region_size;
-        region->containing_object = object_containing_region;
-        region->last = region;
+        region->object_containing_region = object_containing_region;
         region->first_match_list = matches;
         region->match_count_in_region = matches->total_match_count;
 
@@ -390,9 +389,9 @@ scan_Result scan_remote_memory_next(Arena **per_thread_result_arenas, memmi_Proc
     for (scan_RegionMatches *prev_region = list_head(&prev_results.regions); prev_region; prev_region = list_next(prev_region)) {
         proc_Object_Maybe object_containing_region = {};
 
-        if (prev_region->containing_object.ok) {
+        if (prev_region->object_containing_region.ok) {
             // proj_Object contains a string allocated in the previous result arena, so we'll have to copy it.
-            object_containing_region = SOME(proc_object_copy(result_arena, prev_region->containing_object.value));
+            object_containing_region = SOME(proc_object_copy(result_arena, prev_region->object_containing_region.value));
         }
 
         scan_RemoteScanArgs args = scan__make_remote_scan_args(
@@ -439,7 +438,7 @@ static void scan__push_region_matches(Arena *arena, scan_Result *result, scan_Ma
         region_matches->region_size = region_size;
         region_matches->first_match_list = matches;
         region_matches->match_count_in_region = matches->total_match_count;
-        region_matches->containing_object = containing_object;
+        region_matches->object_containing_region = containing_object;
 
         result->total_match_count += region_matches->match_count_in_region;
 
@@ -608,7 +607,7 @@ scan_Result scan_remote_memory_next_single_threaded(Arena *arena, memmi_Process 
             ASSERT(matches);
 
             scan__push_region_matches(arena, &result, matches, match_list->region_base_address,
-                match_list->region_size, match_list->containing_object);
+                match_list->region_size, match_list->object_containing_region);
         }
 
         atomic_add_usize(progress.bytes_scanned_ptr, match_list->region_size);

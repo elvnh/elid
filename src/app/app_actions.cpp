@@ -111,7 +111,7 @@ void app_action_push_address_table_entry(app_State *app, app_AddressTableEntry e
     app_addr_table_push(&app->address_table, entry);
 }
 
-void app_action_update_result_table_entry(app_State *app, scan_MatchDetails match)
+void app_action_update_result_table_entry(app_State *app, scan_MatchView match)
 {
     app_UpdateResultTableArgs args = {};
     args.app = app;

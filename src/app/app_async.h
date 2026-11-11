@@ -7,7 +7,7 @@ struct app_UpdateAddressTableArgs {
 
 struct app_UpdateResultTableArgs {
     app_State *app;
-    scan_MatchDetails match_details;
+    scan_MatchView match_details;
     scan_ValueType value_type;
 };
 

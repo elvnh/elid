@@ -36,7 +36,7 @@ void app_async_update_result_table_entry(TaskID, void *data)
 {
     app_UpdateResultTableArgs *args = (app_UpdateResultTableArgs *)data;
 
-    scan_MatchDetails details = args->match_details;
+    scan_MatchView details = args->match_details;
 
     uintptr_t address = scan_address_from_match_details(details);
     scan_Value_Maybe value_opt = scan_remote_read_single_value(args->app->open_process_handle, args->value_type, address);
@@ -117,10 +117,10 @@ void app_async_run_first_scan(TaskID, void *data)
                 args.settings, args.cmp, prog);
 
             ScratchArena scratch = scratch_begin();
-            scan_ResultView view_new = scan_result_make_view(scratch.arena, app->result_list);
-            scan_ResultView view_old = scan_result_make_view(scratch.arena, result_old);
+            scan_ResultView view_new = scan_result_view_from_result(scratch.arena, app->result_list);
+            scan_ResultView view_old = scan_result_view_from_result(scratch.arena, result_old);
 
-            ASSERT(scan_view_eq(view_new, view_old));
+            ASSERT(scan_result_view_eq(view_new, view_old));
         }
         #endif
     }
@@ -174,10 +174,10 @@ void app_async_run_next_scan(TaskID, void *data)
                 app->open_process_handle, args.settings, args.cmp, previous_results, prog);
 
             ScratchArena scratch = scratch_begin();
-            scan_ResultView view_new = scan_result_make_view(scratch.arena, app->result_list);
-            scan_ResultView view_old = scan_result_make_view(scratch.arena, result_old);
+            scan_ResultView view_new = scan_result_view_from_result(scratch.arena, app->result_list);
+            scan_ResultView view_old = scan_result_view_from_result(scratch.arena, result_old);
 
-            ASSERT(scan_view_eq(view_new, view_old));
+            ASSERT(scan_result_view_eq(view_new, view_old));
         }
         #endif
     }

@@ -66,7 +66,7 @@ void gui_scan_result_table(gui_State *gui, app_State *app)
         if (!atomic_load_s32(&app->scan_in_progress)
             && (app->result_list.total_match_count > 0)
             && (app->result_list.total_match_count <= GUI_MAX_DISPLAYED_RESULT_COUNT)) {
-            scan_ResultView result_view = scan_result_make_view(gui->frame_arena, app->result_list);
+            scan_ResultView result_view = scan_result_view_from_result(gui->frame_arena, app->result_list);
 
             ImGuiListClipper clipper = {};
             clipper.Begin(usize_to_s32(result_view.count));
@@ -75,7 +75,7 @@ void gui_scan_result_table(gui_State *gui, app_State *app)
                 for (s32 row = clipper.DisplayStart; row < clipper.DisplayEnd; ++row) {
                     // TODO: periodically update visible entries in result by looking up current value
 
-                    scan_MatchDetails match = result_view.data[row];
+                    scan_MatchView match = result_view.data[row];
 
                     // TODO: animate when a value changes
                     app_action_update_result_table_entry(app, match);
