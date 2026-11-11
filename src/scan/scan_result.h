@@ -29,15 +29,11 @@ struct scan_MatchList {
 
     usize total_match_count; // Total number of matches in chain.
 
-    // TODO: pack list node members into struct
     scan_MatchList *next;
-    scan_MatchList *first;
-    scan_MatchList *last;
-    usize list_node_count;
 };
 
 struct scan_RegionMatches {
-    // TODO: just store memmi region here?
+    // TODO: just store proc_Region here?
     usize  region_base_address;
     usize  region_size;
 
@@ -46,7 +42,7 @@ struct scan_RegionMatches {
     usize match_count_in_region;
 
     // TODO: rename
-    scan_MatchList *head; // TODO: the first member doesn't need to be a pointer?
+    scan_MatchList *head;
 
     scan_RegionMatches *next;
     scan_RegionMatches *last;

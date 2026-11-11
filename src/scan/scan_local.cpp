@@ -11,33 +11,27 @@ static scan_Value scan__load_value_at_address(void *address, scan_ValueType type
     return result;
 }
 
-static scan_MatchList *scan__alloc_match_list(Arena *arena)
+static void scan__push_match(Arena *arena, scan_MatchList **head_ptr, scan_Match match, scan_MatchHistory history)
 {
-    scan_MatchList *result = arena_alloc_struct(arena, scan_MatchList);
-    result->first = result;
-    result->last = result;
+    scan_MatchList *head = *head_ptr;
 
-    return result;
-}
+    ASSERT(head->count <= array_capacity(head->match_data));
+    ASSERT(array_capacity(head->match_data) == array_capacity(head->match_history_data));
 
-static void scan__push_match(Arena *arena, scan_MatchList *list, scan_Match match, scan_MatchHistory history)
-{
-    scan_MatchList *current = list->last;
-
-    ASSERT(current->count <= array_capacity(current->match_data));
-    ASSERT(array_capacity(current->match_data) == array_capacity(current->match_history_data));
-
-    // TODO: use array_try_push here
-    if (current->count == array_capacity(current->match_data)) {
-        current = scan__alloc_match_list(arena);
-        sll_push_back(list, current);
+    if (head->count == array_capacity(head->match_data)) {
+        scan_MatchList *new_head = arena_alloc_struct(arena, scan_MatchList);
+        new_head->next = head;
+        new_head->total_match_count = head->total_match_count;
+        head = new_head;
     }
 
-    usize index = current->count++;
-    current->match_data[index] = match;
-    current->match_history_data[index] = history;
+    usize index = head->count++;
+    head->match_data[index] = match;
+    head->match_history_data[index] = history;
 
-    ++list->total_match_count;
+    ++head->total_match_count;
+
+    *head_ptr = head;
 }
 
 scan_MatchList *scan_local_memory_first(Arena *arena, void *mem, usize mem_size, uintptr_t base_address,
@@ -51,7 +45,7 @@ scan_MatchList *scan_local_memory_first(Arena *arena, void *mem, usize mem_size,
 
     ASSERT_ALWAYS(is_aligned(base_address, alignment));
 
-    scan_MatchList *result = scan__alloc_match_list(arena);
+    scan_MatchList *result = arena_alloc_struct(arena, scan_MatchList);
 
     usize type_size = scan_val_type_get_size(cmp.value_type);
 
@@ -72,7 +66,7 @@ scan_MatchList *scan_local_memory_first(Arena *arena, void *mem, usize mem_size,
             match_history.first_value = match.value;
             match_history.previous_value = match.value;
 
-            scan__push_match(arena, result, match, match_history);
+            scan__push_match(arena, &result, match, match_history);
         }
 
         offset += alignment;
@@ -84,7 +78,7 @@ scan_MatchList *scan_local_memory_first(Arena *arena, void *mem, usize mem_size,
 scan_MatchList *scan_local_memory_next(Arena *arena, void *mem, usize mem_size, scan_Comparison cmp,
     scan_MatchList *prev_matches)
 {
-    scan_MatchList *result = scan__alloc_match_list(arena);
+    scan_MatchList *result = arena_alloc_struct(arena, scan_MatchList);
 
     for (scan_MatchList *match_list = prev_matches; match_list; match_list = list_next(match_list)) {
         for (usize i = 0; i < match_list->count; ++i) {
@@ -103,7 +97,7 @@ scan_MatchList *scan_local_memory_next(Arena *arena, void *mem, usize mem_size, 
                 new_match.value = current_value;
                 new_match.offset_from_base = prev_match.offset_from_base;
 
-                scan__push_match(arena, result, new_match, history);
+                scan__push_match(arena, &result, new_match, history);
             }
         }
     }
