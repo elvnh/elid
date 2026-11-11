@@ -292,13 +292,9 @@ void cond_var_wait_timed(ConditionVariable cond_var, Mutex mutex, u64 timeout_us
     int gettime_result = clock_gettime(CLOCK_MONOTONIC, &time_now);
     ASSERT(gettime_result != -1);
 
-    struct timespec wait_until = time_now;
-    wait_until.tv_nsec += timeout_ns;
-
-    while (wait_until.tv_nsec >= NS_PER_SEC) {
-        ++wait_until.tv_sec;
-        wait_until.tv_nsec -= NS_PER_SEC;
-    }
+    struct timespec wait_until = {};
+    wait_until.tv_sec = time_now.tv_sec + ((time_now.tv_nsec + timeout_ns) / NS_PER_SEC);
+    wait_until.tv_nsec = (time_now.tv_nsec + timeout_ns) % NS_PER_SEC;
 
     int wait_result = pthread_cond_timedwait(cond_data, mutex_data, &wait_until);
 
