@@ -35,3 +35,4 @@ void                scan_val_atomic_store(scan_Value *dst, scan_Value src);
 scan_Value          scan_val_atomic_load(scan_Value *src);
 void                scan_val_atomic_move(scan_Value *dst, scan_Value *src);
 scan_TypedValue     scan_val_make_int32(u32 value);
+scan_Value          scan_val_bit_cast(void *address, scan_ValueType type);

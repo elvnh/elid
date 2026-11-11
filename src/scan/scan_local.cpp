@@ -1,39 +1,5 @@
 #include "scan_local.h"
 
-static scan_Value scan__load_value_at_address(void *address, scan_ValueType type)
-{
-    scan_Value result = {};
-
-    usize type_size = scan_val_type_get_size(type);
-
-    copy_mem(&result, address, 1, type_size);
-
-    return result;
-}
-
-static void scan__push_match(Arena *arena, scan_MatchList **head_ptr, scan_Match match, scan_MatchHistory history)
-{
-    scan_MatchList *head = *head_ptr;
-
-    ASSERT(head->count <= array_capacity(head->match_data));
-    ASSERT(array_capacity(head->match_data) == array_capacity(head->match_history_data));
-
-    if (head->count == array_capacity(head->match_data)) {
-        scan_MatchList *new_head = arena_alloc_struct(arena, scan_MatchList);
-        new_head->next = head;
-        new_head->total_match_count = head->total_match_count;
-        head = new_head;
-    }
-
-    usize index = head->count++;
-    head->match_data[index] = match;
-    head->match_history_data[index] = history;
-
-    ++head->total_match_count;
-
-    *head_ptr = head;
-}
-
 scan_MatchList *scan_local_memory_first(Arena *arena, void *mem, usize mem_size, uintptr_t base_address,
     scan_Comparison cmp, usize alignment)
 {
@@ -54,7 +20,7 @@ scan_MatchList *scan_local_memory_first(Arena *arena, void *mem, usize mem_size,
     while ((offset + type_size) <= mem_size) {
         void *local_address = ptr_byte_offset(mem, offset);
 
-        scan_Value value_at_address = scan__load_value_at_address(local_address, cmp.value_type);
+        scan_Value value_at_address = scan_val_bit_cast(local_address, cmp.value_type);
 
         if (scan_cmp_match(value_at_address, cmp)) {
             scan_Match match = {};
@@ -66,7 +32,7 @@ scan_MatchList *scan_local_memory_first(Arena *arena, void *mem, usize mem_size,
             match_history.first_value = match.value;
             match_history.previous_value = match.value;
 
-            scan__push_match(arena, &result, match, match_history);
+            scan_match_list_push(arena, &result, match, match_history);
         }
 
         offset += alignment;
@@ -91,7 +57,7 @@ scan_MatchList *scan_local_memory_next(Arena *arena, void *mem, usize mem_size, 
             ASSERT(offset_from_base < mem_size);
 
             void *address = ptr_byte_offset(mem, offset_from_base);
-            scan_Value current_value = scan__load_value_at_address(address, cmp.value_type);
+            scan_Value current_value = scan_val_bit_cast(address, cmp.value_type);
             scan_Value prev_value = prev_match.value;
 
             if (scan_cmp_match_with_previous(current_value, cmp, prev_value)) {
@@ -99,7 +65,7 @@ scan_MatchList *scan_local_memory_next(Arena *arena, void *mem, usize mem_size, 
                 new_match.value = current_value;
                 new_match.address = prev_match.address;
 
-                scan__push_match(arena, &result, new_match, history);
+                scan_match_list_push(arena, &result, new_match, history);
             }
         }
     }

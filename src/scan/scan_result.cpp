@@ -115,3 +115,26 @@ b32 scan_result_view_eq(scan_ResultView lhs, scan_ResultView rhs)
 
     return result;
 }
+
+void scan_match_list_push(Arena *arena, scan_MatchList **head_ptr, scan_Match match, scan_MatchHistory history)
+{
+    scan_MatchList *head = *head_ptr;
+
+    ASSERT(head->count <= array_capacity(head->match_data));
+    ASSERT(array_capacity(head->match_data) == array_capacity(head->match_history_data));
+
+    if (head->count == array_capacity(head->match_data)) {
+        scan_MatchList *new_head = arena_alloc_struct(arena, scan_MatchList);
+        new_head->next = head;
+        new_head->total_match_count = head->total_match_count;
+        head = new_head;
+    }
+
+    usize index = head->count++;
+    head->match_data[index] = match;
+    head->match_history_data[index] = history;
+
+    ++head->total_match_count;
+
+    *head_ptr = head;
+}

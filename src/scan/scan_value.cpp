@@ -192,3 +192,14 @@ void scan_val_atomic_move(scan_Value *dst, scan_Value *src)
     scan_Value value = scan_val_atomic_load(src);
     scan_val_atomic_store(dst, value);
 }
+
+scan_Value scan_val_bit_cast(void *address, scan_ValueType type)
+{
+    scan_Value result = {};
+
+    usize type_size = scan_val_type_get_size(type);
+
+    copy_mem(&result, address, 1, type_size);
+
+    return result;
+}

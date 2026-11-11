@@ -25,6 +25,8 @@ struct scan_MatchList {
     scan_MatchList    *next;
 };
 
+void scan_match_list_push(Arena *arena, scan_MatchList **head_ptr, scan_Match match, scan_MatchHistory history);
+
 /* The matches that were found in a single region of memory. */
 struct scan_RegionMatches {
     usize               region_base_address;
