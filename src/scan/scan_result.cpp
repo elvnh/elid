@@ -8,7 +8,6 @@ scan_MatchView scan__match_details_from_match(scan_MatchList *matches, scan_Regi
     scan_MatchView result = {};
     result.match = &matches->match_data[index];
     result.history = &matches->match_history_data[index];
-    result.region_base_address = region->region_base_address;
     result.containing_object = region->object_containing_region;
 
     return result;

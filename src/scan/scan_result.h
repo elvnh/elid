@@ -62,8 +62,7 @@ struct scan_Result {
 struct scan_MatchView {
     scan_Match         *match;
     scan_MatchHistory  *history;
-    uintptr_t           region_base_address; // TODO: remove
-    proc_Object_Maybe   containing_object;   // TODO: remove?
+    proc_Object_Maybe   containing_object;
 };
 
 /* A flat array of scan_MatchView, sorted by memory address. */
