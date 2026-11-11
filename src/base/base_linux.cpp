@@ -226,7 +226,11 @@ ConditionVariable cond_var_create()
     pthread_cond_t *data = (pthread_cond_t *)calloc(1, sizeof(pthread_cond_t));
     ASSERT_ALWAYS(data);
 
-    int init_cond_result = pthread_cond_init(data, 0);
+    pthread_condattr_t attr = {};
+    pthread_condattr_init(&attr);
+    pthread_condattr_setclock(&attr, CLOCK_MONOTONIC);
+
+    int init_cond_result = pthread_cond_init(data, &attr);
     ASSERT_ALWAYS(init_cond_result == 0);
 
     ConditionVariable result = {(u64)data};
@@ -254,6 +258,7 @@ void cond_var_signal(ConditionVariable cond_var)
     ASSERT_ALWAYS(signal_result == 0);
 }
 
+// TODO: don't use ASSERT_ALWAYS for synchronization primitives
 void cond_var_broadcast(ConditionVariable cond_var)
 {
     pthread_cond_t *data = (pthread_cond_t *)cond_var.data;
@@ -272,6 +277,32 @@ void cond_var_wait(ConditionVariable cond_var, Mutex mutex)
 
     int wait_result = pthread_cond_wait(cond_data, mutex_data);
     ASSERT_ALWAYS(wait_result == 0);
+}
+
+void cond_var_wait_timed(ConditionVariable cond_var, Mutex mutex, u64 timeout_us)
+{
+    pthread_cond_t *cond_data = (pthread_cond_t *)cond_var.data;
+    ASSERT(cond_data);
+    pthread_mutex_t *mutex_data = (pthread_mutex_t *)mutex.data;
+    ASSERT(mutex_data);
+
+    s64 timeout_ns = u64_to_s64(us_to_ns(timeout_us));
+
+    struct timespec time_now = {};
+    int gettime_result = clock_gettime(CLOCK_MONOTONIC, &time_now);
+    ASSERT(gettime_result != -1);
+
+    struct timespec wait_until = time_now;
+    wait_until.tv_nsec += timeout_ns;
+
+    while (wait_until.tv_nsec >= NS_PER_SEC) {
+        ++wait_until.tv_sec;
+        wait_until.tv_nsec -= NS_PER_SEC;
+    }
+
+    int wait_result = pthread_cond_timedwait(cond_data, mutex_data, &wait_until);
+
+    ASSERT_ALWAYS((wait_result == 0) || (wait_result == ETIMEDOUT));
 }
 
 void sleep_ms(u32 ms)

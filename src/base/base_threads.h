@@ -65,6 +65,7 @@ void              cond_var_destroy(ConditionVariable cond_var);
 void              cond_var_signal(ConditionVariable cond_var);
 void              cond_var_broadcast(ConditionVariable cond_var);
 void              cond_var_wait(ConditionVariable cond_var, Mutex mutex);
+void              cond_var_wait_timed(ConditionVariable cond_var, Mutex mutex, u64 timeout_us);
 
 /* Atomics */
 #if COMPILER_GCC

@@ -209,6 +209,7 @@ usize ssize_to_usize(ssize from);
 s32   u32_to_s32(u32 from);
 s32   usize_to_s32(usize from);
 s32   u64_to_s32(u64 from);
+s64   u64_to_s64(u64 from);
 
 /* Wrapping casts */
 s32 wrap_u32_to_s32(u32 from);
