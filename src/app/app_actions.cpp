@@ -28,7 +28,10 @@ void app_action_close_opened_process(app_State *app)
         app->scanner_state = APP_SCANNER_STATE_SWITCHED_PROCESS_AFTER_FIRST_SCAN;
     }
 
-    memmi_close_process(app->open_process_handle, memmi_default_allocator());
+    if (!memmi_process_is_null(app->open_process_handle)) {
+        memmi_close_process(app->open_process_handle, memmi_default_allocator());
+    }
+
     app->open_process_handle = {};
 }
 
