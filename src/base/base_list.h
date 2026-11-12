@@ -146,13 +146,13 @@
 
 // TODO: unit test this
 #define sll_concat(a, b)                                        \
-    (list_is_empty(b) ? 0 :                                     \
+    (list_is_empty(&(b)) ? 0 :                                  \
         ((list_is_empty(a)                                      \
-            ? (((a)->first = (b)->first),                       \
-                ((a)->last = (b)->last))                        \
-            : (((a)->last->next = (b)->first),                  \
-                ((a)->last = (b)->last))),                      \
-            ((a)->list_node_count += (b)->list_node_count)))
+            ? (((a)->first = (b).first),                       \
+                ((a)->last = (b).last))                        \
+            : (((a)->last->next = (b).first),                  \
+                ((a)->last = (b).last))),                      \
+            ((a)->list_node_count += (b).list_node_count)))
 
 
 /* Stacks */

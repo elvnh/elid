@@ -798,6 +798,126 @@ TEST_CASE(sl_list_insert_after_last)
     REQUIRE(node3->next == 0);
 }
 
+TEST_CASE(sl_concat_two_nonempty_lists)
+{
+    String_SList list_a = {};
+    String_SList list_b = {};
+
+    String_SNode *node0 = arena_alloc_struct(test_arena, String_SNode);
+    sll_push_back(&list_a, node0);
+
+    String_SNode *node1 = arena_alloc_struct(test_arena, String_SNode);
+    sll_push_back(&list_b, node1);
+
+    sll_concat(&list_a, list_b);
+
+    REQUIRE(list_count(&list_a) == 2);
+    REQUIRE(list_count(&list_b) == 1);
+
+    REQUIRE(list_a.first == node0);
+    REQUIRE(list_a.last == node1);
+
+    REQUIRE(node0->next == node1);
+
+    REQUIRE(list_b.first == node1);
+    REQUIRE(list_b.last == node1);
+}
+
+TEST_CASE(sl_concat_both_multiple_nodes)
+{
+    String_SList list_a = {};
+    String_SList list_b = {};
+
+    String_SNode *node0 = arena_alloc_struct(test_arena, String_SNode);
+    sll_push_back(&list_a, node0);
+
+    String_SNode *node1 = arena_alloc_struct(test_arena, String_SNode);
+    sll_push_back(&list_a, node1);
+
+    String_SNode *node2 = arena_alloc_struct(test_arena, String_SNode);
+    sll_push_back(&list_b, node2);
+
+    String_SNode *node3 = arena_alloc_struct(test_arena, String_SNode);
+    sll_push_back(&list_b, node3);
+
+    sll_concat(&list_a, list_b);
+
+    REQUIRE(list_count(&list_a) == 4);
+    REQUIRE(list_count(&list_b) == 2);
+
+    REQUIRE(list_a.first == node0);
+    REQUIRE(list_a.last == node3);
+
+    REQUIRE(node0->next == node1);
+    REQUIRE(node1->next == node2);
+    REQUIRE(node2->next == node3);
+    REQUIRE(node3->next == 0);
+
+    REQUIRE(list_b.first == node2);
+    REQUIRE(list_b.last == node3);
+}
+
+TEST_CASE(sl_concat_lhs_empty)
+{
+    String_SList list_a = {};
+    String_SList list_b = {};
+
+    String_SNode *node0 = arena_alloc_struct(test_arena, String_SNode);
+    sll_push_back(&list_b, node0);
+
+    sll_concat(&list_a, list_b);
+
+    REQUIRE(list_count(&list_a) == 1);
+    REQUIRE(list_count(&list_b) == 1);
+
+    REQUIRE(list_a.first == node0);
+    REQUIRE(list_a.last == node0);
+
+    REQUIRE(node0->next == 0);
+
+    REQUIRE(list_b.first == node0);
+    REQUIRE(list_b.last == node0);
+}
+
+TEST_CASE(sl_concat_rhs_empty)
+{
+    String_SList list_a = {};
+    String_SList list_b = {};
+
+    String_SNode *node0 = arena_alloc_struct(test_arena, String_SNode);
+    sll_push_back(&list_a, node0);
+
+    sll_concat(&list_a, list_b);
+
+    REQUIRE(list_count(&list_a) == 1);
+    REQUIRE(list_count(&list_b) == 0);
+
+    REQUIRE(list_a.first == node0);
+    REQUIRE(list_a.last == node0);
+
+    REQUIRE(node0->next == 0);
+
+    REQUIRE(list_b.first == 0);
+    REQUIRE(list_b.last == 0);
+}
+
+TEST_CASE(sl_concat_both_empty)
+{
+    String_SList list_a = {};
+    String_SList list_b = {};
+
+    sll_concat(&list_a, list_b);
+
+    REQUIRE(list_count(&list_a) == 0);
+    REQUIRE(list_count(&list_b) == 0);
+
+    REQUIRE(list_a.first == 0);
+    REQUIRE(list_a.last == 0);
+
+    REQUIRE(list_b.first == 0);
+    REQUIRE(list_b.last == 0);
+}
+
 /* Stacks */
 TEST_CASE(stack_push_empty)
 {
