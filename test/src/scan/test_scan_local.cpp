@@ -1,23 +1,26 @@
 /* Utilities */
 #define TEST_SCAN_LARGE_ARRAY_SIZE MB(64)
 
+// NOTE: these macros provide 0 as the base address, so all addresses in the results will simply be
+// an offset from the memory base.
+
 // For searching aligned values in an array.
-#define test_scan_local_array_first(arena, data, count, cmp)           \
+#define test_scan_local_array_first(arena, data, count, cmp)            \
     test_make_local_scan_results((arena),                               \
-        scan_local_memory_first((arena), (data), sizeof(*(data)) * (count), (uintptr_t)(data), (cmp), ALIGNOF_VALUE(*(data))))
+        scan_local_memory_first((arena), (data), sizeof(*(data)) * (count), 0, (cmp), ALIGNOF_VALUE(*(data))))
 
 #define test_scan_local_array_next(arena, data, count, cmp, prev_matches) \
     test_make_local_scan_results((arena),                               \
-        scan_local_memory_next((arena), (data), sizeof(*(data)) * (count), (cmp), (prev_matches)))
+        scan_local_memory_next((arena), (data), sizeof(*(data)) * (count), 0, (cmp), (prev_matches)))
 
 // For searching values with arbitrary alignment in an array.
-#define test_scan_local_memory_first(arena, data, size, cmp, align)    \
+#define test_scan_local_memory_first(arena, data, size, cmp, align)     \
     test_make_local_scan_results((arena),                               \
-        scan_local_memory_first((arena), (data), size, (uintptr_t)(data), (cmp), (align)))
+        scan_local_memory_first((arena), (data), size, 0, (cmp), (align)))
 
-#define test_scan_local_memory_next(arena, data, size, cmp, prev_matches)    \
+#define test_scan_local_memory_next(arena, data, size, cmp, prev_matches) \
     test_make_local_scan_results((arena),                               \
-        scan_local_memory_next((arena), (data), size, (cmp), (prev_matches)))
+        scan_local_memory_next((arena), (data), size, 0, (cmp), (prev_matches)))
 
 
 struct test_LocalScanResults {
@@ -34,13 +37,11 @@ static test_LocalScanResults test_make_local_scan_results(Arena *arena, scan_Mat
     return result;
 }
 
-static b32 test_check_local_match(scan_MatchDetails details, scan_TypedValue expected_value, uintptr_t expected_offset)
+static b32 test_check_local_match(scan_MatchView details, scan_TypedValue expected_value, uintptr_t expected_offset)
 {
     // Since we created a scan_ResultView from a scan_MatchList, the region the matches are located
     // in are unknown, so retrieving the address will just return an offset.
-    uintptr_t offset = scan_address_from_match_details(details);
-
-    b32 result = (offset == expected_offset)
+    b32 result = (details.match->address == expected_offset)
         && scan_val_eq(expected_value.type, expected_value.value, details.match->value);
 
     return result;
@@ -51,11 +52,11 @@ static b32 test_result_views_eq(scan_ValueType type, scan_ResultView lhs, scan_R
     b32 result = lhs.count == rhs.count;
 
     for (usize i = 0; result && i < lhs.count; ++i) {
-        scan_MatchDetails lhs_details = lhs.data[i];
-        scan_MatchDetails rhs_details = rhs.data[i];
+        scan_MatchView lhs_details = lhs.data[i];
+        scan_MatchView rhs_details = rhs.data[i];
 
         if (!scan_val_eq(type, lhs_details.match->value, rhs_details.match->value)
-            || (lhs_details.match->offset_from_base != rhs_details.match->offset_from_base)) {
+            || (lhs_details.match->address != rhs_details.match->address)) {
             result = false;
         }
     }
