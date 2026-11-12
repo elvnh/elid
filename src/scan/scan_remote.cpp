@@ -91,7 +91,7 @@ static void scan__collect_thread_results(scan_Result *dst, scan_RemoteScanThread
     for (usize i = 0; i < thread_count; ++i) {
         scan_RemoteScanThreadContext *thread_context = &contexts[i];
 
-        sll_concat(&dst->regions, &thread_context->region_matches);
+        sll_concat(&dst->regions, thread_context->region_matches);
 
         dst->total_match_count += thread_context->match_count;
         dst->regions.matching_regions_size_sum += thread_context->matching_regions_size_sum;
