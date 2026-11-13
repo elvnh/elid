@@ -291,13 +291,16 @@ b32 app_addr_table_entry_update_value(app_AddressTableEntry *entry, memmi_Proces
         atomic_store_s32(&sentinel->last_read_successful, result);
     }
 
-    if (result && entry->kind == APP_ADDR_TABLE_ENTRY_POINTER) {
+    if (result) {
         // The value found at this address, plus the offset, becomes the address of the next link in
         // the pointer chain.
         app_AddressTableEntry *next_entry = app_addr_table_next_in_pointer_chain(entry);
-        next_entry->address = current_value.pointer;
 
-        result = app_addr_table_entry_update_value(next_entry, proc);
+        if (next_entry) {
+            next_entry->address = current_value.pointer;
+
+            result = app_addr_table_entry_update_value(next_entry, proc);
+        }
     }
 
     return result;
