@@ -360,8 +360,6 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
 
         // Widgets
         {
-
-
             ImGui::TextUnformatted("Address:");
 
             ImGui::SameLine();
@@ -371,14 +369,15 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
 
             gui_set_initial_keyboard_focus_here();
 
-            // TODO: disable if this is a pointer
-            if (ImGui::InputText(
-                    "##address",
-                    gui->edit_address_table_entry_popup.address_textbox,
-                    array_capacity(gui->edit_address_table_entry_popup.address_textbox),
-                    input_text_flags)) {
-                should_save_entry = true;
-            }
+            ImGui::BeginDisabled(entry->kind == APP_ADDR_TABLE_ENTRY_POINTER); {
+                if (ImGui::InputText(
+                        "##address",
+                        gui->edit_address_table_entry_popup.address_textbox,
+                        array_capacity(gui->edit_address_table_entry_popup.address_textbox),
+                        input_text_flags)) {
+                    should_save_entry = true;
+                }
+            } ImGui::EndDisabled();
 
             ImGui::SameLine();
 
@@ -386,16 +385,17 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
             {
                 const char *current_value_str = 0;
 
-                // TODO: create functions for reading these atomically
-                if (atomic_load_s32(&entry->last_read_successful)) {
-                    scan_Value current_value = scan_val_atomic_load(&entry->current_value);
-                    current_value_str = gui_cstr_from_match_value(gui->frame_arena, current_value, entry->value_type);
+                scan_Value_Maybe current_value = app_addr_table_try_get_entry_value(entry);
+
+                if (current_value.ok) {
+                    current_value_str = gui_cstr_from_match_value(gui->frame_arena, current_value.value, entry->value_type);
                 } else {
                     // TODO: create a constant for unknown value string
                     current_value_str = "???";
                 }
 
-                ImGui::Text(" = %s", current_value_str);
+                char *value_label_str = str_format_cstr(gui->frame_arena, " = %s", current_value_str);
+                ImGui::TextUnformatted(value_label_str);
             }
 
             ImGui::Separator();
