@@ -6,7 +6,9 @@ scan_Value_Maybe       gui_try_parse_search_value(const char *input, scan_ValueT
 
 // TODO: rename
 scan_Comparison_Maybe  gui_try_parse_scan_input(const char *input, scan_ValueType type, u32 base, scan_Mode mode);
-usize_Maybe            gui_try_parse_address(const char *input, u32 base);
+
+b32                    gui_try_parse_address(const char *input, u32 base, uintptr_t *out);
+
 char                  *gui_cstr_from_address(Arena *arena, uintptr_t address);
 char                  *gui_cstr_from_match_address(Arena *arena, scan_MatchView match_details, proc_ObjectList objects);
 // TODO: rename

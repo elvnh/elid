@@ -56,7 +56,9 @@ struct gui_State {
     struct {
         char address_textbox[256];
         scan_ValueType selected_value_type;
-        app_AddressTableEntry *edited_entry;
+        app_AddressTableEntry *existing_entry;
+        app_AddressTableEntry entry;
+        bool is_pointer;
     } edit_address_table_entry_popup;
 
     struct {

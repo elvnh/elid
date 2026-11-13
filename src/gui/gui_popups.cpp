@@ -54,14 +54,19 @@ void gui_popup_edit_value(gui_State *gui, scan_ValueType type, uintptr_t address
 void gui_popup_edit_address_table_entry(gui_State *gui, app_AddressTableEntry *optional_entry)
 {
     if (optional_entry) {
+        // Edit an existing entry.
         gui->edit_address_table_entry_popup.selected_value_type = optional_entry->value_type;
-        gui->edit_address_table_entry_popup.edited_entry = optional_entry;
+        gui->edit_address_table_entry_popup.existing_entry = optional_entry;
+
+        // Make a copy of the entry, to be committed later.
+        gui->edit_address_table_entry_popup.entry = *optional_entry;
 
         char *address_str = str_format_cstr(gui->frame_arena, "%" PRIxPTR, optional_entry->address);
         strncpy(gui->edit_address_table_entry_popup.address_textbox,
             address_str,
             array_capacity(gui->edit_address_table_entry_popup.address_textbox) - 1);
     } else {
+        // Creating a new entry.
         zero_mem(&gui->edit_address_table_entry_popup, sizeof(gui->edit_address_table_entry_popup));
     }
 
@@ -328,74 +333,109 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
     const char *popup_name = gui__popup_get_name(gui->frame_arena, GUI_POPUP_ADD_ADDRESS, title);
 
     if (ImGui::BeginPopupModal(popup_name, 0, popup_flags)) {
-        b32 should_close = false;
-        b32 should_add = false;
+        // The copy of the entry we are editing, to be saved later.
+        app_AddressTableEntry *entry = &gui->edit_address_table_entry_popup.entry;
 
-        u32 address_number_base = 16;
-        usize_Maybe address = gui_try_parse_address(
-            gui->edit_address_table_entry_popup.address_textbox, address_number_base);
+        // The entry the user has chosen to edit, null if this is an entirely new entry.
+        app_AddressTableEntry *existing_entry = gui->edit_address_table_entry_popup.existing_entry;
 
-        ImGui::TextUnformatted("Address:");
+        b32 parsing_ok = false;
 
-        ImGui::SameLine();
+        // Parse input and asynchronously read the value at the address if possible.
+        {
+            entry->value_type = gui->edit_address_table_entry_popup.selected_value_type;
 
-        ImGuiInputTextFlags input_text_flags =
-            ImGuiInputTextFlags_EnterReturnsTrue;
+            u32 address_number_base = 16;
 
-        gui_set_initial_keyboard_focus_here();
+            parsing_ok = gui_try_parse_address(
+                gui->edit_address_table_entry_popup.address_textbox,
+                address_number_base,
+                &entry->address
+            );
 
-        if (ImGui::InputText(
-            "##address",
-            gui->edit_address_table_entry_popup.address_textbox,
-            array_capacity(gui->edit_address_table_entry_popup.address_textbox),
-            input_text_flags)) {
-            should_add = true;
+            app_action_update_address_table_entry_value(app, entry);
         }
 
-        ImGui::Separator();
+        // Widgets
+        {
+            b32 should_close = false;
+            b32 should_add = false;
 
-        f32 combo_box_width = 200;
+            ImGui::TextUnformatted("Address:");
 
-        scan_ValueType current_value_type = gui->edit_address_table_entry_popup.selected_value_type;
-        gui->edit_address_table_entry_popup.selected_value_type =
-            gui_value_type_dropdown(gui, "Value type:", current_value_type, combo_box_width);
+            ImGui::SameLine();
 
+            ImGuiInputTextFlags input_text_flags =
+                ImGuiInputTextFlags_EnterReturnsTrue;
 
-        ImGui::BeginDisabled(!address.ok); {
-            if (ImGui::Button("OK")) {
+            gui_set_initial_keyboard_focus_here();
+
+            // TODO: disable if this is a pointer
+            if (ImGui::InputText(
+                    "##address",
+                    gui->edit_address_table_entry_popup.address_textbox,
+                    array_capacity(gui->edit_address_table_entry_popup.address_textbox),
+                    input_text_flags)) {
                 should_add = true;
             }
-        } ImGui::EndDisabled();
 
-        ImGui::SameLine();
+            ImGui::SameLine();
 
-        if (ImGui::Button("Cancel")) {
-            should_close = true;
-        }
+            {
+                const char *current_value_str = 0;
 
-        if (should_add && address.ok) {
-            should_close = true;
+                // TODO: create functions for reading these atomically
+                if (atomic_load_s32(&entry->last_read_successful)) {
+                    scan_Value current_value = scan_val_atomic_load(&entry->current_value);
+                    current_value_str = gui_cstr_from_match_value(gui->frame_arena, current_value, entry->value_type);
+                } else {
+                    current_value_str = "???";
+                }
 
-            app_AddressTableEntry entry = {};
-            entry.address = address.value;
-            entry.value_type = gui->edit_address_table_entry_popup.selected_value_type;
-
-            app_AddressTableEntry *edited_entry = gui->edit_address_table_entry_popup.edited_entry;
-
-            if (edited_entry) {
-                app_action_edit_address_table_entry(app, edited_entry, entry);
-            } else {
-                app_action_push_address_table_entry(app, entry);
+                ImGui::Text(" = %s", current_value_str);
             }
-        }
 
-        if (ImGui::IsKeyPressed(ImGuiKey_Escape)) {
-            should_add = false;
-            should_close = true;
-        }
+            ImGui::Separator();
 
-        if (should_close) {
-            gui_popup_close(gui, GUI_POPUP_ADD_ADDRESS);
+            f32 combo_box_width = 200;
+
+            scan_ValueType current_value_type = gui->edit_address_table_entry_popup.selected_value_type;
+            gui->edit_address_table_entry_popup.selected_value_type =
+                gui_value_type_dropdown(gui, "Value type:", current_value_type, combo_box_width);
+
+            ImGui::Checkbox("Pointer", &gui->edit_address_table_entry_popup.is_pointer);
+
+            ImGui::BeginDisabled(!parsing_ok); {
+                if (ImGui::Button("OK")) {
+                    should_add = true;
+                }
+            } ImGui::EndDisabled();
+
+            ImGui::SameLine();
+
+            if (ImGui::Button("Cancel")) {
+                should_close = true;
+            }
+
+            if (should_add && ALWAYS(parsing_ok)) {
+                should_close = true;
+
+                if (existing_entry) {
+                    // Commit the changes we have made to the copy of the entry.
+                    app_action_edit_address_table_entry(app, existing_entry, *entry);
+                } else {
+                    app_action_push_address_table_entry(app, *entry);
+                }
+            }
+
+            if (ImGui::IsKeyPressed(ImGuiKey_Escape)) {
+                should_add = false;
+                should_close = true;
+            }
+
+            if (should_close) {
+                gui_popup_close(gui, GUI_POPUP_ADD_ADDRESS);
+            }
         }
 
         ImGui::EndPopup();

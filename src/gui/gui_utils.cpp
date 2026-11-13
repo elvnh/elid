@@ -33,13 +33,17 @@ scan_Value_Maybe gui_try_parse_search_value(const char *input, scan_ValueType ty
     return result;
 }
 
-usize_Maybe gui_try_parse_address(const char *input, u32 base)
+b32 gui_try_parse_address(const char *input, u32 base, uintptr_t *out)
 {
-    usize_Maybe result = {};
-
     usize length = strlen(input);
 
-    result.ok = stn_parse_usize(input, length, &result.value, base);
+    uintptr_t value = 0;
+
+    b32 result = stn_parse_usize(input, length, &value, base);
+
+    if (result) {
+        *out = value;
+    }
 
     return result;
 }
