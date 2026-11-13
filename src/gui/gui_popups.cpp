@@ -76,7 +76,7 @@ void gui_popup_edit_address_table_entry(gui_State *gui, app_AddressTableEntry *o
         gui->edit_address_table_entry_popup.entry_pool = pool;
 
         gui->edit_address_table_entry_popup.entry =
-            app_addr_table_alloc(gui->edit_address_table_entry_popup.entry_pool);
+            app_addr_table_entry_alloc(gui->edit_address_table_entry_popup.entry_pool);
 
     }
 
@@ -354,13 +354,19 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
         // The entry the user has chosen to edit, null if this is an entirely new entry.
         app_AddressTableEntry *existing_entry = gui->edit_address_table_entry_popup.existing_entry;
 
+        ASSERT(entry->as_pointer_chain.sentinel);
+        ASSERT(entry->as_pointer_chain.sentinel->value_type == entry->value_type);
+
+        ASSERT(entry->as_pointer_chain.offset == 0);
+        ASSERT(entry->as_pointer_chain.sentinel->as_pointer_chain.offset == 0);
+
         b32 parsing_ok = false;
         b32 should_close_popup = false;
         b32 should_save_entry = false;
 
         // Parse input and try to fetch the value of the entry.
         {
-            entry->value_type = gui->edit_address_table_entry_popup.selected_value_type;
+            app_addr_table_entry_set_type(entry, gui->edit_address_table_entry_popup.selected_value_type);
 
             u32 address_number_base = 16;
 
@@ -483,9 +489,11 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
 
                         ImGui::TableHeadersRow();
 
-                        for (app_AddressTableEntry *ptr = entry->as_pointer_chain.next;
-                             ptr != entry->as_pointer_chain.last;
-                             ptr = list_next(&ptr->as_pointer_chain)) {
+                        for (app_AddressTableEntry *ptr = app_addr_table_next_in_pointer_chain(entry);
+                             ptr != entry->as_pointer_chain.sentinel;
+                             ptr = app_addr_table_next_in_pointer_chain(ptr)) {
+                            ASSERT(ptr);
+
                             ImGui::TableNextRow();
 
                             uintptr_t  address = app_addr_table_entry_get_address(entry);

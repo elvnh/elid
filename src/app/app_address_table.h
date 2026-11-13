@@ -12,6 +12,7 @@ struct app_AddressTableEntry {
     uintptr_t address;        // Atomic
 
     // Only updated asynchronously by background thread.
+    // TODO: rename to last_known_value
     scan_Value current_value; // Atomic
     b32 last_read_successful; // Atomic
 
@@ -23,6 +24,8 @@ struct app_AddressTableEntry {
         app_AddressTableEntry *first;
         app_AddressTableEntry *last;
         usize list_node_count;
+
+        app_AddressTableEntry *sentinel;
     } as_pointer_chain; // TODO: rename to pointer_chain_member
 
     struct {
@@ -49,7 +52,7 @@ struct app_AddressTable {
 /* Table operations */
 b32                    app_addr_table_init(Arena *arena, app_AddressTable *tbl);
 void                   app_addr_table_delete_flagged_entries(app_AddressTable *tbl);
-app_AddressTableEntry *app_addr_table_alloc(Pool *pool);
+app_AddressTableEntry *app_addr_table_entry_alloc(Pool *pool);
 void                   app_addr_table_push(app_AddressTable *tbl, app_AddressTableEntry *entry);
 void                   app_addr_table_remove(app_AddressTable *tbl, app_AddressTableEntry *entry);
 void                   app_addr_table_change(app_AddressTable *tbl, app_AddressTableEntry *entry, app_AddressTableEntry *new_entry);
@@ -57,10 +60,17 @@ usize                  app_addr_table_count(app_AddressTable *tbl);
 
 /* Entry operations */
 app_AddressTableEntry *app_addr_table_entry_clone(Pool *pool, app_AddressTableEntry *entry);
+
+app_AddressTableEntry *app_addr_table_next_in_pointer_chain(app_AddressTableEntry *entry);
+
+// TODO: remove these
 uintptr_t			   app_addr_table_entry_get_address(app_AddressTableEntry *entry);
 void     			   app_addr_table_entry_set_address(app_AddressTableEntry *entry, uintptr_t value);
 usize    			   app_addr_table_entry_get_offset(app_AddressTableEntry *entry);
 void     			   app_addr_table_entry_set_offset(app_AddressTableEntry *entry, usize value);
+
+void     			   app_addr_table_entry_set_type(app_AddressTableEntry *entry, scan_ValueType type);
+
 b32      			   app_addr_table_entry_try_get_value(app_AddressTableEntry *entry, scan_Value *out);
 b32      			   app_addr_table_entry_try_get_final_value(app_AddressTableEntry *entry, scan_Value *out);
 b32      			   app_addr_table_entry_try_get_final_address(app_AddressTableEntry *entry, uintptr_t *out);

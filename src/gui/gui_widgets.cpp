@@ -146,7 +146,7 @@ void gui_scan_result_table(gui_State *gui, app_State *app)
 
                             if (ImGui::Selectable("Add to table")) {
                                 app_AddressTableEntry *entry =
-                                    app_addr_table_alloc(app->address_table.pool);
+                                    app_addr_table_entry_alloc(app->address_table.pool);
                                 entry->address = address;
                                 entry->value_type = app->result_list.value_type;
                                 entry->current_value = match.match->value;
