@@ -26,7 +26,6 @@ struct app_AddressTableEntry {
     } as_pointer_chain; // TODO: rename to pointer_chain_member
 
     struct {
-        char address_textbox[64];
         char offset_textbox[64];
     } gui_input;
 
@@ -48,14 +47,13 @@ struct app_AddressTable {
 };
 
 /* Table operations */
-b32    app_addr_table_init(Arena *arena, app_AddressTable *tbl);
-void   app_addr_table_delete_flagged_entries(app_AddressTable *tbl);
-app_AddressTableEntry *app_addr_table_alloc(app_AddressTable *tbl);
-void   app_addr_table_push(app_AddressTable *tbl, app_AddressTableEntry *entry);
-void   app_addr_table_push_by_value(app_AddressTable *tbl, app_AddressTableEntry entry);
-void   app_addr_table_remove(app_AddressTable *tbl, app_AddressTableEntry *entry);
-void   app_addr_table_change(app_AddressTable *tbl, app_AddressTableEntry *entry, app_AddressTableEntry *new_entry);
-usize  app_addr_table_count(app_AddressTable *tbl);
+b32                    app_addr_table_init(Arena *arena, app_AddressTable *tbl);
+void                   app_addr_table_delete_flagged_entries(app_AddressTable *tbl);
+app_AddressTableEntry *app_addr_table_alloc(Pool *pool);
+void                   app_addr_table_push(app_AddressTable *tbl, app_AddressTableEntry *entry);
+void                   app_addr_table_remove(app_AddressTable *tbl, app_AddressTableEntry *entry);
+void                   app_addr_table_change(app_AddressTable *tbl, app_AddressTableEntry *entry, app_AddressTableEntry *new_entry);
+usize                  app_addr_table_count(app_AddressTable *tbl);
 
 /* Entry operations */
 app_AddressTableEntry *app_addr_table_entry_clone(Pool *pool, app_AddressTableEntry *entry);

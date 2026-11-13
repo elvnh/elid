@@ -40,9 +40,9 @@ void app_addr_table_delete_flagged_entries(app_AddressTable *tbl)
     }
 }
 
-app_AddressTableEntry *app_addr_table_alloc(app_AddressTable *tbl)
+app_AddressTableEntry *app_addr_table_alloc(Pool *pool)
 {
-    app_AddressTableEntry *result = pool_alloc(tbl->pool, app_AddressTableEntry);
+    app_AddressTableEntry *result = pool_alloc(pool, app_AddressTableEntry);
 
     return result;
 }
@@ -88,6 +88,7 @@ usize app_addr_table_count(app_AddressTable *tbl)
 
 app_AddressTableEntry *app_addr_table_entry_clone(Pool *pool, app_AddressTableEntry *entry)
 {
+    // TODO: this function could race with another thread that's updating the entry
     app_AddressTableEntry *result = pool_alloc(pool, app_AddressTableEntry);
     *result = *entry;
 
@@ -193,12 +194,20 @@ b32 app_addr_table_entry_update_value_no_chain(app_AddressTableEntry *entry, mem
     scan_Value value = {};
     scan_ValueType value_type = entry->value_type;
 
+    usize offset = 0;
+
     if (entry->kind == APP_ADDR_TABLE_ENTRY_POINTER) {
         // If this is a link in a pointer chain, we want to read the value as a pointer.
         value_type = SCAN_VALUE_TYPE_POINTER;
+        offset = entry->as_pointer_chain.offset;
     }
 
-    result = app_read_single_value_in_process(proc, entry->address, value_type, &value);
+    // Add the offset to the base address before dereferencing it.
+    uintptr_t address = 0;
+
+    if (safe_add_usize(entry->address, offset, &address)) {
+        result = app_read_single_value_in_process(proc, address, value_type, &value);
+    }
 
     atomic_store_s32(&entry->last_read_successful, result);
 
@@ -219,20 +228,13 @@ b32 app_addr_table_entry_update_value(app_AddressTableEntry *entry, memmi_Proces
 
     b32 result = app_addr_table_entry_update_value_no_chain(entry, proc, &current_value);
 
-    if (result && entry->as_pointer_chain.next) {
-        ALWAYS(entry->kind == APP_ADDR_TABLE_ENTRY_POINTER);
+    if (result && entry->kind == APP_ADDR_TABLE_ENTRY_POINTER) {
+        ASSERT(entry->as_pointer_chain.next);
 
         // The value found at this address, plus the offset, becomes the address of the next link in
         // the pointer chain.
         app_AddressTableEntry *next_entry = entry->as_pointer_chain.next;
-
-        usize offset = app_addr_table_entry_get_offset(entry);
-
-        uintptr_t address_plus_offset = 0;
-
-        if (safe_add_usize(current_value.pointer, offset, &address_plus_offset)) {
-            app_addr_table_entry_set_offset(next_entry, address_plus_offset);
-        }
+        next_entry->current_value = current_value;
 
         result = app_addr_table_entry_update_value(next_entry, proc);
     }
@@ -246,7 +248,6 @@ void app_addr_table_entry_initialize_textboxes(app_AddressTableEntry *entry)
         uintptr_t address = app_addr_table_entry_get_address(e);
         usize offset = app_addr_table_entry_get_offset(e);
 
-        snprintf(e->gui_input.address_textbox, array_capacity(e->gui_input.address_textbox), "%" PRIxPTR, address);
         snprintf(e->gui_input.offset_textbox,array_capacity(e->gui_input.offset_textbox), "%" PRIuPTR, offset);
     }
 }

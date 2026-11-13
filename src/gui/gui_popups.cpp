@@ -70,13 +70,14 @@ void gui_popup_edit_address_table_entry(gui_State *gui, app_AddressTableEntry *o
             address_str,
             array_capacity(gui->edit_address_table_entry_popup.address_textbox) - 1);
     } else {
-        // Creating a new entry.
-        gui->edit_address_table_entry_popup.entry = pool_alloc(
-            gui->edit_address_table_entry_popup.entry_pool, app_AddressTableEntry);
+        // Creating a new entry. Reset popup state to zero (except for the pool).
+        Pool *pool = gui->edit_address_table_entry_popup.entry_pool;
+        gui->edit_address_table_entry_popup = {};
+        gui->edit_address_table_entry_popup.entry_pool = pool;
 
-        zero_mem(
-            gui->edit_address_table_entry_popup.address_textbox,
-            sizeof(gui->edit_address_table_entry_popup.address_textbox));
+        gui->edit_address_table_entry_popup.entry =
+            app_addr_table_alloc(gui->edit_address_table_entry_popup.entry_pool);
+
     }
 
     app_addr_table_entry_initialize_textboxes(gui->edit_address_table_entry_popup.entry);
@@ -467,7 +468,7 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
                     | ImGuiTableFlags_ScrollY
                     | ImGuiTableFlags_SizingStretchSame;
 
-                const char *table_columns[] = {"Address", "Offset", "Result"};
+                const char *table_columns[] = {"Offset", "Result"};
                 s32 column_count = array_capacity(table_columns);
 
 
@@ -482,7 +483,9 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
 
                         ImGui::TableHeadersRow();
 
-                        for (app_AddressTableEntry *ptr = entry; ptr; ptr = list_next(&ptr->as_pointer_chain)) {
+                        for (app_AddressTableEntry *ptr = entry->as_pointer_chain.next;
+                             ptr != entry->as_pointer_chain.last;
+                             ptr = list_next(&ptr->as_pointer_chain)) {
                             ImGui::TableNextRow();
 
                             uintptr_t  address = app_addr_table_entry_get_address(entry);
@@ -492,32 +495,9 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
                             b32 read_successful = app_addr_table_entry_try_get_value(entry, &value);
 
                             ImGui::PushID(ptr); {
-                                // Address
-                                ImGui::TableSetColumnIndex(0); {
-                                    ImGui::InputText(
-                                        "##address_textbox",
-                                        ptr->gui_input.address_textbox,
-                                        array_capacity(ptr->gui_input.address_textbox));
-
-                                    usize textbox_length = strlen(ptr->gui_input.address_textbox);
-                                    uintptr_t textbox_address = 0;
-
-                                    b32 address_parse_ok = stn_parse_usize(
-                                        ptr->gui_input.address_textbox,
-                                        textbox_length,
-                                        &textbox_address,
-                                        16);
-
-                                    if (address_parse_ok) {
-                                        app_addr_table_entry_set_address(ptr, textbox_address);
-                                    }
-
-                                    parsing_ok = parsing_ok && address_parse_ok;
-                                }
-
                                 // Offset
-                                ImGui::TableSetColumnIndex(1); {
-                                    usize textbox_length = strlen(ptr->gui_input.address_textbox);
+                                ImGui::TableSetColumnIndex(0); {
+                                    usize textbox_length = strlen(ptr->gui_input.offset_textbox);
                                     usize textbox_offset = 0;
 
                                     b32 offset_parse_ok = stn_parse_usize(
@@ -526,7 +506,7 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
                                         &textbox_offset,
                                         10);
 
-                                    if (ImGui::Button("^") && offset_parse_ok) {
+                                    if (ImGui::Button("<") && offset_parse_ok) {
                                         textbox_offset = sat_add_usize(textbox_offset, 1);
                                     }
 
@@ -539,30 +519,32 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
 
                                     ImGui::SameLine();
 
-                                    if (ImGui::Button("v") && offset_parse_ok) {
+                                    if (ImGui::Button(">") && offset_parse_ok) {
                                         textbox_offset = sat_sub_usize(textbox_offset, 1);
                                     }
 
                                     parsing_ok = parsing_ok && offset_parse_ok;
 
+                                    // TODO: do this further up before the entry is updated
                                     if (offset_parse_ok) {
-                                        app_addr_table_entry_set_offset(ptr, textbox_offset);
+                                        ptr->as_pointer_chain.offset = textbox_offset;
                                     }
                                 }
 
                                 // Result
-                                ImGui::TableSetColumnIndex(2); {
+                                ImGui::TableSetColumnIndex(1); {
                                     const char *value_str = 0;
 
                                     if (read_successful) {
-                                        value_str = str_format_cstr(gui->frame_arena, "%" PRIxPTR, value.pointer);
+                                        value_str =
+                                            str_format_cstr(gui->frame_arena, "%" PRIxPTR, value.pointer);
                                     } else {
                                         value_str = "???";
                                     }
 
                                     char *result_str = str_format_cstr(
                                         gui->frame_arena,
-                                        "[%" PRIxPTR "] + %" PRIuPTR " = %s",
+                                        "[%" PRIxPTR " + %" PRIuPTR "] = %s",
                                         address,
                                         offset,
                                         value_str
@@ -576,6 +558,40 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
                         ImGui::EndTable();
                     }
                 } ImGui::EndChild();
+
+                // Display the base address of the pointer chain, along with the value
+                // found at that address.
+                if (entry->kind == APP_ADDR_TABLE_ENTRY_POINTER) {
+                    if (ImGui::InputText(
+                            "##base_address",
+                            gui->edit_address_table_entry_popup.address_textbox,
+                            array_capacity(gui->edit_address_table_entry_popup.address_textbox),
+                            input_text_flags)) {
+                        should_save_entry = true;
+                    }
+
+                    ImGui::SameLine();
+
+                    char *value_str = 0;
+
+                    scan_Value first_value = {};
+
+                    // TODO: code duplication
+                    if (app_addr_table_entry_try_get_value(entry, &first_value)) {
+                        value_str =
+                            str_format_cstr(gui->frame_arena, "%" PRIxPTR, first_value.pointer);
+                    } else {
+                        value_str = str_clone_cstr(gui->frame_arena, "???");
+                    }
+
+                    char *result_str = str_format_cstr(
+                        gui->frame_arena,
+                        "= %s",
+                        value_str
+                    );
+
+                    ImGui::TextUnformatted(result_str);
+                }
             }
 
             ImGui::BeginDisabled(!parsing_ok); {
