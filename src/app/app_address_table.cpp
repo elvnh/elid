@@ -54,11 +54,21 @@ uintptr_t app_addr_table_entry_get_address(app_AddressTableEntry *entry)
     return result;
 }
 
+void app_addr_table_entry_set_address(app_AddressTableEntry *entry, uintptr_t value)
+{
+    atomic_store_ptr(&entry->address, value);
+}
+
 usize app_addr_table_entry_get_offset(app_AddressTableEntry *entry)
 {
     usize result = atomic_load_ptr(&entry->as_pointer_chain.offset);
 
     return result;
+}
+
+void app_addr_table_entry_set_offset(app_AddressTableEntry *entry, usize value)
+{
+    atomic_store_usize(&entry->as_pointer_chain.offset, value);
 }
 
 b32 app_addr_table_entry_try_get_value(app_AddressTableEntry *entry, scan_Value *out)
@@ -157,8 +167,13 @@ b32 app_addr_table_entry_update_value(app_AddressTableEntry *entry, memmi_Proces
         // the pointer chain.
         app_AddressTableEntry *next_entry = entry->as_pointer_chain.next;
 
-        // TODO: do we need to read offset atomically?
-        atomic_store_ptr(&next_entry->address, current_value.pointer + entry->as_pointer_chain.offset);
+        usize offset = app_addr_table_entry_get_offset(entry);
+
+        uintptr_t address_plus_offset = 0;
+
+        if (safe_add_usize(current_value.pointer, offset, &address_plus_offset)) {
+            app_addr_table_entry_set_offset(next_entry, address_plus_offset);
+        }
 
         result = app_addr_table_entry_update_value(next_entry, proc);
     }

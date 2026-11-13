@@ -44,7 +44,9 @@ usize  app_addr_table_count(app_AddressTable *tbl);
 
 /* Entry operations */
 uintptr_t app_addr_table_entry_get_address(app_AddressTableEntry *entry);
+void      app_addr_table_entry_set_address(app_AddressTableEntry *entry, uintptr_t value);
 usize     app_addr_table_entry_get_offset(app_AddressTableEntry *entry);
+void      app_addr_table_entry_set_offset(app_AddressTableEntry *entry, usize value);
 b32       app_addr_table_entry_try_get_value(app_AddressTableEntry *entry, scan_Value *out);
 b32       app_addr_table_entry_try_get_final_value(app_AddressTableEntry *entry, scan_Value *out);
 b32       app_addr_table_entry_try_get_final_address(app_AddressTableEntry *entry, uintptr_t *out);
