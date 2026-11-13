@@ -25,6 +25,10 @@ scan_Value_Maybe gui_try_parse_search_value(const char *input, scan_ValueType ty
             TODO("Parsing floats");
         } break;
 
+        case SCAN_VALUE_TYPE_POINTER: {
+            TODO("Parsing pointers");
+        } break;
+
         INVALID_CASE(SCAN_VALUE_TYPE_COUNT);
         INVALID_DEFAULT_CASE;
     }
@@ -172,6 +176,10 @@ char *gui_cstr_from_match_value(Arena *arena, scan_Value value, scan_ValueType v
             TODO("Formatting floats");
         } break;
 
+        case SCAN_VALUE_TYPE_POINTER: {
+            TODO("Formatting pointers");
+        } break;
+
         INVALID_CASE(SCAN_VALUE_TYPE_COUNT);
         INVALID_DEFAULT_CASE;
     }
@@ -193,6 +201,10 @@ char *gui_cstr_from_value_type(Arena *arena, scan_ValueType type)
 
         case SCAN_VALUE_TYPE_FLOAT32: {
             str = "Float";
+        } break;
+
+        case SCAN_VALUE_TYPE_POINTER: {
+            str = "Pointer";
         } break;
 
         case SCAN_VALUE_TYPE_COUNT: {

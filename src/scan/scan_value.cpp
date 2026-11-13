@@ -13,6 +13,11 @@ usize scan_val_type_get_size(scan_ValueType type)
             result = 4;
         } break;
 
+        // TODO: make this depend on attached process pointer width
+        case SCAN_VALUE_TYPE_POINTER: {
+            result = sizeof(uintptr_t);
+        } break;
+
         case SCAN_VALUE_TYPE_COUNT: {
             ASSERT(0);
         } break;
@@ -58,6 +63,10 @@ scan_Value scan_val_add(scan_ValueType type, scan_Value a, scan_Value b)
             result.float32 = a.float32 + b.float32;
         } break;
 
+        case SCAN_VALUE_TYPE_POINTER: {
+            result.pointer = a.pointer + b.pointer;
+        } break;
+
         INVALID_CASE(SCAN_VALUE_TYPE_COUNT);
 
         INVALID_DEFAULT_CASE;
@@ -79,6 +88,10 @@ scan_Value scan_val_sub(scan_ValueType type, scan_Value a, scan_Value b)
 
         case SCAN_VALUE_TYPE_FLOAT32: {
             result.float32 = a.float32 - b.float32;
+        } break;
+
+        case SCAN_VALUE_TYPE_POINTER: {
+            result.pointer = a.pointer - b.pointer;
         } break;
 
         INVALID_CASE(SCAN_VALUE_TYPE_COUNT);
@@ -104,6 +117,10 @@ b32 scan_val_eq(scan_ValueType type, scan_Value a, scan_Value b)
             // TODO: should we compare non-exactly for floats?
             TODO("Unimplemented");
             // result = (a.float32 == b.float32);
+        } break;
+
+        case SCAN_VALUE_TYPE_POINTER: {
+            result = a.pointer == b.pointer;
         } break;
 
         INVALID_CASE(SCAN_VALUE_TYPE_COUNT);
@@ -134,6 +151,10 @@ b32 scan_val_gt(scan_ValueType type, scan_Value a, scan_Value b)
             // result = (a.float32 > b.float32);
         } break;
 
+        case SCAN_VALUE_TYPE_POINTER: {
+            result = a.pointer > b.pointer;
+        } break;
+
         INVALID_CASE(SCAN_VALUE_TYPE_COUNT);
 
         INVALID_DEFAULT_CASE;
@@ -162,6 +183,10 @@ b32 scan_val_lt(scan_ValueType type, scan_Value a, scan_Value b)
             // result = (a.float32 > b.float32);
         } break;
 
+        case SCAN_VALUE_TYPE_POINTER: {
+            result = (a.pointer < b.pointer);
+        } break;
+
         INVALID_CASE(SCAN_VALUE_TYPE_COUNT);
 
         INVALID_DEFAULT_CASE;
@@ -174,15 +199,14 @@ b32 scan_val_lt(scan_ValueType type, scan_Value a, scan_Value b)
 
 void scan_val_atomic_store(scan_Value *dst, scan_Value src)
 {
-    ASSERT((sizeof(scan_Value) == sizeof(u32)) && "Ensure the correct atomic operation is used");
-
-    atomic_store_u32(&dst->int32, src.int32);
+    atomic_store_ptr(&dst->pointer, src.pointer);
 }
 
 scan_Value scan_val_atomic_load(scan_Value *src)
 {
+    // TODO: reading from inactive union member is UB
     scan_Value result = {};
-    result.int32 = atomic_load_u32(&src->int32);
+    result.pointer = atomic_load_ptr(&src->pointer);
 
     return result;
 }

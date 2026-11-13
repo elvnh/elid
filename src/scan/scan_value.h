@@ -4,6 +4,8 @@ enum scan_ValueType {
     SCAN_VALUE_TYPE_INT32,
     SCAN_VALUE_TYPE_FLOAT32,
 
+    SCAN_VALUE_TYPE_POINTER,
+
     SCAN_VALUE_TYPE_COUNT
 };
 
@@ -13,8 +15,9 @@ struct scan_ValueTypeList {
 };
 
 union scan_Value {
-    u32 int32;
-    f32 float32;
+    u32       int32;
+    f32       float32;
+    uintptr_t pointer;
 };
 
 struct scan_TypedValue {
