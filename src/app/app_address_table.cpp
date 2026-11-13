@@ -18,6 +18,8 @@ b32 app_addr_table_init(Arena *arena, app_AddressTable *tbl)
 void app_addr_table__delete_entry(app_AddressTable *tbl, app_AddressTableEntry *entry)
 {
     if (entry) {
+        ASSERT(entry->as_pointer_chain.sentinel);
+
         app_addr_table__delete_entry(tbl, entry->as_pointer_chain.next);
 
         dll_remove(tbl, entry);
@@ -33,6 +35,10 @@ void app_addr_table_delete_flagged_entries(app_AddressTable *tbl)
         app_AddressTableEntry *next = e->next;
 
         if (e->flagged_for_deletion) {
+            // We only want to free the sentinel once as all nodes in
+            // the chain share it.
+            pool_free(tbl->pool, e->as_pointer_chain.sentinel);
+
             app_addr_table__delete_entry(tbl, e);
         }
 
@@ -86,7 +92,7 @@ void app_addr_table_change(app_AddressTable *tbl, app_AddressTableEntry *entry, 
     }
 
     if (tbl->last == entry) {
-        tbl->first = new_entry;
+        tbl->last = new_entry;
     }
 
     app_addr_table_remove(tbl, entry);
@@ -99,23 +105,37 @@ usize app_addr_table_count(app_AddressTable *tbl)
     return result;
 }
 
-app_AddressTableEntry *app_addr_table_entry_clone(Pool *pool, app_AddressTableEntry *entry)
+app_AddressTableEntry *app_addr_table_entry_clone_helper(Pool *pool, app_AddressTableEntry *entry,
+    app_AddressTableEntry *sentinel)
 {
     // TODO: this function could race with another thread that's updating the entry
-    app_AddressTableEntry *result = app_addr_table_entry_alloc(pool);
-    ASSERT(result->as_pointer_chain.sentinel);
+
+    app_AddressTableEntry *result = pool_alloc(pool, app_AddressTableEntry);
+    *result = *entry;
 
     result->next = 0;
     result->prev = 0;
 
-    if (result->kind == APP_ADDR_TABLE_ENTRY_POINTER) {
-        ASSERT(result->as_pointer_chain.next);
+    result->as_pointer_chain.sentinel = sentinel;
 
-        app_AddressTableEntry *next = app_addr_table_entry_clone(pool, entry->as_pointer_chain.next);
+    // The sentinel should always point back to the last link in the chain.
+    sentinel->as_pointer_chain.prev = result;
+
+    if (result->kind == APP_ADDR_TABLE_ENTRY_POINTER && result->as_pointer_chain.next) {
+        app_AddressTableEntry *next =
+            app_addr_table_entry_clone_helper(pool, result->as_pointer_chain.next, sentinel);
         dll_push_back(&result->as_pointer_chain, next);
 
         ASSERT(next->kind == APP_ADDR_TABLE_ENTRY_POINTER);
     }
+
+    return result;
+}
+
+app_AddressTableEntry *app_addr_table_entry_clone(Pool *pool, app_AddressTableEntry *entry)
+{
+    app_AddressTableEntry *sentinel = pool_alloc(pool, app_AddressTableEntry);
+    app_AddressTableEntry *result = app_addr_table_entry_clone_helper(pool, entry, sentinel);
 
     return result;
 }
@@ -150,6 +170,7 @@ void app_addr_table_entry_set_type(app_AddressTableEntry *entry, scan_ValueType 
 
     ASSERT(sentinel);
 
+    // The sentinel's value type should always match the main entries type.
     entry->value_type = type;
     sentinel->value_type = type;
 }
