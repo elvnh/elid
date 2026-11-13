@@ -140,6 +140,29 @@ app_AddressTableEntry *app_addr_table_entry_clone(Pool *pool, app_AddressTableEn
     return result;
 }
 
+app_AddressTableEntry *app_addr_table_entry_push_offset(app_AddressTable *tbl, app_AddressTableEntry *entry)
+{
+    app_AddressTableEntry *sentinel = entry->as_pointer_chain.sentinel;
+
+    ASSERT(sentinel);
+    ASSERT(sentinel->as_pointer_chain.offset == 0);
+    ASSERT(entry->as_pointer_chain.offset == 0);
+
+    app_AddressTableEntry *result = pool_alloc(tbl->pool, app_AddressTableEntry);
+    result->as_pointer_chain.sentinel = sentinel;
+    result->value_type = entry->value_type;
+
+    entry->as_pointer_chain.next = result;
+    result->as_pointer_chain.prev = entry;
+
+    // The sentinel should always point back to the last link in the chain.
+    sentinel->as_pointer_chain.prev = result;
+
+    app_addr_table_entry_initialize_textboxes(result);
+
+    return result;
+}
+
 uintptr_t app_addr_table_entry_get_address(app_AddressTableEntry *entry)
 {
     uintptr_t result = atomic_load_ptr(&entry->address);

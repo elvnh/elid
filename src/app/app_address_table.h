@@ -63,6 +63,8 @@ app_AddressTableEntry *app_addr_table_entry_clone(Pool *pool, app_AddressTableEn
 
 app_AddressTableEntry *app_addr_table_next_in_pointer_chain(app_AddressTableEntry *entry);
 
+app_AddressTableEntry *app_addr_table_entry_push_offset(app_AddressTable *tbl, app_AddressTableEntry *entry);
+
 // TODO: remove these
 uintptr_t			   app_addr_table_entry_get_address(app_AddressTableEntry *entry);
 void     			   app_addr_table_entry_set_address(app_AddressTableEntry *entry, uintptr_t value);
