@@ -47,12 +47,104 @@ usize app_addr_table_count(app_AddressTable *tbl)
     return result;
 }
 
-scan_Value_Maybe app_addr_table_try_get_entry_value(app_AddressTableEntry *entry)
+b32 app_addr_table_entry_try_get_value(app_AddressTableEntry *entry, scan_Value *out)
 {
-    scan_Value_Maybe result = {};
+    b32 result = atomic_load_s32(&entry->last_read_successful);
 
-    if (atomic_load_s32(&entry->last_read_successful)) {
-        result = SOME(scan_val_atomic_load(&entry->current_value));
+    if (result) {
+        scan_val_atomic_move(out, &entry->current_value);
+    }
+
+    return result;
+}
+
+b32 app_addr_table_entry_try_get_final_value(app_AddressTableEntry *entry, scan_Value *out)
+{
+    b32 result = false;
+
+    scan_Value value = {};
+
+    for (app_AddressTableEntry *e = entry; e; e = list_next(&e->as_pointer_chain)) {
+        result = app_addr_table_entry_try_get_value(e, &value);
+
+        if (!result) {
+            break;
+        }
+    }
+
+    if (result) {
+        *out = value;
+    }
+
+    return result;
+
+}
+
+b32 app_addr_table_entry_try_get_final_address(app_AddressTableEntry *entry, uintptr_t *out)
+{
+    b32 result = false;
+
+    uintptr_t address = 0;
+
+    for (app_AddressTableEntry *e = entry; e; e = list_next(&e->as_pointer_chain)) {
+        result = atomic_load_s32(&e->last_read_successful);
+        address = atomic_load_ptr(&e->address);
+
+        if (!result) {
+            break;
+        }
+    }
+
+    if (result) {
+        *out = address;
+    }
+
+    return result;
+}
+
+// TODO: better name
+b32 app_addr_table_entry_update_value_no_chain(app_AddressTableEntry *entry, memmi_Process proc, scan_Value *opt_value)
+{
+    b32 result = false;
+
+    scan_Value value = {};
+    scan_ValueType value_type = entry->value_type;
+
+    if (entry->kind == APP_ADDR_TABLE_ENTRY_POINTER) {
+        // If this is a link in a pointer chain, we want to read the value as a pointer.
+        value_type = SCAN_VALUE_TYPE_POINTER;
+    }
+
+    result = app_read_single_value_in_process(proc, entry->address, value_type, &value);
+
+    atomic_store_s32(&entry->last_read_successful, result);
+
+    if (result) {
+        scan_val_atomic_store(&entry->current_value, value);
+
+        if (opt_value) {
+            *opt_value = value;
+        }
+    }
+
+    return result;
+}
+
+b32 app_addr_table_entry_update_value(app_AddressTableEntry *entry, memmi_Process proc)
+{
+    scan_Value current_value = {};
+
+    b32 result = app_addr_table_entry_update_value_no_chain(entry, proc, &current_value);
+
+    if (result && entry->as_pointer_chain.next && ALWAYS(entry->kind == APP_ADDR_TABLE_ENTRY_POINTER)) {
+        // The value found at this address, plus the offset, becomes the address of the next link in
+        // the pointer chain.
+        app_AddressTableEntry *next_entry = entry->as_pointer_chain.next;
+
+        // TODO: do we need to read offset atomically?
+        atomic_store_ptr(&next_entry->address, current_value.pointer + entry->as_pointer_chain.offset);
+
+        result = app_addr_table_entry_update_value(next_entry, proc);
     }
 
     return result;

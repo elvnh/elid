@@ -192,7 +192,8 @@ static void gui__address_table_context_menu(app_State *app, gui_State *gui, app_
         }
 
         if (ImGui::Selectable("Edit this value...")) {
-            scan_Value_Maybe value_opt = app_addr_table_try_get_entry_value(entry);
+            scan_Value_Maybe value_opt = {};
+            value_opt.ok = app_addr_table_entry_try_get_value(entry, &value_opt.value);
 
             gui_popup_edit_value(gui, entry->value_type, entry->address, value_opt);
         }
@@ -277,7 +278,8 @@ void gui_address_table(gui_State *gui, app_State *app)
             ImGui::TableSetColumnIndex(2); {
                 char *value_selectable_str = 0;
 
-                scan_Value_Maybe value_opt = app_addr_table_try_get_entry_value(entry);
+                scan_Value_Maybe value_opt = {};
+                value_opt.ok = app_addr_table_entry_try_get_value(entry, &value_opt.value);
 
                 if (value_opt.ok) {
                     value_selectable_str = gui_cstr_from_match_value(
