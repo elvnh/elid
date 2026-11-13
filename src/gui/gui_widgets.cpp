@@ -145,11 +145,11 @@ void gui_scan_result_table(gui_State *gui, app_State *app)
                             usize value_type_size = scan_val_type_get_size(app->result_list.value_type);
 
                             if (ImGui::Selectable("Add to table")) {
-                                app_AddressTableEntry entry = {};
-                                entry.address = address;
-                                entry.value_type = app->result_list.value_type;
-                                entry.current_value = match.match->value;
-                                entry.last_read_successful = true;
+                                app_AddressTableEntry *entry = app_addr_table_alloc(&app->address_table);
+                                entry->address = address;
+                                entry->value_type = app->result_list.value_type;
+                                entry->current_value = match.match->value;
+                                entry->last_read_successful = true;
 
                                 app_addr_table_push(&app->address_table, entry);
                             }

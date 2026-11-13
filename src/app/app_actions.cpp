@@ -108,7 +108,7 @@ void app_action_update_address_table_entry_value(app_State *app, app_AddressTabl
     }
 }
 
-void app_action_push_address_table_entry(app_State *app, app_AddressTableEntry entry)
+void app_action_push_address_table_entry(app_State *app, app_AddressTableEntry *entry)
 {
     // TODO: update immediately so that value is visible
     app_addr_table_push(&app->address_table, entry);
@@ -123,7 +123,7 @@ void app_action_update_result_table_entry(app_State *app, scan_MatchView match)
     wq_push_task(app->per_frame_work_queue, app_async_update_result_table_entry, args);
 }
 
-void app_action_edit_address_table_entry(app_State *app, app_AddressTableEntry *entry, app_AddressTableEntry new_entry)
+void app_action_edit_address_table_entry(app_State *app, app_AddressTableEntry *entry, app_AddressTableEntry *new_entry)
 {
     app_addr_table_change(&app->address_table, entry, new_entry);
 }

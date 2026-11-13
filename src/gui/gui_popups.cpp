@@ -53,13 +53,17 @@ void gui_popup_edit_value(gui_State *gui, scan_ValueType type, uintptr_t address
 
 void gui_popup_edit_address_table_entry(gui_State *gui, app_AddressTableEntry *optional_entry)
 {
+    pool_reset(gui->edit_address_table_entry_popup.entry_pool);
+
     if (optional_entry) {
         // Edit an existing entry.
         gui->edit_address_table_entry_popup.selected_value_type = optional_entry->value_type;
         gui->edit_address_table_entry_popup.existing_entry = optional_entry;
 
-        // Make a copy of the entry, to be committed later.
-        gui->edit_address_table_entry_popup.entry = *optional_entry;
+        // Make a copy of the entry, to be saved later.
+        gui->edit_address_table_entry_popup.entry = app_addr_table_entry_clone(
+            gui->edit_address_table_entry_popup.entry_pool,
+            optional_entry);
 
         char *address_str = str_format_cstr(gui->frame_arena, "%" PRIxPTR, optional_entry->address);
         strncpy(gui->edit_address_table_entry_popup.address_textbox,
@@ -67,8 +71,15 @@ void gui_popup_edit_address_table_entry(gui_State *gui, app_AddressTableEntry *o
             array_capacity(gui->edit_address_table_entry_popup.address_textbox) - 1);
     } else {
         // Creating a new entry.
-        zero_mem(&gui->edit_address_table_entry_popup, sizeof(gui->edit_address_table_entry_popup));
+        gui->edit_address_table_entry_popup.entry = pool_alloc(
+            gui->edit_address_table_entry_popup.entry_pool, app_AddressTableEntry);
+
+        zero_mem(
+            gui->edit_address_table_entry_popup.address_textbox,
+            sizeof(gui->edit_address_table_entry_popup.address_textbox));
     }
+
+    app_addr_table_entry_initialize_textboxes(gui->edit_address_table_entry_popup.entry);
 
     gui__popup_open(gui, GUI_POPUP_ADD_ADDRESS);
 }
@@ -333,8 +344,8 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
     const char *popup_name = gui__popup_get_name(gui->frame_arena, GUI_POPUP_ADD_ADDRESS, title);
 
     if (ImGui::BeginPopupModal(popup_name, 0, popup_flags)) {
-        // The copy of the entry we are editing, to be saved later.
-        app_AddressTableEntry *entry = &gui->edit_address_table_entry_popup.entry;
+        // A local copy of the entry we are editing, to be saved later.
+        app_AddressTableEntry *entry = gui->edit_address_table_entry_popup.entry;
 
         // The entry the user has chosen to edit, null if this is an entirely new entry.
         app_AddressTableEntry *existing_entry = gui->edit_address_table_entry_popup.existing_entry;
@@ -356,6 +367,12 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
             );
 
             if (gui->edit_address_table_entry_popup.is_pointer) {
+                if (entry->kind != APP_ADDR_TABLE_ENTRY_POINTER) {
+                    // We just changed from a non-pointer to a pointer entry, so we'll
+                    // have to do some initialization.
+                    app_addr_table_entry_initialize_textboxes(entry);
+                }
+
                 entry->kind = APP_ADDR_TABLE_ENTRY_POINTER;
             } else {
                 entry->kind = APP_ADDR_TABLE_ENTRY_NORMAL;
@@ -471,28 +488,60 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
                             ImGui::PushID(ptr); {
                                 // Address
                                 ImGui::TableSetColumnIndex(0); {
-                                    char *address_str = str_format_cstr(gui->frame_arena, "%" PRIxPTR, address);
+                                    ImGui::InputText(
+                                        "##address_textbox",
+                                        ptr->gui_input.address_textbox,
+                                        array_capacity(ptr->gui_input.address_textbox));
 
-                                    ImGui::Selectable(address_str);
+                                    usize textbox_length = strlen(ptr->gui_input.address_textbox);
+                                    uintptr_t textbox_address = 0;
+
+                                    b32 address_parse_ok = stn_parse_usize(
+                                        ptr->gui_input.address_textbox,
+                                        textbox_length,
+                                        &textbox_address,
+                                        16);
+
+                                    if (address_parse_ok) {
+                                        app_addr_table_entry_set_address(ptr, textbox_address);
+                                    }
+
+                                    parsing_ok = parsing_ok && address_parse_ok;
                                 }
 
                                 // Offset
                                 ImGui::TableSetColumnIndex(1); {
-                                    if (ImGui::Button("^")) {
-                                        ptr->as_pointer_chain.offset = sat_add_usize(ptr->as_pointer_chain.offset, 1);
+                                    usize textbox_length = strlen(ptr->gui_input.address_textbox);
+                                    usize textbox_offset = 0;
+
+                                    b32 offset_parse_ok = stn_parse_usize(
+                                        ptr->gui_input.offset_textbox,
+                                        textbox_length,
+                                        &textbox_offset,
+                                        10);
+
+                                    if (ImGui::Button("^") && offset_parse_ok) {
+                                        textbox_offset = sat_add_usize(textbox_offset, 1);
                                     }
 
                                     ImGui::SameLine();
 
-                                    char *offset_str = str_format_cstr(gui->frame_arena, "%" PRIuPTR, ptr->as_pointer_chain.offset);
-                                    ImGui::TextUnformatted(offset_str);
+                                    ImGui::InputText(
+                                        "##offset_textbox",
+                                        ptr->gui_input.offset_textbox,
+                                        array_capacity(ptr->gui_input.offset_textbox));
 
                                     ImGui::SameLine();
 
-                                    if (ImGui::Button("v")) {
-                                        ptr->as_pointer_chain.offset = sat_sub_usize(ptr->as_pointer_chain.offset, 1);
+                                    if (ImGui::Button("v") && offset_parse_ok) {
+                                        textbox_offset = sat_sub_usize(textbox_offset, 1);
                                     }
 
+                                    parsing_ok = parsing_ok && offset_parse_ok;
+
+                                    if (offset_parse_ok) {
+                                        app_addr_table_entry_set_offset(ptr, textbox_offset);
+                                    }
                                 }
 
                                 // Result
@@ -521,9 +570,6 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
                         ImGui::EndTable();
                     }
                 } ImGui::EndChild();
-
-
-
             }
 
             ImGui::BeginDisabled(!parsing_ok); {
@@ -544,11 +590,14 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
             if (should_save_entry && ALWAYS(parsing_ok)) {
                 should_close_popup = true;
 
+                // Reallocate the entry in the address tables entry pool.
+                app_AddressTableEntry *entry_copy = app_addr_table_entry_clone(app->address_table.pool, entry);
+
                 if (existing_entry) {
                     // Commit the changes we have made to the copy of the entry.
-                    app_action_edit_address_table_entry(app, existing_entry, *entry);
+                    app_action_edit_address_table_entry(app, existing_entry, entry_copy);
                 } else {
-                    app_action_push_address_table_entry(app, *entry);
+                    app_action_push_address_table_entry(app, entry_copy);
                 }
             }
 

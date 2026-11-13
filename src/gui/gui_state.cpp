@@ -47,7 +47,10 @@ b32 gui_init(gui_State *gui)
 
     if (result) {
         gui->frame_arena = arena_create(GUI_FRAME_ARENA_SIZE);
-        result = (gui->frame_arena != 0);
+        gui->edit_address_table_entry_popup.entry_pool = pool_create(0, app_AddressTableEntry, 64);
+
+        result = (gui->frame_arena != 0)
+            && (gui->edit_address_table_entry_popup.entry_pool != 0);
     }
 
     return result;
