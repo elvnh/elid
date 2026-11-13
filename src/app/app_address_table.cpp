@@ -136,7 +136,9 @@ b32 app_addr_table_entry_update_value(app_AddressTableEntry *entry, memmi_Proces
 
     b32 result = app_addr_table_entry_update_value_no_chain(entry, proc, &current_value);
 
-    if (result && entry->as_pointer_chain.next && ALWAYS(entry->kind == APP_ADDR_TABLE_ENTRY_POINTER)) {
+    if (result && entry->as_pointer_chain.next) {
+        ALWAYS(entry->kind == APP_ADDR_TABLE_ENTRY_POINTER);
+
         // The value found at this address, plus the offset, becomes the address of the next link in
         // the pointer chain.
         app_AddressTableEntry *next_entry = entry->as_pointer_chain.next;

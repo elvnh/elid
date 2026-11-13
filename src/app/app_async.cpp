@@ -22,14 +22,7 @@ void app_async_update_address_table_entry_value(TaskID, void *data)
     app_AddressTableEntry *entry = args->entry;
     app_State *app = args->app;
 
-    scan_Value value = {};
-    // TODO: just call the function in app_address_table.h
-    if (app_read_single_value_in_process(app->open_process_handle, entry->address, entry->value_type, &value)) {
-        scan_val_atomic_store(&entry->current_value, value);
-        atomic_store_s32(&entry->last_read_successful, true);
-    } else {
-        atomic_store_s32(&entry->last_read_successful, false);
-    }
+    app_addr_table_entry_update_value(entry, app->open_process_handle);
 }
 
 void app_async_update_result_table_entry(TaskID, void *data)
