@@ -496,11 +496,11 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
 
                             ImGui::TableNextRow();
 
-                            uintptr_t  address = app_addr_table_entry_get_address(entry);
-                            usize      offset  = app_addr_table_entry_get_offset(entry);
+                            uintptr_t  address = app_addr_table_entry_get_address(ptr);
+                            usize      offset  = app_addr_table_entry_get_offset(ptr);
 
                             scan_Value value = {};
-                            b32 read_successful = app_addr_table_entry_try_get_value(entry, &value);
+                            b32 read_successful = app_addr_table_entry_try_get_value(ptr, &value);
 
                             ImGui::PushID(ptr); {
                                 // Offset
