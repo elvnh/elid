@@ -43,7 +43,9 @@ void   app_addr_table_change(app_AddressTable *tbl, app_AddressTableEntry *entry
 usize  app_addr_table_count(app_AddressTable *tbl);
 
 /* Entry operations */
-b32 app_addr_table_entry_try_get_value(app_AddressTableEntry *entry, scan_Value *out);
-b32 app_addr_table_entry_try_get_final_value(app_AddressTableEntry *entry, scan_Value *out);
-b32 app_addr_table_entry_try_get_final_address(app_AddressTableEntry *entry, uintptr_t *out);
-b32 app_addr_table_entry_update_value(app_AddressTableEntry *entry, memmi_Process proc);
+uintptr_t app_addr_table_entry_get_address(app_AddressTableEntry *entry);
+usize     app_addr_table_entry_get_offset(app_AddressTableEntry *entry);
+b32       app_addr_table_entry_try_get_value(app_AddressTableEntry *entry, scan_Value *out);
+b32       app_addr_table_entry_try_get_final_value(app_AddressTableEntry *entry, scan_Value *out);
+b32       app_addr_table_entry_try_get_final_address(app_AddressTableEntry *entry, uintptr_t *out);
+b32       app_addr_table_entry_update_value(app_AddressTableEntry *entry, memmi_Process proc);

@@ -355,6 +355,12 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
                 &entry->address
             );
 
+            if (gui->edit_address_table_entry_popup.is_pointer) {
+                entry->kind = APP_ADDR_TABLE_ENTRY_POINTER;
+            } else {
+                entry->kind = APP_ADDR_TABLE_ENTRY_NORMAL;
+            }
+
             app_action_update_address_table_entry_value(app, entry);
         }
 
@@ -370,10 +376,29 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
             gui_set_initial_keyboard_focus_here();
 
             ImGui::BeginDisabled(entry->kind == APP_ADDR_TABLE_ENTRY_POINTER); {
+                char *address_buffer = 0;
+                usize address_buffer_length = 0;
+
+                if (entry->kind == APP_ADDR_TABLE_ENTRY_NORMAL) {
+                    address_buffer = gui->edit_address_table_entry_popup.address_textbox;
+                    address_buffer_length = array_capacity(gui->edit_address_table_entry_popup.address_textbox);
+                } else {
+                    // If this is a pointer chain, try to display the final address instead of the textbox contents.
+                    uintptr_t address = 0;
+
+                    if (app_addr_table_entry_try_get_final_address(entry, &address)) {
+                        address_buffer = str_format_cstr(gui->frame_arena, "%" PRIxPTR, address);
+                    } else {
+                        address_buffer = str_clone_cstr(gui->frame_arena, "???");
+                    }
+
+                    address_buffer_length = strlen(address_buffer);
+                }
+
                 if (ImGui::InputText(
                         "##address",
-                        gui->edit_address_table_entry_popup.address_textbox,
-                        array_capacity(gui->edit_address_table_entry_popup.address_textbox),
+                        address_buffer,
+                        address_buffer_length,
                         input_text_flags)) {
                     should_save_entry = true;
                 }
@@ -385,10 +410,10 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
             {
                 const char *current_value_str = 0;
 
-                scan_Value_Maybe current_value = app_addr_table_try_get_entry_value(entry);
+                scan_Value current_value = {};
 
-                if (current_value.ok) {
-                    current_value_str = gui_cstr_from_match_value(gui->frame_arena, current_value.value, entry->value_type);
+                if (app_addr_table_entry_try_get_final_value(entry, &current_value)) {
+                    current_value_str = gui_cstr_from_match_value(gui->frame_arena, current_value, entry->value_type);
                 } else {
                     // TODO: create a constant for unknown value string
                     current_value_str = "???";
@@ -408,6 +433,99 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
 
             ImGui::Checkbox("Pointer", &gui->edit_address_table_entry_popup.is_pointer);
 
+            // Display pointer offsets.
+            if (entry->kind == APP_ADDR_TABLE_ENTRY_POINTER) {
+                // TODO: fix this size
+                ImVec2 table_size = {-FLT_MIN, 200};
+
+                s32 table_flags = ImGuiTableFlags_Resizable
+                    | ImGuiTableFlags_BordersV
+                    | ImGuiTableFlags_Borders
+                    | ImGuiTableFlags_ScrollY
+                    | ImGuiTableFlags_SizingStretchSame;
+
+                const char *table_columns[] = {"Address", "Offset", "Result"};
+                s32 column_count = array_capacity(table_columns);
+
+
+                ImGui::BeginChild("##pointer_chain_child", table_size); {
+
+                    if (ImGui::BeginTable("#pointer_chain_table", column_count, table_flags, {})) {
+                        ImGui::TableSetupScrollFreeze(0, 1);
+
+                        for (s32 col = 0; col < column_count; ++col) {
+                            ImGui::TableSetupColumn(table_columns[col]);
+                        }
+
+                        ImGui::TableHeadersRow();
+
+                        for (app_AddressTableEntry *ptr = entry; ptr; ptr = list_next(&ptr->as_pointer_chain)) {
+                            ImGui::TableNextRow();
+
+                            uintptr_t  address = app_addr_table_entry_get_address(entry);
+                            usize      offset  = app_addr_table_entry_get_offset(entry);
+
+                            scan_Value value = {};
+                            b32 read_successful = app_addr_table_entry_try_get_value(entry, &value);
+
+                            ImGui::PushID(ptr); {
+                                // Address
+                                ImGui::TableSetColumnIndex(0); {
+                                    char *address_str = str_format_cstr(gui->frame_arena, "%" PRIxPTR, address);
+
+                                    ImGui::Selectable(address_str);
+                                }
+
+                                // Offset
+                                ImGui::TableSetColumnIndex(1); {
+                                    if (ImGui::Button("^")) {
+                                        ptr->as_pointer_chain.offset = sat_add_usize(ptr->as_pointer_chain.offset, 1);
+                                    }
+
+                                    ImGui::SameLine();
+
+                                    char *offset_str = str_format_cstr(gui->frame_arena, "%" PRIuPTR, ptr->as_pointer_chain.offset);
+                                    ImGui::TextUnformatted(offset_str);
+
+                                    ImGui::SameLine();
+
+                                    if (ImGui::Button("v")) {
+                                        ptr->as_pointer_chain.offset = sat_sub_usize(ptr->as_pointer_chain.offset, 1);
+                                    }
+
+                                }
+
+                                // Result
+                                ImGui::TableSetColumnIndex(2); {
+                                    const char *value_str = 0;
+
+                                    if (read_successful) {
+                                        value_str = str_format_cstr(gui->frame_arena, "%" PRIxPTR, value.pointer);
+                                    } else {
+                                        value_str = "???";
+                                    }
+
+                                    char *result_str = str_format_cstr(
+                                        gui->frame_arena,
+                                        "[%" PRIxPTR "] + %" PRIuPTR " = %s",
+                                        address,
+                                        offset,
+                                        value_str
+                                    );
+
+                                    ImGui::TextUnformatted(result_str);
+                                }
+                            } ImGui::PopID();
+                        }
+
+                        ImGui::EndTable();
+                    }
+                } ImGui::EndChild();
+
+
+
+            }
+
             ImGui::BeginDisabled(!parsing_ok); {
                 if (ImGui::Button("OK")) {
                     should_save_entry = true;
@@ -421,7 +539,7 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
             }
         }
 
-        // Handle closiing and saving
+        // Handle closing and saving.
         {
             if (should_save_entry && ALWAYS(parsing_ok)) {
                 should_close_popup = true;

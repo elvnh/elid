@@ -47,6 +47,20 @@ usize app_addr_table_count(app_AddressTable *tbl)
     return result;
 }
 
+uintptr_t app_addr_table_entry_get_address(app_AddressTableEntry *entry)
+{
+    uintptr_t result = atomic_load_ptr(&entry->address);
+
+    return result;
+}
+
+usize app_addr_table_entry_get_offset(app_AddressTableEntry *entry)
+{
+    usize result = atomic_load_ptr(&entry->as_pointer_chain.offset);
+
+    return result;
+}
+
 b32 app_addr_table_entry_try_get_value(app_AddressTableEntry *entry, scan_Value *out)
 {
     b32 result = atomic_load_s32(&entry->last_read_successful);
