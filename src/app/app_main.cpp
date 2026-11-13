@@ -8,4 +8,5 @@ void app_update_early(app_State *app)
 void app_update_late(app_State *app)
 {
     wq_wait_for_all_tasks(app->per_frame_work_queue);
+    app_addr_table_delete_flagged_entries(&app->address_table);
 }

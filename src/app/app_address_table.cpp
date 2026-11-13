@@ -15,34 +15,93 @@ b32 app_addr_table_init(Arena *arena, app_AddressTable *tbl)
     return result;
 }
 
-void app_addr_table_push(app_AddressTable *tbl, app_AddressTableEntry entry)
+void app_addr_table__delete_entry(app_AddressTable *tbl, app_AddressTableEntry *entry)
 {
-    app_AddressTableEntry *node = pool_alloc(tbl->pool, app_AddressTableEntry);
+    if (entry) {
+        app_addr_table__delete_entry(tbl, entry->as_pointer_chain.next);
 
-    if (ALWAYS(node)) {
-        *node = entry;
+        dll_remove(tbl, entry);
 
-        dll_push_back(tbl, node);
+        pool_free(tbl->pool, entry);
     }
+}
+void app_addr_table_delete_flagged_entries(app_AddressTable *tbl)
+{
+    app_AddressTableEntry *e = list_head(tbl);
+
+    while (e) {
+        app_AddressTableEntry *next = e->next;
+
+        if (e->flagged_for_deletion) {
+            app_addr_table__delete_entry(tbl, e);
+        }
+
+        e = next;
+    }
+}
+
+app_AddressTableEntry *app_addr_table_alloc(app_AddressTable *tbl)
+{
+    app_AddressTableEntry *result = pool_alloc(tbl->pool, app_AddressTableEntry);
+
+    return result;
+}
+
+void app_addr_table_push(app_AddressTable *tbl, app_AddressTableEntry *entry)
+{
+    dll_push_back(tbl, entry);
 }
 
 void app_addr_table_remove(app_AddressTable *tbl, app_AddressTableEntry *entry)
 {
-    dll_remove(tbl, entry);
+    entry->flagged_for_deletion = true;
 }
 
-void app_addr_table_change(app_AddressTable *tbl, app_AddressTableEntry *entry, app_AddressTableEntry new_entry)
+void app_addr_table_change(app_AddressTable *tbl, app_AddressTableEntry *entry, app_AddressTableEntry *new_entry)
 {
-    (void)tbl;
+    // Replace ourselves with the new node.
+    if (entry->next) {
+        entry->next->prev = new_entry;
+    }
 
-    // We only change some of these members since others will be updated atomically by other threads.
-    entry->address = new_entry.address;
-    entry->value_type = new_entry.value_type;
+    if (entry->prev) {
+        entry->prev->next = new_entry;
+    }
+
+    if (tbl->first == entry) {
+        tbl->first = new_entry;
+    }
+
+    if (tbl->last == entry) {
+        tbl->first = new_entry;
+    }
+
+    app_addr_table_remove(tbl, entry);
 }
 
 usize app_addr_table_count(app_AddressTable *tbl)
 {
     usize result = tbl->list_node_count;
+
+    return result;
+}
+
+app_AddressTableEntry *app_addr_table_entry_clone(Pool *pool, app_AddressTableEntry *entry)
+{
+    app_AddressTableEntry *result = pool_alloc(pool, app_AddressTableEntry);
+    *result = *entry;
+
+    result->next = 0;
+    result->prev = 0;
+
+    if (result->as_pointer_chain.next) {
+        ASSERT(result->kind == APP_ADDR_TABLE_ENTRY_POINTER);
+
+        app_AddressTableEntry *next = app_addr_table_entry_clone(pool, entry->as_pointer_chain.next);
+        dll_push_back(&result->as_pointer_chain, next);
+
+        ASSERT(next->kind == APP_ADDR_TABLE_ENTRY_POINTER);
+    }
 
     return result;
 }
@@ -179,4 +238,15 @@ b32 app_addr_table_entry_update_value(app_AddressTableEntry *entry, memmi_Proces
     }
 
     return result;
+}
+
+void app_addr_table_entry_initialize_textboxes(app_AddressTableEntry *entry)
+{
+    for (app_AddressTableEntry *e = entry; e; e = list_next(&e->as_pointer_chain)) {
+        uintptr_t address = app_addr_table_entry_get_address(e);
+        usize offset = app_addr_table_entry_get_offset(e);
+
+        snprintf(e->gui_input.address_textbox, array_capacity(e->gui_input.address_textbox), "%" PRIxPTR, address);
+        snprintf(e->gui_input.offset_textbox,array_capacity(e->gui_input.offset_textbox), "%" PRIuPTR, offset);
+    }
 }
