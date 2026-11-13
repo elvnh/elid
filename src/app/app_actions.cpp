@@ -108,6 +108,11 @@ void app_action_update_address_table_entry_value(app_State *app, app_AddressTabl
     }
 }
 
+void app_action_update_address_table_entry_synchronously(app_State *app, app_AddressTableEntry *entry)
+{
+    app_addr_table_entry_update_value(entry, app->open_process_handle);
+}
+
 void app_action_push_address_table_entry(app_State *app, app_AddressTableEntry *entry)
 {
     // TODO: update immediately so that value is visible

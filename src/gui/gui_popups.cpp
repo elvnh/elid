@@ -338,13 +338,16 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
 {
     gui__set_initial_popup_size(-FLT_MIN, 0.75f);
 
-    s32 popup_flags = ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_AlwaysAutoResize;
+    s32 popup_flags =
+        ImGuiWindowFlags_NoScrollWithMouse
+        | ImGuiWindowFlags_NoScrollbar
+        | ImGuiWindowFlags_AlwaysAutoResize;
 
     const char *title = "Add address";
     const char *popup_name = gui__popup_get_name(gui->frame_arena, GUI_POPUP_ADD_ADDRESS, title);
 
     if (ImGui::BeginPopupModal(popup_name, 0, popup_flags)) {
-        // A local copy of the entry we are editing, to be saved later.
+        // A private copy of the entry we are editing, to be saved later.
         app_AddressTableEntry *entry = gui->edit_address_table_entry_popup.entry;
 
         // The entry the user has chosen to edit, null if this is an entirely new entry.
@@ -354,7 +357,7 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
         b32 should_close_popup = false;
         b32 should_save_entry = false;
 
-        // Parse input and asynchronously read the value at the address if possible.
+        // Parse input and try to fetch the value of the entry.
         {
             entry->value_type = gui->edit_address_table_entry_popup.selected_value_type;
 
@@ -378,10 +381,10 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
                 entry->kind = APP_ADDR_TABLE_ENTRY_NORMAL;
             }
 
-            app_action_update_address_table_entry_value(app, entry);
+            app_action_update_address_table_entry_synchronously(app, entry);
         }
 
-        // Widgets
+        // Widgets.
         {
             ImGui::TextUnformatted("Address:");
 
@@ -398,9 +401,11 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
 
                 if (entry->kind == APP_ADDR_TABLE_ENTRY_NORMAL) {
                     address_buffer = gui->edit_address_table_entry_popup.address_textbox;
-                    address_buffer_length = array_capacity(gui->edit_address_table_entry_popup.address_textbox);
+                    address_buffer_length =
+                        array_capacity(gui->edit_address_table_entry_popup.address_textbox);
                 } else {
-                    // If this is a pointer chain, try to display the final address instead of the textbox contents.
+                    // If this is a pointer chain, try to display the final address instead of the
+                    // textbox contents.
                     uintptr_t address = 0;
 
                     if (app_addr_table_entry_try_get_final_address(entry, &address)) {
@@ -430,7 +435,8 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
                 scan_Value current_value = {};
 
                 if (app_addr_table_entry_try_get_final_value(entry, &current_value)) {
-                    current_value_str = gui_cstr_from_match_value(gui->frame_arena, current_value, entry->value_type);
+                    current_value_str =
+                        gui_cstr_from_match_value(gui->frame_arena, current_value, entry->value_type);
                 } else {
                     // TODO: create a constant for unknown value string
                     current_value_str = "???";
