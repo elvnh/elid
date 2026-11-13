@@ -340,6 +340,8 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
         app_AddressTableEntry *existing_entry = gui->edit_address_table_entry_popup.existing_entry;
 
         b32 parsing_ok = false;
+        b32 should_close_popup = false;
+        b32 should_save_entry = false;
 
         // Parse input and asynchronously read the value at the address if possible.
         {
@@ -358,8 +360,7 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
 
         // Widgets
         {
-            b32 should_close = false;
-            b32 should_add = false;
+
 
             ImGui::TextUnformatted("Address:");
 
@@ -376,11 +377,12 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
                     gui->edit_address_table_entry_popup.address_textbox,
                     array_capacity(gui->edit_address_table_entry_popup.address_textbox),
                     input_text_flags)) {
-                should_add = true;
+                should_save_entry = true;
             }
 
             ImGui::SameLine();
 
+            // Display the current value at address if possible.
             {
                 const char *current_value_str = 0;
 
@@ -389,6 +391,7 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
                     scan_Value current_value = scan_val_atomic_load(&entry->current_value);
                     current_value_str = gui_cstr_from_match_value(gui->frame_arena, current_value, entry->value_type);
                 } else {
+                    // TODO: create a constant for unknown value string
                     current_value_str = "???";
                 }
 
@@ -407,18 +410,21 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
 
             ImGui::BeginDisabled(!parsing_ok); {
                 if (ImGui::Button("OK")) {
-                    should_add = true;
+                    should_save_entry = true;
                 }
             } ImGui::EndDisabled();
 
             ImGui::SameLine();
 
             if (ImGui::Button("Cancel")) {
-                should_close = true;
+                should_close_popup = true;
             }
+        }
 
-            if (should_add && ALWAYS(parsing_ok)) {
-                should_close = true;
+        // Handle closiing and saving
+        {
+            if (should_save_entry && ALWAYS(parsing_ok)) {
+                should_close_popup = true;
 
                 if (existing_entry) {
                     // Commit the changes we have made to the copy of the entry.
@@ -429,11 +435,11 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
             }
 
             if (ImGui::IsKeyPressed(ImGuiKey_Escape)) {
-                should_add = false;
-                should_close = true;
+                should_save_entry = false;
+                should_close_popup = true;
             }
 
-            if (should_close) {
+            if (should_close_popup) {
                 gui_popup_close(gui, GUI_POPUP_ADD_ADDRESS);
             }
         }
