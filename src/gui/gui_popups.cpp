@@ -360,7 +360,7 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
 
         // Parse input and try to update the entry.
         {
-            app_addr_table_entry_set_type(entry, gui->edit_address_table_entry_popup.selected_value_type);
+            entry->value_type = gui->edit_address_table_entry_popup.selected_value_type;
 
             u32 address_number_base = 16;
 

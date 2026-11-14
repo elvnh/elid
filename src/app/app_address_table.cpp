@@ -1,6 +1,6 @@
 #include "app_address_table.h"
 
-#define APP_ADDR_TABLE_INIT_NODE_CAP 1024
+#define APP_ADDR_TABLE_INIT_NODE_CAP 128
 
 b32 app_addr_table_init(Arena *arena, app_AddressTable *tbl)
 {
@@ -65,7 +65,7 @@ void app_addr_table_push(app_AddressTable *tbl, app_AddressTableEntry *entry)
     dll_push_back(tbl, entry);
 }
 
-void app_addr_table_remove(app_AddressTable *tbl, app_AddressTableEntry *entry)
+void app_addr_table_remove(app_AddressTableEntry *entry)
 {
     entry->flagged_for_deletion = true;
 }
@@ -139,12 +139,6 @@ uintptr_t app_addr_table_entry_get_address(app_AddressTableEntry *entry)
 void app_addr_table_entry_set_address(app_AddressTableEntry *entry, uintptr_t value)
 {
     atomic_store_ptr(&entry->address, value);
-}
-
-void app_addr_table_entry_set_type(app_AddressTableEntry *entry, scan_ValueType type)
-{
-    // TODO: this is no longer necessary
-    entry->value_type = type;
 }
 
 b32 app_addr_table_entry_try_get_value(app_AddressTableEntry *entry, scan_Value *out)

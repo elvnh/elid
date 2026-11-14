@@ -135,7 +135,7 @@ void app_action_edit_address_table_entry(app_State *app, app_AddressTableEntry *
 
 void app_action_remove_address_table_entry(app_State *app, app_AddressTableEntry *entry)
 {
-    app_addr_table_remove(&app->address_table, entry);
+    app_addr_table_remove(entry);
 }
 
 static void *app_action__watch_entry_point(void *data)
