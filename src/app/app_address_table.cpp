@@ -72,24 +72,12 @@ void app_addr_table_remove(app_AddressTableEntry *entry)
 
 void app_addr_table_change(app_AddressTable *tbl, app_AddressTableEntry *entry, app_AddressTableEntry *new_entry)
 {
-    // Replace ourselves with the new node.
-    if (entry->next) {
-        entry->next->prev = new_entry;
-    }
+    dll_insert_after(tbl, new_entry, entry);
+    dll_remove(tbl, entry);
 
-    if (entry->prev) {
-        entry->prev->next = new_entry;
-    }
-
-    if (tbl->first == entry) {
-        tbl->first = new_entry;
-    }
-
-    if (tbl->last == entry) {
-        tbl->last = new_entry;
-    }
-
-    app_addr_table_remove(tbl, entry);
+    // Deleting the entry directly here is fine, since it's no longer part of the linked list and
+    // won't be found when iterating.
+    app_addr_table__delete_entry(tbl, entry);
 }
 
 usize app_addr_table_count(app_AddressTable *tbl)
