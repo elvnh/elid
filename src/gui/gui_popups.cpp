@@ -337,8 +337,6 @@ static void gui__popup_edit_value(gui_State *gui, app_State *app)
 
 static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
 {
-    gui__set_initial_popup_size(-FLT_MIN, 0.75f);
-
     s32 popup_flags =
         ImGuiWindowFlags_NoScrollWithMouse
         | ImGuiWindowFlags_NoScrollbar
@@ -391,8 +389,7 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
 
             ImGui::SameLine();
 
-            ImGuiInputTextFlags input_text_flags =
-                ImGuiInputTextFlags_EnterReturnsTrue;
+            ImGuiInputTextFlags input_text_flags = ImGuiInputTextFlags_CharsNoBlank;
 
             gui_set_initial_keyboard_focus_here();
 
@@ -422,7 +419,7 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
                         "##address",
                         address_buffer,
                         address_buffer_length,
-                        input_text_flags)) {
+                        input_text_flags | ImGuiInputTextFlags_EnterReturnsTrue)) {
                     should_save_entry = true;
                 }
             } ImGui::EndDisabled();
@@ -459,7 +456,6 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
 
             // Display pointer offsets.
             if (entry->kind == APP_ADDR_TABLE_ENTRY_POINTER) {
-                // TODO: fix this size
                 ImVec2 table_size = {-FLT_MIN, 200};
 
                 s32 table_flags = ImGuiTableFlags_Resizable
@@ -518,10 +514,12 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
 
                                     ImGui::SameLine();
 
+                                    ImGui::SetNextItemWidth(30);
                                     ImGui::InputText(
                                         "##offset_textbox",
                                         offs->offset_textbox,
-                                        array_capacity(offs->offset_textbox));
+                                        array_capacity(offs->offset_textbox),
+                                        input_text_flags | ImGuiInputTextFlags_CharsDecimal);
 
                                     ImGui::SameLine();
 
@@ -596,13 +594,15 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
                     ImGui::SameLine();
 
                     if (ImGui::Button("Delete")) {
-                        if (selected_offs->prev) {
-                            gui->edit_address_table_entry_popup.selected_offset = selected_offs->prev;
-                        } else {
-                            gui->edit_address_table_entry_popup.selected_offset = selected_offs->next;
-                        }
+                        if (selected_offs) {
+                            if (selected_offs->prev) {
+                                gui->edit_address_table_entry_popup.selected_offset = selected_offs->prev;
+                            } else {
+                                gui->edit_address_table_entry_popup.selected_offset = selected_offs->next;
+                            }
 
-                        app_addr_table_entry_remove_offset(entry, selected_offs);
+                            app_addr_table_entry_remove_offset(entry, selected_offs);
+                        }
                     }
 
                     ImGui::SameLine();
@@ -629,7 +629,7 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
                             "##base_address",
                             gui->edit_address_table_entry_popup.address_textbox,
                             array_capacity(gui->edit_address_table_entry_popup.address_textbox),
-                            input_text_flags)) {
+                            input_text_flags | ImGuiInputTextFlags_EnterReturnsTrue)) {
                         should_save_entry = true;
                     }
 
@@ -672,7 +672,7 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
 
         // Handle closing and saving.
         {
-            if (should_save_entry && ALWAYS(parsing_ok)) {
+            if (should_save_entry && parsing_ok) {
                 should_close_popup = true;
 
                 // Reallocate the entry in the address tables entry pool.
