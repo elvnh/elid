@@ -124,6 +124,8 @@ app_PointerOffset *app_addr_table_entry_push_offset(app_AddressTable *tbl, app_A
     app_PointerOffset *result = pool_alloc(tbl->pool, app_PointerOffset);
     dll_push_back(&entry->offsets, result);
 
+    app_addr_table_entry_initialize_offset_textbox(result);
+
     return result;
 }
 
@@ -271,13 +273,18 @@ b32 app_addr_table_entry_update_value(app_AddressTableEntry *entry, memmi_Proces
     return result;
 }
 
+void app_addr_table_entry_initialize_offset_textbox(app_PointerOffset *offs)
+{
+    snprintf(
+        offs->offset_textbox,
+        array_capacity(offs->offset_textbox),
+        "%" PRIuPTR,
+        offs->offset_value);
+}
+
 void app_addr_table_entry_initialize_textboxes(app_AddressTableEntry *entry)
 {
     for (app_PointerOffset *offs = list_head(&entry->offsets); offs; offs = list_next(offs)) {
-        snprintf(
-            offs->offset_textbox,
-            array_capacity(offs->offset_textbox),
-            "%" PRIuPTR,
-            offs->offset_value);
+        app_addr_table_entry_initialize_offset_textbox(offs);
     }
 }

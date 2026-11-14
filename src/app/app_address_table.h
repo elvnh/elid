@@ -83,3 +83,4 @@ b32      			   app_addr_table_entry_try_get_final_value(app_AddressTableEntry *e
 b32      			   app_addr_table_entry_try_get_final_address(app_AddressTableEntry *entry, uintptr_t *out);
 b32      			   app_addr_table_entry_update_value(app_AddressTableEntry *entry, memmi_Process proc);
 void     			   app_addr_table_entry_initialize_textboxes(app_AddressTableEntry *entry);
+void     			   app_addr_table_entry_initialize_offset_textbox(app_PointerOffset *offs);

@@ -472,7 +472,6 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
                 s32 column_count = array_capacity(table_columns);
 
                 ImGui::BeginChild("##pointer_chain_child", table_size); {
-
                     if (ImGui::BeginTable("#pointer_chain_table", column_count, table_flags, {})) {
                         ImGui::TableSetupScrollFreeze(0, 1);
 
@@ -498,16 +497,10 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
                                 ImGui::TableSetColumnIndex(0); {
                                     // TODO: fix this
                                     usize textbox_length = strlen(offs->offset_textbox);
-                                    usize textbox_offset = 0;
+                                    s32 offset_to_add = 0;
 
-                                    b32 offset_parse_ok = stn_parse_usize(
-                                        offs->offset_textbox,
-                                        textbox_length,
-                                        &textbox_offset,
-                                        10);
-
-                                    if (ImGui::Button("<") && offset_parse_ok) {
-                                        textbox_offset = sat_add_usize(textbox_offset, 1);
+                                    if (ImGui::Button("<")) {
+                                        offset_to_add = 1;
                                     }
 
                                     ImGui::SameLine();
@@ -519,15 +512,27 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
 
                                     ImGui::SameLine();
 
-                                    if (ImGui::Button(">") && offset_parse_ok) {
-                                        textbox_offset = sat_sub_usize(textbox_offset, 1);
+                                    if (ImGui::Button(">")) {
+                                        offset_to_add = -1;
                                     }
+
+                                    b32 offset_parse_ok = stn_parse_usize(
+                                        offs->offset_textbox,
+                                        textbox_length,
+                                        &offs->offset_value,
+                                        10);
 
                                     parsing_ok = parsing_ok && offset_parse_ok;
 
-                                    // TODO: do this further up before the entry is updated
                                     if (offset_parse_ok) {
-                                        offs->offset_value = textbox_offset;
+                                        // TODO: should offsets be able to be negative?
+                                        if (offset_to_add == 1) {
+                                            offs->offset_value = sat_add_usize(offs->offset_value, 1);
+                                        } else if (offset_to_add == -1) {
+                                            offs->offset_value = sat_sub_usize(offs->offset_value, 1);
+                                        }
+
+                                        app_addr_table_entry_initialize_offset_textbox(offs);
                                     }
                                 }
 
