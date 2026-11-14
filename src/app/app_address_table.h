@@ -67,7 +67,7 @@ usize                  app_addr_table_count(app_AddressTable *tbl);
 /* Entry operations */
 app_AddressTableEntry *app_addr_table_entry_alloc(Pool *pool);
 app_AddressTableEntry *app_addr_table_entry_clone(Pool *pool, app_AddressTableEntry *entry);
-app_PointerOffset     *app_addr_table_entry_push_offset(app_AddressTableEntry *entry);
+app_PointerOffset     *app_addr_table_entry_push_offset(app_AddressTableEntry *entry, app_PointerOffset *before);
 void                   app_addr_table_entry_remove_offset(app_AddressTableEntry *entry, app_PointerOffset *offs);
 
 // TODO: remove these

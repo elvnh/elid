@@ -109,10 +109,15 @@ app_AddressTableEntry *app_addr_table_entry_clone(Pool *pool, app_AddressTableEn
     return result;
 }
 
-app_PointerOffset *app_addr_table_entry_push_offset(app_AddressTableEntry *entry)
+app_PointerOffset *app_addr_table_entry_push_offset(app_AddressTableEntry *entry, app_PointerOffset *before)
 {
     app_PointerOffset *result = pool_alloc(entry->allocated_in_pool, app_PointerOffset);
-    dll_push_back(&entry->offsets, result);
+
+    if (before) {
+        dll_insert_before(&entry->offsets, result, before);
+    } else {
+        dll_push_back(&entry->offsets, result);
+    }
 
     app_addr_table_entry_initialize_offset_textbox(result);
 

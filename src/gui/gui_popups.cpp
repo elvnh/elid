@@ -580,11 +580,27 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
 
                 // Offset buttons
                 {
+                    app_PointerOffset *selected_offs =
+                        gui->edit_address_table_entry_popup.selected_offset;
+
                     if (ImGui::Button("Add")) {
                         // TODO: allow inserting in middle
-                        app_addr_table_entry_push_offset(entry);
+                        app_addr_table_entry_push_offset(entry, 0);
                     }
 
+                    ImGui::SameLine();
+
+                    if (ImGui::Button("Insert")) {
+                        // TODO: allow inserting in middle
+                        app_addr_table_entry_push_offset(entry, selected_offs);
+                    }
+
+                    ImGui::SameLine();
+
+                    if (ImGui::Button("Delete")) {
+                        // TODO: allow inserting in middle
+                        app_addr_table_entry_remove_offset(entry, selected_offs);
+                    }
                 }
 
                 // Display the base address of the pointer chain, along with the value
