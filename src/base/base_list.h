@@ -196,7 +196,9 @@
 #define list_head_f(list, first) ((list)->first)
 #define list_head(list) list_head_f((list), first)
 #define list_next_n(list, next) ((list)->next)
+#define list_prev_p(list, prev) ((list)->prev)
 #define list_next(list) list_next_n((list), next)
+#define list_prev(list) list_prev_p((list), prev)
 
 /* Query operations */
 #define list_count(list) (list)->list_node_count

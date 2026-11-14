@@ -481,9 +481,9 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
 
                         ImGui::TableHeadersRow();
 
-                        for (app_PointerOffset *offs = list_head(&entry->offsets);
+                        for (app_PointerOffset *offs = entry->offsets.last;
                              offs;
-                             offs = list_next(offs)) {
+                             offs = list_prev(offs)) {
                             ImGui::TableNextRow();
 
                             uintptr_t  address = offs->last_resolved_address;
