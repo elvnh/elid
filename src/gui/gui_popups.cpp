@@ -582,7 +582,7 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
                 {
                     if (ImGui::Button("Add")) {
                         // TODO: allow inserting in middle
-                        app_addr_table_entry_push_offset(&app->address_table, entry);
+                        app_addr_table_entry_push_offset(entry);
                     }
 
                 }

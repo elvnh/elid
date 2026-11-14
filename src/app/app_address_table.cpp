@@ -54,8 +54,8 @@ void app_addr_table_delete_flagged_entries(app_AddressTable *tbl)
 
 app_AddressTableEntry *app_addr_table_entry_alloc(Pool *pool)
 {
-    // TODO: no longer needed
     app_AddressTableEntry *result = pool_alloc(pool, app_AddressTableEntry);
+    result->allocated_in_pool = pool;
 
     return result;
 }
@@ -92,6 +92,8 @@ app_AddressTableEntry *app_addr_table_entry_clone(Pool *pool, app_AddressTableEn
     app_AddressTableEntry *result = pool_alloc(pool, app_AddressTableEntry);
     *result = *entry;
 
+    result->allocated_in_pool = pool;
+
     result->next = 0;
     result->prev = 0;
 
@@ -107,14 +109,20 @@ app_AddressTableEntry *app_addr_table_entry_clone(Pool *pool, app_AddressTableEn
     return result;
 }
 
-app_PointerOffset *app_addr_table_entry_push_offset(app_AddressTable *tbl, app_AddressTableEntry *entry)
+app_PointerOffset *app_addr_table_entry_push_offset(app_AddressTableEntry *entry)
 {
-    app_PointerOffset *result = pool_alloc(tbl->pool, app_PointerOffset);
+    app_PointerOffset *result = pool_alloc(entry->allocated_in_pool, app_PointerOffset);
     dll_push_back(&entry->offsets, result);
 
     app_addr_table_entry_initialize_offset_textbox(result);
 
     return result;
+}
+
+void app_addr_table_entry_remove_offset(app_AddressTableEntry *entry, app_PointerOffset *offs)
+{
+    dll_remove(&entry->offsets, offs);
+    pool_free(entry->allocated_in_pool, offs);
 }
 
 uintptr_t app_addr_table_entry_get_address(app_AddressTableEntry *entry)

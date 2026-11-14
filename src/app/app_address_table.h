@@ -36,6 +36,8 @@ struct app_AddressTableEntry {
     scan_Value current_value; // Atomic
     b32 last_read_successful; // Atomic
 
+    Pool *allocated_in_pool;
+
     app_PointerOffsets offsets;
     app_PointerOffset  final_offset; // The extra node all pointer chains have at the end.
 
@@ -57,15 +59,16 @@ struct app_AddressTable {
 /* Table operations */
 b32                    app_addr_table_init(Arena *arena, app_AddressTable *tbl);
 void                   app_addr_table_delete_flagged_entries(app_AddressTable *tbl);
-app_AddressTableEntry *app_addr_table_entry_alloc(Pool *pool);
 void                   app_addr_table_push(app_AddressTable *tbl, app_AddressTableEntry *entry);
 void                   app_addr_table_remove(app_AddressTableEntry *entry);
 void                   app_addr_table_change(app_AddressTable *tbl, app_AddressTableEntry *entry, app_AddressTableEntry *new_entry);
 usize                  app_addr_table_count(app_AddressTable *tbl);
 
 /* Entry operations */
+app_AddressTableEntry *app_addr_table_entry_alloc(Pool *pool);
 app_AddressTableEntry *app_addr_table_entry_clone(Pool *pool, app_AddressTableEntry *entry);
-app_PointerOffset     *app_addr_table_entry_push_offset(app_AddressTable *tbl, app_AddressTableEntry *entry);
+app_PointerOffset     *app_addr_table_entry_push_offset(app_AddressTableEntry *entry);
+void                   app_addr_table_entry_remove_offset(app_AddressTableEntry *entry, app_PointerOffset *offs);
 
 // TODO: remove these
 uintptr_t			   app_addr_table_entry_get_address(app_AddressTableEntry *entry);
