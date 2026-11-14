@@ -60,6 +60,7 @@ struct gui_State {
 
         app_AddressTableEntry *existing_entry;
         app_AddressTableEntry *entry;
+        app_PointerOffset *selected_offset;
         Pool *entry_pool;
     } edit_address_table_entry_popup;
 

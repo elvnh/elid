@@ -491,11 +491,24 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
                             scan_Value value = offs->last_dereferenced_value;;
 
                             b32 read_successful = offs->last_read_successful;
+                            b32 is_selected = offs == gui->edit_address_table_entry_popup.selected_offset;
 
                             ImGui::PushID(offs); {
                                 // Offset
                                 ImGui::TableSetColumnIndex(0); {
                                     // TODO: fix this
+                                    ImGuiSelectableFlags selectable_flags =
+                                        ImGuiSelectableFlags_SpanAllColumns
+                                        | ImGuiSelectableFlags_AllowOverlap;
+
+                                    ImVec2 selectable_size = {0.0f, ImGui::GetFrameHeight()};
+                                    if (ImGui::Selectable("##select_offs", is_selected,
+                                            selectable_flags, selectable_size)) {
+                                        gui->edit_address_table_entry_popup.selected_offset = offs;
+                                    }
+
+                                    ImGui::SameLine();
+
                                     usize textbox_length = strlen(offs->offset_textbox);
                                     s32 offset_to_add = 0;
 
@@ -555,6 +568,7 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
                                         value_str
                                     );
 
+                                    ImGui::SameLine();
                                     ImGui::TextUnformatted(result_str);
                                 }
                             } ImGui::PopID();
