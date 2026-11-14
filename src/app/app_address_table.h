@@ -69,6 +69,7 @@ app_AddressTableEntry *app_addr_table_entry_alloc(Pool *pool);
 app_AddressTableEntry *app_addr_table_entry_clone(Pool *pool, app_AddressTableEntry *entry);
 app_PointerOffset     *app_addr_table_entry_push_offset(app_AddressTableEntry *entry, app_PointerOffset *before);
 void                   app_addr_table_entry_remove_offset(app_AddressTableEntry *entry, app_PointerOffset *offs);
+b32                    app_addr_table_entry_swap_offsets(app_PointerOffset *a, app_PointerOffset *b);
 
 // TODO: remove these
 uintptr_t			   app_addr_table_entry_get_address(app_AddressTableEntry *entry);

@@ -130,6 +130,33 @@ void app_addr_table_entry_remove_offset(app_AddressTableEntry *entry, app_Pointe
     pool_free(entry->allocated_in_pool, offs);
 }
 
+b32 app_addr_table_entry_swap_offsets(app_PointerOffset *a, app_PointerOffset *b)
+{
+    b32 result = false;
+
+    if (a && b) {
+        result = true;
+
+        app_PointerOffset *a_prev = a->prev;
+        app_PointerOffset *a_next = a->next;
+
+        app_PointerOffset *b_prev = b->prev;
+        app_PointerOffset *b_next = b->next;
+
+        app_PointerOffset temp = *a;
+        *a = *b;
+        *b = temp;
+
+        a->prev = a_prev;
+        a->next = a_next;
+
+        b->prev = b_prev;
+        b->next = b_next;
+    }
+
+    return result;
+}
+
 uintptr_t app_addr_table_entry_get_address(app_AddressTableEntry *entry)
 {
     uintptr_t result = atomic_load_ptr(&entry->address);

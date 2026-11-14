@@ -584,22 +584,41 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
                         gui->edit_address_table_entry_popup.selected_offset;
 
                     if (ImGui::Button("Add")) {
-                        // TODO: allow inserting in middle
                         app_addr_table_entry_push_offset(entry, 0);
                     }
 
                     ImGui::SameLine();
 
                     if (ImGui::Button("Insert")) {
-                        // TODO: allow inserting in middle
                         app_addr_table_entry_push_offset(entry, selected_offs);
                     }
 
                     ImGui::SameLine();
 
                     if (ImGui::Button("Delete")) {
-                        // TODO: allow inserting in middle
+                        if (selected_offs->prev) {
+                            gui->edit_address_table_entry_popup.selected_offset = selected_offs->prev;
+                        } else {
+                            gui->edit_address_table_entry_popup.selected_offset = selected_offs->next;
+                        }
+
                         app_addr_table_entry_remove_offset(entry, selected_offs);
+                    }
+
+                    ImGui::SameLine();
+
+                    if (ImGui::Button("Up")) {
+                        if (app_addr_table_entry_swap_offsets(selected_offs, selected_offs->next)) {
+                            gui->edit_address_table_entry_popup.selected_offset = selected_offs->next;
+                        }
+                    }
+
+                    ImGui::SameLine();
+
+                    if (ImGui::Button("Down")) {
+                        if (app_addr_table_entry_swap_offsets(selected_offs, selected_offs->prev)) {
+                            gui->edit_address_table_entry_popup.selected_offset = selected_offs->prev;
+                        }
                     }
                 }
 
