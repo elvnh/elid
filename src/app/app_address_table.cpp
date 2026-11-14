@@ -8,7 +8,11 @@ b32 app_addr_table_init(Arena *arena, app_AddressTable *tbl)
 
     *tbl = {};
 
-    tbl->pool = pool_create(arena, app_AddressTableEntry, APP_ADDR_TABLE_INIT_NODE_CAP);
+    tbl->pool = pool_create_untyped(
+        arena,
+        MAX(sizeof(app_AddressTableEntry), sizeof(app_PointerOffset)),
+        APP_ADDR_TABLE_INIT_NODE_CAP,
+        MAX(alignof(app_AddressTableEntry), alignof(app_PointerOffset)));
 
     result = tbl->pool != 0;
 
@@ -18,9 +22,15 @@ b32 app_addr_table_init(Arena *arena, app_AddressTable *tbl)
 void app_addr_table__delete_entry(app_AddressTable *tbl, app_AddressTableEntry *entry)
 {
     if (entry) {
-        ASSERT(entry->as_pointer_chain.sentinel);
+        app_PointerOffset *offs = list_head(&entry->offsets);
 
-        app_addr_table__delete_entry(tbl, entry->as_pointer_chain.next);
+        while (offs) {
+            app_PointerOffset *next = offs->next;
+
+            pool_free(tbl->pool, offs);
+
+            offs = next;
+        }
 
         dll_remove(tbl, entry);
 
@@ -35,10 +45,6 @@ void app_addr_table_delete_flagged_entries(app_AddressTable *tbl)
         app_AddressTableEntry *next = e->next;
 
         if (e->flagged_for_deletion) {
-            // We only want to free the sentinel once as all nodes in
-            // the chain share it.
-            pool_free(tbl->pool, e->as_pointer_chain.sentinel);
-
             app_addr_table__delete_entry(tbl, e);
         }
 
@@ -48,20 +54,8 @@ void app_addr_table_delete_flagged_entries(app_AddressTable *tbl)
 
 app_AddressTableEntry *app_addr_table_entry_alloc(Pool *pool)
 {
+    // TODO: no longer needed
     app_AddressTableEntry *result = pool_alloc(pool, app_AddressTableEntry);
-    result->as_pointer_chain.sentinel = pool_alloc(pool, app_AddressTableEntry);
-    result->as_pointer_chain.sentinel->as_pointer_chain.prev = result;
-
-    return result;
-}
-
-app_AddressTableEntry *app_addr_table_next_in_pointer_chain(app_AddressTableEntry *entry)
-{
-    app_AddressTableEntry *result = entry->as_pointer_chain.next;
-
-    if (!result) {
-        result = entry->as_pointer_chain.sentinel;
-    }
 
     return result;
 }
@@ -105,60 +99,30 @@ usize app_addr_table_count(app_AddressTable *tbl)
     return result;
 }
 
-app_AddressTableEntry *app_addr_table_entry_clone_helper(Pool *pool, app_AddressTableEntry *entry,
-    app_AddressTableEntry *sentinel)
+app_AddressTableEntry *app_addr_table_entry_clone(Pool *pool, app_AddressTableEntry *entry)
 {
-    // TODO: this function could race with another thread that's updating the entry
-
     app_AddressTableEntry *result = pool_alloc(pool, app_AddressTableEntry);
     *result = *entry;
 
     result->next = 0;
     result->prev = 0;
 
-    result->as_pointer_chain.sentinel = sentinel;
+    result->offsets = {};
 
-    // The sentinel should always point back to the last link in the chain.
-    sentinel->as_pointer_chain.prev = result;
+    for (app_PointerOffset *offs = list_head(&entry->offsets); offs; offs = list_next(offs)) {
+        app_PointerOffset *offs_copy = pool_alloc(pool, app_PointerOffset);
+        *offs_copy = *offs;
 
-    if (result->kind == APP_ADDR_TABLE_ENTRY_POINTER && result->as_pointer_chain.next) {
-        app_AddressTableEntry *next =
-            app_addr_table_entry_clone_helper(pool, result->as_pointer_chain.next, sentinel);
-        dll_push_back(&result->as_pointer_chain, next);
-
-        ASSERT(next->kind == APP_ADDR_TABLE_ENTRY_POINTER);
+        dll_push_back(&result->offsets, offs_copy);
     }
 
     return result;
 }
 
-app_AddressTableEntry *app_addr_table_entry_clone(Pool *pool, app_AddressTableEntry *entry)
+app_PointerOffset *app_addr_table_entry_push_offset(app_AddressTable *tbl, app_AddressTableEntry *entry)
 {
-    app_AddressTableEntry *sentinel = pool_alloc(pool, app_AddressTableEntry);
-    app_AddressTableEntry *result = app_addr_table_entry_clone_helper(pool, entry, sentinel);
-
-    return result;
-}
-
-app_AddressTableEntry *app_addr_table_entry_push_offset(app_AddressTable *tbl, app_AddressTableEntry *entry)
-{
-    app_AddressTableEntry *sentinel = entry->as_pointer_chain.sentinel;
-
-    ASSERT(sentinel);
-    ASSERT(sentinel->as_pointer_chain.offset == 0);
-    ASSERT(entry->as_pointer_chain.offset == 0);
-
-    app_AddressTableEntry *result = pool_alloc(tbl->pool, app_AddressTableEntry);
-    result->as_pointer_chain.sentinel = sentinel;
-    result->value_type = entry->value_type;
-
-    entry->as_pointer_chain.next = result;
-    result->as_pointer_chain.prev = entry;
-
-    // The sentinel should always point back to the last link in the chain.
-    sentinel->as_pointer_chain.prev = result;
-
-    app_addr_table_entry_initialize_textboxes(result);
+    app_PointerOffset *result = pool_alloc(tbl->pool, app_PointerOffset);
+    dll_push_back(&entry->offsets, result);
 
     return result;
 }
@@ -175,27 +139,10 @@ void app_addr_table_entry_set_address(app_AddressTableEntry *entry, uintptr_t va
     atomic_store_ptr(&entry->address, value);
 }
 
-usize app_addr_table_entry_get_offset(app_AddressTableEntry *entry)
-{
-    usize result = atomic_load_ptr(&entry->as_pointer_chain.offset);
-
-    return result;
-}
-
-void app_addr_table_entry_set_offset(app_AddressTableEntry *entry, usize value)
-{
-    atomic_store_usize(&entry->as_pointer_chain.offset, value);
-}
-
 void app_addr_table_entry_set_type(app_AddressTableEntry *entry, scan_ValueType type)
 {
-    app_AddressTableEntry *sentinel = entry->as_pointer_chain.sentinel;
-
-    ASSERT(sentinel);
-
-    // The sentinel's value type should always match the main entries type.
+    // TODO: this is no longer necessary
     entry->value_type = type;
-    sentinel->value_type = type;
 }
 
 b32 app_addr_table_entry_try_get_value(app_AddressTableEntry *entry, scan_Value *out)
@@ -211,13 +158,22 @@ b32 app_addr_table_entry_try_get_value(app_AddressTableEntry *entry, scan_Value 
 
 b32 app_addr_table_entry_try_get_final_value(app_AddressTableEntry *entry, scan_Value *out)
 {
-    app_AddressTableEntry *sentinel = entry->as_pointer_chain.sentinel;
-    b32 result = atomic_load_s32(&sentinel->last_read_successful);
+    b32 result = false;
 
-    ASSERT(entry->value_type == sentinel->value_type);
+    if (entry->kind == APP_ADDR_TABLE_ENTRY_NORMAL) {
+        result = entry->last_read_successful;
 
-    if (result) {
-        scan_val_atomic_move(out, &sentinel->current_value);
+        if (result) {
+            *out = entry->current_value;
+
+        }
+    } else {
+        ASSERT(entry->kind == APP_ADDR_TABLE_ENTRY_POINTER);
+        result = entry->final_offset.last_read_successful;
+
+        if (result) {
+            *out = entry->final_offset.last_dereferenced_value;
+        }
     }
 
     return result;
@@ -226,80 +182,89 @@ b32 app_addr_table_entry_try_get_final_value(app_AddressTableEntry *entry, scan_
 
 b32 app_addr_table_entry_try_get_final_address(app_AddressTableEntry *entry, uintptr_t *out)
 {
-    app_AddressTableEntry *sentinel = entry->as_pointer_chain.sentinel;
-
-    ASSERT(sentinel->as_pointer_chain.prev);
-
-    // When getting the final address, we don't care if the dereference of our address
-    // succeeded, only if the calculation of our address by previous links in the chain did.
-    b32 result = atomic_load_s32(&sentinel->as_pointer_chain.prev->last_read_successful);
-
-    if (result) {
-        *out = sentinel->address;
-    }
-
-    return result;
-}
-
-// TODO: better name
-b32 app_addr_table_entry_update_value_no_chain(app_AddressTableEntry *entry, memmi_Process proc, scan_Value *opt_value)
-{
     b32 result = false;
 
-    scan_Value value = {};
-    scan_ValueType value_type = entry->value_type;
+    if (entry->kind == APP_ADDR_TABLE_ENTRY_NORMAL) {
+        result = entry->last_read_successful;
 
-    usize offset = 0;
+        if (result) {
+            *out = entry->address;
+        }
+    } else {
+        // For pointer chains, the address of the current node is dependent on the previous
+        // node. Therefore, the address is considered valid as long as the read of the previous
+        // node succeeded, even if the read of this node failed.
+        ASSERT(entry->kind == APP_ADDR_TABLE_ENTRY_POINTER);
 
-    if (entry->kind == APP_ADDR_TABLE_ENTRY_POINTER) {
-        // If this is a link in a pointer chain, we want to read the value as a pointer.
-        value_type = SCAN_VALUE_TYPE_POINTER;
-        offset = entry->as_pointer_chain.offset;
-    }
+        app_PointerOffset *prev_offs = entry->offsets.last;
 
-    // Add the offset to the base address before dereferencing it.
-    uintptr_t address = 0;
+        if (prev_offs) {
+            result = prev_offs->last_read_successful;
 
-    if (safe_add_usize(entry->address, offset, &address)) {
-        result = app_read_single_value_in_process(proc, address, value_type, &value);
-    }
+            if (result) {
+                *out = entry->final_offset.last_resolved_address;
+            }
+        } else {
+            result = entry->last_read_successful;
 
-    atomic_store_s32(&entry->last_read_successful, result);
-
-    if (result) {
-        scan_val_atomic_store(&entry->current_value, value);
-
-        if (opt_value) {
-            *opt_value = value;
+            if (result) {
+                *out = entry->address;
+            }
         }
     }
 
     return result;
 }
 
+static b32 app_addr_table__update_pointer_offset(
+    app_PointerOffset *offs, memmi_Process proc, uintptr_t *current_address, scan_ValueType type)
+{
+    b32 result = false;
+
+    offs->last_resolved_address = *current_address;
+
+    result = app_read_single_value_in_process(
+        proc,
+        *current_address + offs->offset_value,
+        type,
+        &offs->last_dereferenced_value);
+
+    offs->last_read_successful = result;
+
+    *current_address = offs->last_dereferenced_value.pointer;
+
+    return result;
+}
+
 b32 app_addr_table_entry_update_value(app_AddressTableEntry *entry, memmi_Process proc)
 {
-    scan_Value current_value = {};
+    scan_ValueType type = {};
 
-    b32 result = app_addr_table_entry_update_value_no_chain(entry, proc, &current_value);
-
-    // Store the result in the sentinel so we can check if resolving entire pointer
-    // chain succeeded by simply looking at that node.
-    // TODO: ensure that all nodes in chain have same sentinel
-    app_AddressTableEntry *sentinel = entry->as_pointer_chain.sentinel;
-    if (sentinel) {
-        atomic_store_s32(&sentinel->last_read_successful, result);
+    if (entry->kind == APP_ADDR_TABLE_ENTRY_POINTER) {
+        type = SCAN_VALUE_TYPE_POINTER;
+    } else {
+        type = entry->value_type;
     }
 
-    if (result) {
-        // The value found at this address, plus the offset, becomes the address of the next link in
-        // the pointer chain.
-        app_AddressTableEntry *next_entry = app_addr_table_next_in_pointer_chain(entry);
+    b32 result = app_read_single_value_in_process(
+        proc, entry->address, type, &entry->current_value);
+    entry->last_read_successful = result;
 
-        if (next_entry) {
-            next_entry->address = current_value.pointer;
+    if (result && (entry->kind == APP_ADDR_TABLE_ENTRY_POINTER)) {
+        uintptr_t current_address = entry->current_value.pointer;
 
-            result = app_addr_table_entry_update_value(next_entry, proc);
+        for (app_PointerOffset *offs = list_head(&entry->offsets);
+             offs;
+             offs = list_next(offs)) {
+            b32 update_ok = app_addr_table__update_pointer_offset(
+                offs, proc, &current_address, SCAN_VALUE_TYPE_POINTER);
+
+            result = result && update_ok;
+        }
+
+        if (result) {
+            result = app_addr_table__update_pointer_offset(
+                &entry->final_offset, proc, &current_address, entry->value_type);
         }
     }
 
@@ -308,16 +273,11 @@ b32 app_addr_table_entry_update_value(app_AddressTableEntry *entry, memmi_Proces
 
 void app_addr_table_entry_initialize_textboxes(app_AddressTableEntry *entry)
 {
-    ASSERT(entry->as_pointer_chain.sentinel);
-
-    for (app_AddressTableEntry *e = entry;
-         e != entry->as_pointer_chain.sentinel;
-         e = app_addr_table_next_in_pointer_chain(e)) {
-        ASSERT(e);
-
-        uintptr_t address = app_addr_table_entry_get_address(e);
-        usize offset = app_addr_table_entry_get_offset(e);
-
-        snprintf(e->gui_input.offset_textbox,array_capacity(e->gui_input.offset_textbox), "%" PRIuPTR, offset);
+    for (app_PointerOffset *offs = list_head(&entry->offsets); offs; offs = list_next(offs)) {
+        snprintf(
+            offs->offset_textbox,
+            array_capacity(offs->offset_textbox),
+            "%" PRIuPTR,
+            offs->offset_value);
     }
 }

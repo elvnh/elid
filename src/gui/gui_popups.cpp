@@ -354,17 +354,11 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
         // The entry the user has chosen to edit, null if this is an entirely new entry.
         app_AddressTableEntry *existing_entry = gui->edit_address_table_entry_popup.existing_entry;
 
-        ASSERT(entry->as_pointer_chain.sentinel);
-        ASSERT(entry->as_pointer_chain.sentinel->value_type == entry->value_type);
-
-        ASSERT(entry->as_pointer_chain.offset == 0);
-        ASSERT(entry->as_pointer_chain.sentinel->as_pointer_chain.offset == 0);
-
         b32 parsing_ok = false;
         b32 should_close_popup = false;
         b32 should_save_entry = false;
 
-        // Parse input and try to fetch the value of the entry.
+        // Parse input and try to update the entry.
         {
             app_addr_table_entry_set_type(entry, gui->edit_address_table_entry_popup.selected_value_type);
 
@@ -378,8 +372,8 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
 
             if (gui->edit_address_table_entry_popup.is_pointer) {
                 if (entry->kind != APP_ADDR_TABLE_ENTRY_POINTER) {
-                    // We just changed from a non-pointer to a pointer entry, so we'll
-                    // have to do some initialization.
+                    // We just changed from a non-pointer to a pointer entry, so we'll have to do
+                    // some initialization.
                     app_addr_table_entry_initialize_textboxes(entry);
                 }
 
@@ -477,7 +471,6 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
                 const char *table_columns[] = {"Offset", "Result"};
                 s32 column_count = array_capacity(table_columns);
 
-
                 ImGui::BeginChild("##pointer_chain_child", table_size); {
 
                     if (ImGui::BeginTable("#pointer_chain_table", column_count, table_flags, {})) {
@@ -489,27 +482,26 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
 
                         ImGui::TableHeadersRow();
 
-                        for (app_AddressTableEntry *ptr = app_addr_table_next_in_pointer_chain(entry);
-                             ptr != entry->as_pointer_chain.sentinel;
-                             ptr = app_addr_table_next_in_pointer_chain(ptr)) {
-                            ASSERT(ptr);
-
+                        for (app_PointerOffset *offs = list_head(&entry->offsets);
+                             offs;
+                             offs = list_next(offs)) {
                             ImGui::TableNextRow();
 
-                            uintptr_t  address = app_addr_table_entry_get_address(ptr);
-                            usize      offset  = app_addr_table_entry_get_offset(ptr);
+                            uintptr_t  address = offs->last_resolved_address;
+                            usize      offset  = offs->offset_value;
+                            scan_Value value = offs->last_dereferenced_value;;
 
-                            scan_Value value = {};
-                            b32 read_successful = app_addr_table_entry_try_get_value(ptr, &value);
+                            b32 read_successful = offs->last_read_successful;
 
-                            ImGui::PushID(ptr); {
+                            ImGui::PushID(offs); {
                                 // Offset
                                 ImGui::TableSetColumnIndex(0); {
-                                    usize textbox_length = strlen(ptr->gui_input.offset_textbox);
+                                    // TODO: fix this
+                                    usize textbox_length = strlen(offs->offset_textbox);
                                     usize textbox_offset = 0;
 
                                     b32 offset_parse_ok = stn_parse_usize(
-                                        ptr->gui_input.offset_textbox,
+                                        offs->offset_textbox,
                                         textbox_length,
                                         &textbox_offset,
                                         10);
@@ -522,8 +514,8 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
 
                                     ImGui::InputText(
                                         "##offset_textbox",
-                                        ptr->gui_input.offset_textbox,
-                                        array_capacity(ptr->gui_input.offset_textbox));
+                                        offs->offset_textbox,
+                                        array_capacity(offs->offset_textbox));
 
                                     ImGui::SameLine();
 
@@ -535,7 +527,7 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
 
                                     // TODO: do this further up before the entry is updated
                                     if (offset_parse_ok) {
-                                        ptr->as_pointer_chain.offset = textbox_offset;
+                                        offs->offset_value = textbox_offset;
                                     }
                                 }
 

@@ -1,8 +1,28 @@
 #pragma once
 
+// TODO: make sure concurrent updated to address table don't happen
+
 enum app_AddressTableEntryKind {
     APP_ADDR_TABLE_ENTRY_NORMAL,
     APP_ADDR_TABLE_ENTRY_POINTER,
+};
+
+// TODO: try to unify AddressTableEntry and PointerOffset, since they're so similar
+struct app_PointerOffset {
+    size_t              offset_value;
+    b32                 last_read_successful;
+    uintptr_t           last_resolved_address;
+    scan_Value          last_dereferenced_value;
+    app_PointerOffset  *next;
+    app_PointerOffset  *prev;
+
+    char offset_textbox[64];
+};
+
+struct app_PointerOffsets {
+    app_PointerOffset *first;
+    app_PointerOffset *last;
+    usize list_node_count;
 };
 
 // TODO: allow displaying as signed or in hex
@@ -16,26 +36,14 @@ struct app_AddressTableEntry {
     scan_Value current_value; // Atomic
     b32 last_read_successful; // Atomic
 
-    struct {
-        usize offset;
 
-        app_AddressTableEntry *next;
-        app_AddressTableEntry *prev;
-        app_AddressTableEntry *first;
-        app_AddressTableEntry *last;
-        usize list_node_count;
 
-        app_AddressTableEntry *sentinel;
-    } as_pointer_chain; // TODO: rename to pointer_chain_member
-
-    struct {
-        char offset_textbox[64];
-    } gui_input;
+    app_PointerOffsets offsets;
+    app_PointerOffset  final_offset; // The extra node all pointer chains have at the end.
 
     app_AddressTableEntry *next;
     app_AddressTableEntry *prev;
     // TODO: pack into struct called table_member
-
 
     // We don't want to actually delete entries mid-frame while iterating
     // through the table, so we defer actual deletion until end of frames.
@@ -60,18 +68,15 @@ usize                  app_addr_table_count(app_AddressTable *tbl);
 
 /* Entry operations */
 app_AddressTableEntry *app_addr_table_entry_clone(Pool *pool, app_AddressTableEntry *entry);
-
-app_AddressTableEntry *app_addr_table_next_in_pointer_chain(app_AddressTableEntry *entry);
-
-app_AddressTableEntry *app_addr_table_entry_push_offset(app_AddressTable *tbl, app_AddressTableEntry *entry);
+app_PointerOffset     *app_addr_table_entry_push_offset(app_AddressTable *tbl, app_AddressTableEntry *entry);
 
 // TODO: remove these
 uintptr_t			   app_addr_table_entry_get_address(app_AddressTableEntry *entry);
 void     			   app_addr_table_entry_set_address(app_AddressTableEntry *entry, uintptr_t value);
-usize    			   app_addr_table_entry_get_offset(app_AddressTableEntry *entry);
 void     			   app_addr_table_entry_set_offset(app_AddressTableEntry *entry, usize value);
 
 void     			   app_addr_table_entry_set_type(app_AddressTableEntry *entry, scan_ValueType type);
+/// TODO
 
 b32      			   app_addr_table_entry_try_get_value(app_AddressTableEntry *entry, scan_Value *out);
 b32      			   app_addr_table_entry_try_get_final_value(app_AddressTableEntry *entry, scan_Value *out);

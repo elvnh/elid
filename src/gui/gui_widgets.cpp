@@ -244,7 +244,7 @@ void gui_address_table(gui_State *gui, app_State *app)
         for (app_AddressTableEntry *entry = list_head(tbl); entry; entry = list_next(entry)) {
             ImGui::TableNextRow();
 
-            app_action_update_address_table_entry_value_synchronously(app, entry);
+            app_action_update_address_table_entry_synchronously(app, entry);
 
             // Turn off highlight on hover and click.
             gui_push_no_selectable_highlight();
