@@ -357,7 +357,7 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
         b32 should_close_popup = false;
         b32 should_save_entry = false;
 
-        // Parse input and try to update the entry.
+        // Parse input.
         {
             entry->value_type = gui->edit_address_table_entry_popup.selected_value_type;
 
@@ -381,7 +381,8 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
                 entry->kind = APP_ADDR_TABLE_ENTRY_NORMAL;
             }
 
-            app_action_update_address_table_entry_synchronously(app, entry);
+            // This is our private copy of the entry, so it won't have been updated already this frame.
+            app_action_update_address_table_entry(app, entry);
         }
 
         // Widgets.

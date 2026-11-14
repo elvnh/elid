@@ -97,18 +97,7 @@ void app_action_edit_value_at_address(app_State *app, uintptr_t address, scan_Va
     }
 }
 
-void app_action_update_address_table_entry_value(app_State *app, app_AddressTableEntry *entry)
-{
-    if (app_has_opened_process(app)) {
-        app_UpdateAddressTableArgs arg = {};
-        arg.app = app;
-        arg.entry = entry;
-
-        wq_push_task(app->per_frame_work_queue, app_async_update_address_table_entry_value, arg);
-    }
-}
-
-void app_action_update_address_table_entry_synchronously(app_State *app, app_AddressTableEntry *entry)
+void app_action_update_address_table_entry(app_State *app, app_AddressTableEntry *entry)
 {
     app_addr_table_entry_update_value(entry, app->open_process_handle);
 }
@@ -135,6 +124,8 @@ void app_action_edit_address_table_entry(app_State *app, app_AddressTableEntry *
 
 void app_action_remove_address_table_entry(app_State *app, app_AddressTableEntry *entry)
 {
+    (void)app;
+
     app_addr_table_remove(entry);
 }
 

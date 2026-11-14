@@ -78,8 +78,7 @@ static void gui__main_window(gui_State *gui, app_State *app)
             array_clear(&app->error_list);
         }
 
-        // TODO: move this to end of frame
-        gui_popup_display_active_popups(gui, app);
+
 
         if (memmi_process_is_null(app->open_process_handle)) {
             ImGui::TextUnformatted("Open process: none");
@@ -127,6 +126,8 @@ static void gui__main_window(gui_State *gui, app_State *app)
             gui_address_table(gui, app);
         } ImGui::EndChild();
     } gui__end_window(gui);
+
+    gui_popup_display_active_popups(gui, app);
 }
 
 void gui__update_and_render(gui_State *gui, app_State *app)
