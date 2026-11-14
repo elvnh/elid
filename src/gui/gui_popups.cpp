@@ -65,7 +65,8 @@ void gui_popup_edit_address_table_entry(gui_State *gui, app_AddressTableEntry *o
             gui->edit_address_table_entry_popup.entry_pool,
             optional_entry);
 
-        char *address_str = str_format_cstr(gui->frame_arena, "%" PRIxPTR, optional_entry->address);
+        uintptr_t address = app_addr_table_entry_get_address(optional_entry);
+        char *address_str = str_format_cstr(gui->frame_arena, "%" PRIxPTR, address);
         strncpy(gui->edit_address_table_entry_popup.address_textbox,
             address_str,
             array_capacity(gui->edit_address_table_entry_popup.address_textbox) - 1);
@@ -365,7 +366,7 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
             parsing_ok = gui_try_parse_address(
                 gui->edit_address_table_entry_popup.address_textbox,
                 address_number_base,
-                &entry->address
+                &entry->base_address.last_resolved_address
             );
 
             if (gui->edit_address_table_entry_popup.is_pointer) {
@@ -477,17 +478,18 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
 
                         ImGui::TableHeadersRow();
 
-                        for (app_PointerOffset *offs = entry->offsets.last;
+                        for (app_MemoryLocation *offs = entry->pointer_offsets.last;
                              offs;
                              offs = list_prev(offs)) {
                             ImGui::TableNextRow();
 
                             uintptr_t  address = offs->last_resolved_address;
-                            usize      offset  = offs->offset_value;
-                            scan_Value value = offs->last_dereferenced_value;;
+                            usize      offset  = offs->address_offset;
+                            scan_Value value = offs->last_dereferenced_value;
 
-                            b32 read_successful = offs->last_read_successful;
                             b32 is_selected = offs == gui->edit_address_table_entry_popup.selected_offset;
+                            // TODO: remove this variable
+                            b32 read_successful = offs->last_read_successful;
 
                             ImGui::PushID(offs); {
                                 // Offset
@@ -530,7 +532,7 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
                                     b32 offset_parse_ok = stn_parse_usize(
                                         offs->offset_textbox,
                                         textbox_length,
-                                        &offs->offset_value,
+                                        &offs->address_offset,
                                         10);
 
                                     parsing_ok = parsing_ok && offset_parse_ok;
@@ -538,9 +540,9 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
                                     if (offset_parse_ok) {
                                         // TODO: should offsets be able to be negative?
                                         if (offset_to_add == 1) {
-                                            offs->offset_value = sat_add_usize(offs->offset_value, 1);
+                                            offs->address_offset = sat_add_usize(offs->address_offset, 1);
                                         } else if (offset_to_add == -1) {
-                                            offs->offset_value = sat_sub_usize(offs->offset_value, 1);
+                                            offs->address_offset = sat_sub_usize(offs->address_offset, 1);
                                         }
 
                                         app_addr_table_entry_initialize_offset_textbox(offs);
@@ -578,7 +580,7 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
 
                 // Offset buttons
                 {
-                    app_PointerOffset *selected_offs =
+                    app_MemoryLocation *selected_offs =
                         gui->edit_address_table_entry_popup.selected_offset;
 
                     if (ImGui::Button("Add")) {

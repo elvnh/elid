@@ -147,10 +147,11 @@ void gui_scan_result_table(gui_State *gui, app_State *app)
                             if (ImGui::Selectable("Add to table")) {
                                 app_AddressTableEntry *entry =
                                     app_addr_table_entry_alloc(app->address_table.pool);
-                                entry->address = address;
+
                                 entry->value_type = app->result_list.value_type;
-                                entry->current_value = match.match->value;
-                                entry->last_read_successful = true;
+                                entry->base_address.last_resolved_address = address;
+                                entry->base_address.last_read_successful = true;
+                                entry->base_address.last_dereferenced_value = match.match->value;
 
                                 app_addr_table_push(&app->address_table, entry);
                             }
@@ -196,7 +197,8 @@ static void gui__address_table_context_menu(app_State *app, gui_State *gui, app_
             scan_Value_Maybe value_opt = {};
             value_opt.ok = app_addr_table_entry_try_get_value(entry, &value_opt.value);
 
-            gui_popup_edit_value(gui, entry->value_type, entry->address, value_opt);
+            uintptr_t address = entry->base_address.last_resolved_address;
+            gui_popup_edit_value(gui, entry->value_type, address, value_opt);
         }
 
         if (ImGui::Selectable("Delete")) {
@@ -204,7 +206,7 @@ static void gui__address_table_context_menu(app_State *app, gui_State *gui, app_
         }
 
         gui__address_watch_context_menu_items(
-            gui, app, entry->address, scan_val_type_get_size(entry->value_type));
+            gui, app, entry->base_address.last_resolved_address, scan_val_type_get_size(entry->value_type));
 
         gui_push_no_selectable_highlight();
 
@@ -251,7 +253,8 @@ void gui_address_table(gui_State *gui, app_State *app)
 
             // Address
             ImGui::TableSetColumnIndex(0); {
-                char *addr_str = gui_cstr_from_address(gui->frame_arena, entry->address);
+                char *addr_str = gui_cstr_from_address(
+                    gui->frame_arena, app_addr_table_entry_get_address(entry));
                 char *addr_id = str_format_cstr(gui->frame_arena, "%s##addr-%p", addr_str, (void *)entry);
 
                 if (ImGui::Selectable(addr_id, false, selectable_flags) && double_click) {

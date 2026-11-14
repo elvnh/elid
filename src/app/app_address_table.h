@@ -7,21 +7,21 @@ enum app_AddressTableEntryKind {
     APP_ADDR_TABLE_ENTRY_POINTER,
 };
 
-// TODO: try to unify AddressTableEntry and PointerOffset, since they're so similar
-struct app_PointerOffset {
-    size_t              offset_value;
-    b32                 last_read_successful;
-    uintptr_t           last_resolved_address;
-    scan_Value          last_dereferenced_value;
-    app_PointerOffset  *next;
-    app_PointerOffset  *prev;
+struct app_MemoryLocation {
+    uintptr_t            last_resolved_address;
+    size_t               address_offset;
+    scan_Value           last_dereferenced_value;
+    b32                  last_read_successful;
+
+    app_MemoryLocation  *next;
+    app_MemoryLocation  *prev;
 
     char offset_textbox[64];
 };
 
-struct app_PointerOffsets {
-    app_PointerOffset *first;
-    app_PointerOffset *last;
+struct app_MemoryLocationList {
+    app_MemoryLocation *first;
+    app_MemoryLocation *last;
     usize list_node_count;
 };
 
@@ -29,17 +29,13 @@ struct app_PointerOffsets {
 struct app_AddressTableEntry {
     app_AddressTableEntryKind kind;
     scan_ValueType value_type;
-    uintptr_t address;        // Atomic
-
-    // Only updated asynchronously by background thread.
-    // TODO: rename to last_known_value
-    scan_Value current_value; // Atomic
-    b32 last_read_successful; // Atomic
 
     Pool *allocated_in_pool;
 
-    app_PointerOffsets offsets;
-    app_PointerOffset  final_offset; // The extra node all pointer chains have at the end.
+    app_MemoryLocation     base_address;
+
+    app_MemoryLocationList pointer_offsets;
+    app_MemoryLocation     final_pointer_offset; // The extra node all pointer chains have at the end.
 
     // We don't want to actually entries mid-frame while iterating
     // through the table, so we defer actual deletion until end of frames.
@@ -67,9 +63,9 @@ usize                  app_addr_table_count(app_AddressTable *tbl);
 /* Entry operations */
 app_AddressTableEntry *app_addr_table_entry_alloc(Pool *pool);
 app_AddressTableEntry *app_addr_table_entry_clone(Pool *pool, app_AddressTableEntry *entry);
-app_PointerOffset     *app_addr_table_entry_push_offset(app_AddressTableEntry *entry, app_PointerOffset *before);
-void                   app_addr_table_entry_remove_offset(app_AddressTableEntry *entry, app_PointerOffset *offs);
-b32                    app_addr_table_entry_swap_offsets(app_PointerOffset *a, app_PointerOffset *b);
+app_MemoryLocation     *app_addr_table_entry_push_offset(app_AddressTableEntry *entry, app_MemoryLocation *before);
+void                   app_addr_table_entry_remove_offset(app_AddressTableEntry *entry, app_MemoryLocation *offs);
+b32                    app_addr_table_entry_swap_offsets(app_MemoryLocation *a, app_MemoryLocation *b);
 
 // TODO: remove these
 uintptr_t			   app_addr_table_entry_get_address(app_AddressTableEntry *entry);
@@ -82,4 +78,4 @@ b32      			   app_addr_table_entry_try_get_final_value(app_AddressTableEntry *e
 b32      			   app_addr_table_entry_try_get_final_address(app_AddressTableEntry *entry, uintptr_t *out);
 b32      			   app_addr_table_entry_update_value(app_AddressTableEntry *entry, memmi_Process proc);
 void     			   app_addr_table_entry_initialize_textboxes(app_AddressTableEntry *entry);
-void     			   app_addr_table_entry_initialize_offset_textbox(app_PointerOffset *offs);
+void     			   app_addr_table_entry_initialize_offset_textbox(app_MemoryLocation *offs);
