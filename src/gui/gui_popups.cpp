@@ -567,6 +567,15 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
                     }
                 } ImGui::EndChild();
 
+                // Offset buttons
+                {
+                    if (ImGui::Button("Add")) {
+                        // TODO: allow inserting in middle
+                        app_addr_table_entry_push_offset(&app->address_table, entry);
+                    }
+
+                }
+
                 // Display the base address of the pointer chain, along with the value
                 // found at that address.
                 if (entry->kind == APP_ADDR_TABLE_ENTRY_POINTER) {

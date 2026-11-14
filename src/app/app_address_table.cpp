@@ -308,7 +308,13 @@ b32 app_addr_table_entry_update_value(app_AddressTableEntry *entry, memmi_Proces
 
 void app_addr_table_entry_initialize_textboxes(app_AddressTableEntry *entry)
 {
-    for (app_AddressTableEntry *e = entry; e; e = list_next(&e->as_pointer_chain)) {
+    ASSERT(entry->as_pointer_chain.sentinel);
+
+    for (app_AddressTableEntry *e = entry;
+         e != entry->as_pointer_chain.sentinel;
+         e = app_addr_table_next_in_pointer_chain(e)) {
+        ASSERT(e);
+
         uintptr_t address = app_addr_table_entry_get_address(e);
         usize offset = app_addr_table_entry_get_offset(e);
 
