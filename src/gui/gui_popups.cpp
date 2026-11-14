@@ -483,18 +483,16 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
                              offs = list_prev(offs)) {
                             ImGui::TableNextRow();
 
-                            uintptr_t  address = offs->last_resolved_address;
-                            usize      offset  = offs->address_offset;
-                            scan_Value value = offs->last_dereferenced_value;
+                            uintptr_t  address         = offs->last_resolved_address;
+                            usize      offset          = offs->address_offset;
+                            scan_Value value           = offs->last_dereferenced_value;
+                            b32        read_successful = offs->last_read_successful;
 
                             b32 is_selected = offs == gui->edit_address_table_entry_popup.selected_offset;
-                            // TODO: remove this variable
-                            b32 read_successful = offs->last_read_successful;
 
                             ImGui::PushID(offs); {
                                 // Offset
                                 ImGui::TableSetColumnIndex(0); {
-                                    // TODO: fix this
                                     ImGuiSelectableFlags selectable_flags =
                                         ImGuiSelectableFlags_SpanAllColumns
                                         | ImGuiSelectableFlags_AllowOverlap;
@@ -507,7 +505,6 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
 
                                     ImGui::SameLine();
 
-                                    usize textbox_length = strlen(offs->offset_textbox);
                                     s32 offset_to_add = 0;
 
                                     if (ImGui::Button("<")) {
@@ -521,7 +518,11 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
                                         "##offset_textbox",
                                         offs->offset_textbox,
                                         array_capacity(offs->offset_textbox),
-                                        input_text_flags | ImGuiInputTextFlags_CharsDecimal);
+                                        input_text_flags
+                                        | ImGuiInputTextFlags_CharsDecimal
+                                        | ImGuiInputTextFlags_AutoSelectAll);
+
+                                    usize offset_textbox_length = strlen(offs->offset_textbox);
 
                                     ImGui::SameLine();
 
@@ -531,7 +532,7 @@ static void gui__popup_edit_address_table_entry(gui_State *gui, app_State *app)
 
                                     b32 offset_parse_ok = stn_parse_usize(
                                         offs->offset_textbox,
-                                        textbox_length,
+                                        offset_textbox_length,
                                         &offs->address_offset,
                                         10);
 
