@@ -65,7 +65,7 @@ void gui_popup_edit_address_table_entry(gui_State *gui, app_AddressTableEntry *o
             gui->edit_address_table_entry_popup.entry_pool,
             optional_entry);
 
-        uintptr_t address = app_addr_table_entry_get_address(optional_entry);
+        uintptr_t address = optional_entry->base_address.last_resolved_address;
         char *address_str = str_format_cstr(gui->frame_arena, "%" PRIxPTR, address);
         strncpy(gui->edit_address_table_entry_popup.address_textbox,
             address_str,

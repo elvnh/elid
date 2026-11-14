@@ -28,9 +28,7 @@ struct app_MemoryLocationList {
 // TODO: allow displaying as signed or in hex
 struct app_AddressTableEntry {
     app_AddressTableEntryKind kind;
-    scan_ValueType value_type;
-
-    Pool *allocated_in_pool;
+    scan_ValueType            value_type;
 
     app_MemoryLocation     base_address;
 
@@ -40,6 +38,8 @@ struct app_AddressTableEntry {
     // We don't want to actually entries mid-frame while iterating
     // through the table, so we defer actual deletion until end of frames.
     b32 flagged_for_deletion;
+
+    Pool *allocated_in_pool;
 
     app_AddressTableEntry *next;
     app_AddressTableEntry *prev;
@@ -66,12 +66,8 @@ app_AddressTableEntry *app_addr_table_entry_clone(Pool *pool, app_AddressTableEn
 app_MemoryLocation     *app_addr_table_entry_push_offset(app_AddressTableEntry *entry, app_MemoryLocation *before);
 void                   app_addr_table_entry_remove_offset(app_AddressTableEntry *entry, app_MemoryLocation *offs);
 b32                    app_addr_table_entry_swap_offsets(app_MemoryLocation *a, app_MemoryLocation *b);
-
-// TODO: remove these
-uintptr_t			   app_addr_table_entry_get_address(app_AddressTableEntry *entry);
-void     			   app_addr_table_entry_set_address(app_AddressTableEntry *entry, uintptr_t value);
-void     			   app_addr_table_entry_set_offset(app_AddressTableEntry *entry, usize value);
-/// TODO
+void                   app_addr_table_offset_propagate_success_status(app_AddressTableEntry *entry,
+                                                                      app_MemoryLocation *offs, b32 status);
 
 b32      			   app_addr_table_entry_try_get_value(app_AddressTableEntry *entry, scan_Value *out);
 b32      			   app_addr_table_entry_try_get_final_value(app_AddressTableEntry *entry, scan_Value *out);

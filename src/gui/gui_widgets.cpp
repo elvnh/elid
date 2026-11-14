@@ -254,7 +254,7 @@ void gui_address_table(gui_State *gui, app_State *app)
             // Address
             ImGui::TableSetColumnIndex(0); {
                 char *addr_str = gui_cstr_from_address(
-                    gui->frame_arena, app_addr_table_entry_get_address(entry));
+                    gui->frame_arena, entry->base_address.last_resolved_address);
                 char *addr_id = str_format_cstr(gui->frame_arena, "%s##addr-%p", addr_str, (void *)entry);
 
                 if (ImGui::Selectable(addr_id, false, selectable_flags) && double_click) {

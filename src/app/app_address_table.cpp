@@ -157,24 +157,12 @@ b32 app_addr_table_entry_swap_offsets(app_MemoryLocation *a, app_MemoryLocation 
     return result;
 }
 
-uintptr_t app_addr_table_entry_get_address(app_AddressTableEntry *entry)
-{
-    uintptr_t result = entry->base_address.last_resolved_address;
-
-    return result;
-}
-
-void app_addr_table_entry_set_address(app_AddressTableEntry *entry, uintptr_t value)
-{
-    atomic_store_ptr(&entry->base_address.last_resolved_address, value);
-}
-
 b32 app_addr_table_entry_try_get_value(app_AddressTableEntry *entry, scan_Value *out)
 {
-    b32 result = atomic_load_s32(&entry->base_address.last_read_successful);
+    b32 result = entry->base_address.last_read_successful;
 
     if (result) {
-        scan_val_atomic_move(out, &entry->base_address.last_dereferenced_value);
+        *out = entry->base_address.last_dereferenced_value;
     }
 
     return result;

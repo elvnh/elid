@@ -78,6 +78,7 @@ static void gui__main_window(gui_State *gui, app_State *app)
             array_clear(&app->error_list);
         }
 
+        // TODO: move this to end of frame
         gui_popup_display_active_popups(gui, app);
 
         if (memmi_process_is_null(app->open_process_handle)) {
